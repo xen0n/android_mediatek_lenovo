@@ -24,7 +24,7 @@ my @dfoDisableArray = ();
 foreach my $tempDfo (@dfoAll) {
     my $isFind = 0;
     #only eng load will enable dfo
-    if ($ENV{"TARGET_BUILD_VARIANT"} eq "eng") {
+    if ($ENV{"TARGET_BUILD_VARIANT"} ne "user" && $ENV{"TARGET_BUILD_VARIANT"} ne "userdebug") {
         foreach my $isDfoSupport (@dfoSupport) {
             if ($ENV{$isDfoSupport} eq "yes") {
                 my $dfoSupportName = $isDfoSupport."_VALUE";

@@ -1,94 +1,25 @@
-# Copyright Statement:
-#
-# This software/firmware and related documentation ("MediaTek Software") are
-# protected under relevant copyright laws. The information contained herein
-# is confidential and proprietary to MediaTek Inc. and/or its licensors.
-# Without the prior written permission of MediaTek inc. and/or its licensors,
-# any reproduction, modification, use or disclosure of MediaTek Software,
-# and information contained herein, in whole or in part, shall be strictly prohibited.
-#
-# MediaTek Inc. (C) 2010. All rights reserved.
-#
-# BY OPENING THIS FILE, RECEIVER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
-# THAT THE SOFTWARE/FIRMWARE AND ITS DOCUMENTATIONS ("MEDIATEK SOFTWARE")
-# RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE PROVIDED TO RECEIVER ON
-# AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NONINFRINGEMENT.
-# NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH RESPECT TO THE
-# SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY, INCORPORATED IN, OR
-# SUPPLIED WITH THE MEDIATEK SOFTWARE, AND RECEIVER AGREES TO LOOK ONLY TO SUCH
-# THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO. RECEIVER EXPRESSLY ACKNOWLEDGES
-# THAT IT IS RECEIVER'S SOLE RESPONSIBILITY TO OBTAIN FROM ANY THIRD PARTY ALL PROPER LICENSES
-# CONTAINED IN MEDIATEK SOFTWARE. MEDIATEK SHALL ALSO NOT BE RESPONSIBLE FOR ANY MEDIATEK
-# SOFTWARE RELEASES MADE TO RECEIVER'S SPECIFICATION OR TO CONFORM TO A PARTICULAR
-# STANDARD OR OPEN FORUM. RECEIVER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S ENTIRE AND
-# CUMULATIVE LIABILITY WITH RESPECT TO THE MEDIATEK SOFTWARE RELEASED HEREUNDER WILL BE,
-# AT MEDIATEK'S OPTION, TO REVISE OR REPLACE THE MEDIATEK SOFTWARE AT ISSUE,
-# OR REFUND ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY RECEIVER TO
-# MEDIATEK FOR SUCH MEDIATEK SOFTWARE AT ISSUE.
-#
-# The following software/firmware and/or related documentation ("MediaTek Software")
-# have been modified by MediaTek Inc. All revisions are subject to any receiver's
-# applicable license agreements with MediaTek Inc.
-
-ifneq ($(CUSTOM_MODEM),)
-MTK_MODEM_PATH = $(foreach p,$(CUSTOM_MODEM),mediatek/custom/common/modem/$(p))
-MTK_MODEM_FILE := $(foreach p, $(MTK_MODEM_PATH),$(wildcard $(p)/modem*.mak))
-
-$(foreach m,$(CUSTOM_MODEM),$(shell cat $(wildcard mediatek/custom/common/modem/$(m)/modem*.mak) | \
-sed -e '/^[ \t]*#/'d | awk -F# '{print $1}' | sed -n '/^\S\+[ \t]*=[ \t]*\S\+/'p | \
-      sed -e 's/^/MODEM_/' > mediatek/custom/common/modem/$(m)/modem_feature_$(m).mak))
-
-$(foreach m,$(CUSTOM_MODEM), $(eval include mediatek/custom/common/modem/$(m)/modem_feature_$(m).mak))
-endif
-
+# note: modem makefile operation is moved to mediatek/build/libs/custom.mk for common use
 #######################################################
 # dependency check between AP side & modem side
 
 ifeq (yes,$(strip $(MTK_TTY_SUPPORT)))
-   ifeq (FALSE, $(strip $(MODEM_CTM_SUPPORT)))
-    $(call dep-err-seta-or-setb,MTK_TTY_SUPPORT,no,CTM_SUPPORT,true)
-   endif
+  ifneq ($(filter FALSE,$(strip $(MODEM_CTM_SUPPORT))),)
+    $(call dep-err-ona-or-offb,CTM_SUPPORT,MTK_TTY_SUPPORT)
+  endif
 endif
 
 ifneq (yes,$(strip $(MTK_TLR_SUPPORT)))
-    ifeq (yes,$(strip $(MTK_VT3G324M_SUPPORT)))
-        ifeq (FALSE,$(MODEM_SP_VIDEO_CALL_SUPPORT))
-            $(call dep-err-ona-or-offb,SP_VIDEO_CALL_SUPPORT,MTK_VT3G324M_SUPPORT)
-        endif
-    endif
-endif
-
-ifeq (yes,$(strip $(MTK_VT3G324M_SUPPORT)))
-  ifeq ($(findstring _3g,$(MTK_MODEM_SUPPORT) $(MTK_MD2_SUPPORT)),)
-#     $(call dep-err-common, please turn off MTK_VT3G324M_SUPPORT or set MTK_MODEM_SUPPORT/MTK_MD2_SUPPORT as modem_3g_tdd/modem_3g_fdd)
-  endif
-endif
-
-ifneq ($(findstring modem_3g,$(MTK_MODEM_SUPPORT)),)
-  ifeq ($(findstring hspa,$(CUSTOM_MODEM)),)
-#    $(call dep-err-seta-or-setb,CUSTOM_MODEM,xxx_hspa_xxx,MTK_MODEM_SUPPORT,none 3g)
-  endif
-endif
-
-ifeq (yes,$(strip $(MTK_ENABLE_MD2)))
-  ifeq (,$(strip $(MTK_MD2_SUPPORT)))
-#     $(call dep-err-common,please set MTK_MD2_SUPPORT when MTK_ENABLE_MD2 is enabled)
-  endif
-endif
-
-# temp fpr MT6573
-ifeq (MT6573,$(strip $(MTK_PLATFORM)))
-  ifeq (UMTS_FDD_MODE_SUPPORT,$(strip $(MODEM_UMTS_MODE_SUPPORT)))
-    ifneq (modem_3g_fdd,$(strip $(MTK_MODEM_SUPPORT)))
-      $(call dep-err-common,please set MTK_MODEM_SUPPORT=modem_3g_fdd when UMTS_MODE_SUPPORT=$(UMTS_MODE_SUPPORT))
+  ifeq (yes,$(strip $(MTK_VT3G324M_SUPPORT)))
+    ifneq ($(filter FALSE,$(MODEM_SP_VIDEO_CALL_SUPPORT)),)
+      $(call dep-err-ona-or-offb,SP_VIDEO_CALL_SUPPORT,MTK_VT3G324M_SUPPORT)
     endif
   endif
-
-  ifeq (UMTS_TDD128_MODE_SUPPORT,$(strip $(MODEM_UMTS_MODE_SUPPORT)))
-    ifneq (modem_3g_tdd,$(strip $(MTK_MODEM_SUPPORT)))
-      $(call dep-err-common,please set MTK_MODEM_SUPPORT=modem_3g_tdd when UMTS_MODE_SUPPORT=$(UMTS_MODE_SUPPORT))
+endif
+#######################################################
+ifeq (MT6572,$(strip $(MTK_PLATFORM)))
+  ifneq (yes,$(strip $(MTK_EMMC_SUPPORT)))
+    ifneq (yes,$(strip $(MTK_CACHE_MERGE_SUPPORT)))
+      $(call dep-err-ona-or-onb,MTK_CACHE_MERGE_SUPPORT,MTK_EMMC_SUPPORT)
     endif
   endif
 endif
@@ -142,21 +73,21 @@ ifneq (yes,$(strip $(MTK_LCA_RAM_OPTIMIZE)))
 endif
 ifeq (yes,$(strip $(MTK_LCA_ROM_OPTIMIZE)))
   ifneq (yes,$(strip $(MTK_TABLET_PLATFORM)))
-      ifeq ($(filter -sw600dp,$(MTK_PRODUCT_LOCALES)),)
-         $(call dep-err-common, pelase add -sw600dp in MTK_PRODUCT_LOCALES or turn on MTK_TABLET_PLATFORM or turn off MTK_LCA_ROM_OPTIMIZE)
+      ifeq ($(filter -sw600dp,$(MTK_PRODUCT_AAPT_CONFIG)),)
+         $(call dep-err-common, pelase add -sw600dp in MTK_PRODUCT_AAPT_CONFIG or turn on MTK_TABLET_PLATFORM or turn off MTK_LCA_ROM_OPTIMIZE)
       endif
-      ifeq ($(filter -sw600dp,$(MTK_PRODUCT_LOCALES)),)
-         $(call dep-err-common, pelase add -sw720dp in MTK_PRODUCT_LOCALES or turn on MTK_TABLET_PLATFORM or turn off MTK_LCA_ROM_OPTIMIZE)
+      ifeq ($(filter -sw720dp,$(MTK_PRODUCT_AAPT_CONFIG)),)
+         $(call dep-err-common, pelase add -sw720dp in MTK_PRODUCT_AAPT_CONFIG or turn on MTK_TABLET_PLATFORM or turn off MTK_LCA_ROM_OPTIMIZE)
       endif
   endif
 endif
 ifneq (yes,$(strip $(MTK_LCA_ROM_OPTIMIZE)))
   ifeq (yes,$(strip $(MTK_TABLET_PLATFORM)))
-      ifneq ($(filter -sw600dp,$(MTK_PRODUCT_LOCALES)),)
-         $(call dep-err-common, pelase removed -sw600dp in MTK_PRODUCT_LOCALES or turn off MTK_TABLET_PLATFORM or turn on MTK_LCA_ROM_OPTIMIZE)
+      ifneq ($(filter -sw600dp,$(MTK_PRODUCT_AAPT_CONFIG)),)
+         $(call dep-err-common, pelase removed -sw600dp in MTK_PRODUCT_AAPT_CONFIG or turn off MTK_TABLET_PLATFORM or turn on MTK_LCA_ROM_OPTIMIZE)
       endif      
-      ifneq ($(filter -sw600dp,$(MTK_PRODUCT_LOCALES)),)
-         $(call dep-err-common, pelase removed -sw720dp in MTK_PRODUCT_LOCALES or turn off MTK_TABLET_PLATFORM or turn on MTK_LCA_ROM_OPTIMIZE)
+      ifneq ($(filter -sw720dp,$(MTK_PRODUCT_AAPT_CONFIG)),)
+         $(call dep-err-common, pelase removed -sw720dp in MTK_PRODUCT_AAPT_CONFIG or turn off MTK_TABLET_PLATFORM or turn on MTK_LCA_ROM_OPTIMIZE)
       endif
   endif
 endif
@@ -167,21 +98,6 @@ endif
 ifeq (yes,$(strip $(MTK_WIFI_HOTSPOT_SUPPORT)))
   ifneq (yes, $(strip $(MTK_WLAN_SUPPORT)))
     $(call dep-err-ona-or-offb, MTK_WLAN_SUPPORT, MTK_WIFI_HOTSPOT_SUPPORT)
-  endif
-endif
-
-##############################################################
-# for camera feature
-
-ifeq (no,$(strip $(MTK_CAMERA_APP)))
-  ifeq (yes,$(strip $(MTK_CAMERA_VIDEO_ZOOM)))
-     $(call dep-err-ona-or-offb, MTK_CAMERA_APP, MTK_CAMERA_VIDEO_ZOOM)
-  endif
-endif
-
-ifeq (yes,$(strip $(MTK_CAMERA_APP)))
-  ifeq (,$(strip $(CUSTOM_HAL_CAMERA)))
-     $(call dep-err-seta-or-offb, CUSTOM_HAL_CAMERA,camera, MTK_CAMERA_APP)
   endif
 endif
 
@@ -200,45 +116,12 @@ ifeq (yes,$(strip $(HAVE_MATV_FEATURE)))
   endif
 endif
 
-
-##############################################################
-# for fm feature
-
-ifeq (yes,$(strip $(MTK_MT519X_FM_SUPPORT)))
-  ifeq (no,$(strip $(HAVE_MATV_FEATURE)))
-     $(call dep-err-ona-or-offb, HAVE_MATV_FEATURE, MTK_MT519X_FM_SUPPORT)
-  endif
-endif
-
-##############################################################
-# for wcdma feature
-ifeq (yes,$(strip $(MTK_WCDMA_SUPPORT)))
-   ifeq (2, $(words,$(subst gprs, ,$(CUSTOM_MODEM))))
-    $(call dep-err-seta-or-setb,MTK_WCDMA_SUPPORT,no,CUSTOM_MODEM,$(subst gprs,hspa,$(CUSTOM_MODEM)))
-   endif
-endif
-
 ##############################################################
 # for gps feature
 
 ifeq (yes,$(strip $(MTK_AGPS_APP)))
   ifeq (no,$(strip $(MTK_GPS_SUPPORT)))
      $(call dep-err-ona-or-offb, MTK_GPS_SUPPORT, MTK_AGPS_APP)
-  endif
-endif
-
-##############################################################
-# for BT feature
-
-ifeq (yes,$(strip $(MTK_WLANBT_SINGLEANT)))
-  ifneq (yes,$(strip $(MTK_BT_SUPPORT)))
-     $(call dep-err-ona-or-offb, MTK_BT_SUPPORT, MTK_WLANBT_SINGLEANT)
-  endif
-endif
-
-ifeq (yes,$(strip $(MTK_WLANBT_SINGLEANT)))
-  ifneq (yes,$(strip $(MTK_WLAN_SUPPORT)))
-     $(call dep-err-ona-or-offb, MTK_WLAN_SUPPORT, MTK_WLANBT_SINGLEANT)
   endif
 endif
 
@@ -266,13 +149,6 @@ endif
 ifeq (yes, $(strip $(MTK_MULTISIM_RINGTONE_SUPPORT)))
   ifneq (yes, $(strip $(GEMINI)))
     $(call dep-err-ona-or-offb, GEMINI, MTK_MULTISIM_RINGTONE_SUPPORT)
-  endif
-endif
-##############################################################
-# for DSPIRDBG feature
-ifeq (yes, $(strip $(MTK_DSPIRDBG)))
-  ifneq (yes, $(strip $(MTK_MDLOGGER_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_MDLOGGER_SUPPORT, MTK_DSPIRDBG)
   endif
 endif
 
@@ -323,76 +199,6 @@ endif
 ifeq (yes, $(strip $(MTK_RSDM_APP)))
   ifeq (yes, $(strip $(MTK_MDM_APP)))
     $(call dep-err-offa-or-offb, MTK_RSDM_APP, MTK_MDM_APP)
-  endif
-endif
-
-##############################################################
-# for IME
-
-ifeq (yes,$(MTK_INTERNAL))
-  ifeq (no,$(MTK_INTERNAL_LANG_SET))
-     $(call dep-err-ona-or-offb, MTK_INTERNAL_LANG_SET, MTK_INTERNAL)
-  endif
-endif
-
-ifeq (yes,$(MTK_INTERNAL_LANG_SET))
-  ifeq (no,$(MTK_INTERNAL))
-     $(call dep-err-ona-or-offb, MTK_INTERNAL, MTK_INTERNAL_LANG_SET)
-  endif
-endif
-
-
-ifneq (yes, $(strip $(MTK_IME_SUPPORT)))
-  ifeq (yes, $(strip $(MTK_IME_FRENCH_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_FRENCH_SUPPORT)
-  endif
-  
-  ifeq (yes, $(strip $(MTK_IME_RUSSIAN_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_RUSSIAN_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_GERMAN_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_GERMAN_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_SPANISH_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_SPANISH_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_ITALIAN_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_ITALIAN_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_PORTUGUESE_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_PORTUGUESE_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_TURKISH_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_TURKISH_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_MALAY_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_MALAY_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_HINDI_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_HINDI_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_ARABIC_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_ARABIC_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_THAI_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_THAI_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_VIETNAM_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_VIETNAM_SUPPORT)
-  endif
-
-  ifeq (yes, $(strip $(MTK_IME_INDONESIAN_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_IME_SUPPORT, MTK_IME_INDONESIAN_SUPPORT)
   endif
 endif
 
@@ -587,42 +393,9 @@ endif
 ##############################################################
 # for emmc feature
 ifneq (yes,$(strip $(MTK_EMMC_SUPPORT)))
-  ifneq (,$(strip $(EMMC_CHIP)))
-    $(call dep-err-common, PLEASE set EMMC_CHIP as NULL when MTK_EMMC_SUPPORT=no)
+  ifeq (yes,$(strip $(MTK_FSCK_TUNE)))
+    $(call dep-err-ona-or-offb, MTK_EMMC_SUPPORT, MTK_FSCK_TUNE)
   endif
-endif
-
-ifneq (yes,$(strip $(MTK_EMMC_SUPPORT)))
-  ifeq (yes,$(strip $(MTK_2SDCARD_SWAP)))
-    ifneq (yes,$(strip $(MTK_MULTI_STORAGE_SUPPORT)))
-      $(call dep-err-ona-or-offb, MTK_MULTI_STORAGE_SUPPORT, MTK_2SDCARD_SWAP)
-    endif
-  else
-    ifeq (yes,$(strip $(MTK_MULTI_STORAGE_SUPPORT)))
-      $(call dep-err-ona-or-offb, MTK_2SDCARD_SWAP, MTK_MULTI_STORAGE_SUPPORT)
-    endif
-  endif
-  ifeq (yes,$(strip $(MTK_2SDCARD_SWAP)))
-    ifneq (yes,$(strip $(MTK_FAT_ON_NAND)))
-      $(call dep-err-ona-or-offb, MTK_FAT_ON_NAND, MTK_2SDCARD_SWAP)
-    endif
-  else
-    ifeq (yes,$(strip $(MTK_FAT_ON_NAND)))
-      $(call dep-err-ona-or-offb, MTK_2SDCARD_SWAP, MTK_FAT_ON_NAND)
-    endif
-  endif
-else
-  ifeq (yes,$(strip $(MTK_2SDCARD_SWAP)))
-    ifneq (yes,$(strip $(MTK_MULTI_STORAGE_SUPPORT)))
-      $(call dep-err-ona-or-offb, MTK_MULTI_STORAGE_SUPPORT, MTK_2SDCARD_SWAP)
-    endif
-  endif
-endif
-##############################################################
-ifeq (yes, $(strip $(strip $(MTK_GEMINI_SMART_SIM_SWITCH))))
-  ifneq (yes, $(strip $(MTK_DT_SUPPORT)))
-      $(call dep-err-ona-or-offb, MTK_DT_SUPPORT, MTK_GEMINI_SMART_SIM_SWITCH)
-  endif 
 endif
 ##############################################################
 # for emmc otp
@@ -646,18 +419,11 @@ ifeq (TRUE,$(strip $(MODEM_OTP_SUPPORT)))
   endif
 endif
 
-ifeq (yes,$(strip $(MTK_SHARED_SDCARD)))
-  ifneq (yes,$(strip $(MTK_EMMC_SUPPORT)))
-    $(call dep-err-ona-or-offb, MTK_EMMC_SUPPORT, MTK_SHARED_SDCARD)
+ifeq (yes, $(strip $(MTK_COMBO_NAND_SUPPORT)))
+  ifeq (yes, $(strip $(MTK_EMMC_SUPPORT)))
+    $(call dep-err-common, Please turn off MTK_COMBO_NAND_SUPPORT or turn off MTK_EMMC_SUPPORT)
   endif
 endif
-
-ifeq (yes,$(strip $(MTK_FAT_ON_NAND)))
-  ifeq (yes,$(strip $(MTK_EMMC_SUPPORT)))
-     $(call dep-err-offa-or-offb, MTK_EMMC_SUPPORT, MTK_FAT_ON_NAND)
-  endif
-endif
-
 ##############################################################
 # for NFC feature
 ifeq (yes,$(strip $(MTK_NFC_SUPPORT)))
@@ -689,6 +455,24 @@ ifeq (no,$(strip $(MTK_NFC_SUPPORT)))
     $(call dep-err-ona-or-offb, MTK_NFC_SUPPORT, MTK_BEAM_PLUS_SUPPORT)
   endif
 endif
+
+ifneq (yes,$(strip $(MTK_NFC_SUPPORT)))
+  ifeq (yes,$(strip $(MTK_NFC_APP_SUPPORT)))
+    $(call dep-err-ona-or-offb, MTK_NFC_SUPPORT, MTK_NFC_APP_SUPPORT)
+  endif
+  ifeq (yes,$(strip $(MTK_NFC_ADDON_SUPPORT)))
+    $(call dep-err-ona-or-offb, MTK_NFC_SUPPORT, MTK_NFC_ADDON_SUPPORT)
+  endif
+endif
+
+ifeq (yes,$(strip $(MTK_WIFIWPSP2P_NFC_SUPPORT)))
+  ifneq (yes,$(strip $(MTK_WIFI_P2P_SUPPORT)))
+    $(call dep-err-ona-or-offb, MTK_WIFI_P2P_SUPPORT, MTK_WIFIWPSP2P_NFC_SUPPORT)
+  endif
+  ifneq (yes,$(strip $(MTK_NFC_SUPPORT)))
+    $(call dep-err-ona-or-offb, MTK_NFC_SUPPORT, MTK_WIFIWPSP2P_NFC_SUPPORT)
+  endif
+endif
 ##############################################################
 # for fm feature
 ifeq (no,$(strip $(MTK_FM_SUPPORT)))
@@ -696,15 +480,6 @@ ifeq (no,$(strip $(MTK_FM_SUPPORT)))
     $(call dep-err-ona-or-offb, MTK_FM_SUPPORT, MTK_FM_RECORDING_SUPPORT)
   endif
 endif
-
-##############################################################
-# for launcher2 feature
-ifeq (2G,$(strip $(CUSTOM_DRAM_SIZE)))
-  ifneq (no,$(strip $(MTK_LAUNCHER_ALLAPPSGRID)))
-     $(call dep-err-seta-or-offb, CUSTOM_DRAM_SIZE,non $(CUSTOM_DRAM_SIZE), MTK_LAUNCHER_ALLAPPSGRID)
-  endif
-endif
-
 
 ##############################################################
 # for Brazil customization
@@ -723,23 +498,6 @@ ifeq (no,$(strip $(MTK_BRAZIL_CUSTOMIZATION)))
   endif
   ifeq (yes,$(strip $(MTK_BRAZIL_CUSTOMIZATION_CLARO)))
     $(call dep-err-common, please set MTK_BRAZIL_CUSTOMIZATION_CLARO=no when MTK_BRAZIL_CUSTOMIZATION=no)
-  endif
-endif
-
-##############################################################
-# for 6575 display quality enhancement
-ifeq (,$(filter MT6575 MT6577, $(MTK_PLATFORM)))
-  ifdef MTK_75DISPLAY_ENHANCEMENT_SUPPORT
-    $(call dep-err-common, MTK_75DISPLAY_ENHANCEMENT_SUPPORT could only be defined when MTK_PLATFORM = MT6575/MT6577)
-  endif
-endif
-
-##############################################################
-# for TDD
-
-ifeq (yes,$(MODEM_UMTS_TDD128_MODE))
-  ifneq (modem_3g,$(MTK_MODEM_SUPPORT))
-#     $(call dep-err-seta-or-setb, MODEM_UMTS_TDD128_MODE,no,MTK_MODEM_SUPPORT,modem_3g)
   endif
 endif
 
@@ -827,53 +585,44 @@ ifeq (yes, $(strip $(MTK_MDM_SCOMO)))
      $(call dep-err-ona-or-offb,MTK_MDM_APP,MTK_MDM_SCOMO)
   endif
 endif
-#############################################################
-# for MTK_APKINSTALLER_APP
-
-ifeq (OP02_SPEC0200_SEGC,$(strip $(OPTR_SPEC_SEG_DEF)))
-  ifeq ($(strip $(MTK_APKINSTALLER_APP)),no)
-     $(call dep-err-seta-or-onb, OPTR_SPEC_SEG_DEF,non OP02_SPEC0200_SEGC,MTK_APKINSTALLER_APP)  
-  endif
-endif
 
 #############################################################
-
 ifneq (yes,$(strip $(MTK_TABLET_PLATFORM)))
   ifeq (240,$(strip $(LCM_WIDTH)))
     ifeq (320,$(strip $(LCM_HEIGHT)))
-      ifeq ($(filter ldpi,$(MTK_PRODUCT_LOCALES)),)
-        $(call dep-err-common, Please add ldpi to MTK_PRODUCT_LOCALES or set different LCM_WIDTH and LCM_HEIGHT)
+      ifeq ($(filter ldpi,$(MTK_PRODUCT_AAPT_CONFIG)),)
+        $(call dep-err-common, Please add ldpi to MTK_PRODUCT_AAPT_CONFIG or set different LCM_WIDTH and LCM_HEIGHT)
       endif       
     endif
   endif
   ifeq (320,$(strip $(LCM_WIDTH)))
     ifeq (480,$(strip $(LCM_HEIGHT)))
-      ifeq ($(filter mdpi,$(MTK_PRODUCT_LOCALES)),)
-        $(call dep-err-common, Please add mdpi to MTK_PRODUCT_LOCALES or set different LCM_WIDTH and LCM_HEIGHT)
+      ifeq ($(filter mdpi,$(MTK_PRODUCT_AAPT_CONFIG)),)
+        $(call dep-err-common, Please add mdpi to MTK_PRODUCT_AAPT_CONFIG or set different LCM_WIDTH and LCM_HEIGHT)
       endif       
     endif
   endif
   ifeq (480,$(strip $(LCM_WIDTH)))
     ifeq (800,$(strip $(LCM_HEIGHT)))
-      ifeq ($(filter hdpi,$(MTK_PRODUCT_LOCALES)),)
-        $(call dep-err-common, Please add hdpi to MTK_PRODUCT_LOCALES or set different LCM_WIDTH and LCM_HEIGHT)
+      ifeq ($(filter hdpi,$(MTK_PRODUCT_AAPT_CONFIG)),)
+        $(call dep-err-common, Please add hdpi to MTK_PRODUCT_AAPT_CONFIG or set different LCM_WIDTH and LCM_HEIGHT)
       endif       
     endif
   endif
   ifeq (540,$(strip $(LCM_WIDTH)))
     ifeq (960,$(strip $(LCM_HEIGHT)))
-      ifeq ($(filter hdpi,$(MTK_PRODUCT_LOCALES)),)
-        $(call dep-err-common, Please add hdpi to MTK_PRODUCT_LOCALES or set different LCM_WIDTH and LCM_HEIGHT)
+      ifeq ($(filter hdpi,$(MTK_PRODUCT_AAPT_CONFIG)),)
+        $(call dep-err-common, Please add hdpi to MTK_PRODUCT_AAPT_CONFIG or set different LCM_WIDTH and LCM_HEIGHT)
       endif       
     endif
   endif
   ifeq (720,$(strip $(LCM_WIDTH)))
     ifeq (1280,$(strip $(LCM_HEIGHT)))
-      ifeq ($(filter hdpi,$(MTK_PRODUCT_LOCALES)),)
-        $(call dep-err-common, Please add hdpi to MTK_PRODUCT_LOCALES or set different LCM_WIDTH and LCM_HEIGHT)
+      ifeq ($(filter hdpi,$(MTK_PRODUCT_AAPT_CONFIG)),)
+        $(call dep-err-common, Please add hdpi to MTK_PRODUCT_AAPT_CONFIG or set different LCM_WIDTH and LCM_HEIGHT)
       endif  
-      ifeq ($(filter xhdpi,$(MTK_PRODUCT_LOCALES)),)
-        $(call dep-err-common, Please add xhdpi to MTK_PRODUCT_LOCALES or set different LCM_WIDTH and LCM_HEIGHT)
+      ifeq ($(filter xhdpi,$(MTK_PRODUCT_AAPT_CONFIG)),)
+        $(call dep-err-common, Please add xhdpi to MTK_PRODUCT_AAPT_CONFIG or set different LCM_WIDTH and LCM_HEIGHT)
       endif 
     endif
   endif
@@ -926,32 +675,18 @@ ifneq ($(strip $(MTK_LOG2SERVER_APP)),yes)
   endif
 endif
 ############################################################
-ifeq ($(strip $(MTK_MEDIA3D_APP)),yes)
-  ifneq ($(strip $(MTK_TABLET_PLATFORM)),yes)
-    ifeq ($(filter xhdpi hdpi ,$(MTK_PRODUCT_LOCALES)),)
-      $(call dep-err-common,MTK_MEDIA3D_APP can set to yes only if MTK_TABLET_PLATFORM is yes or MTK_PRODUCT_LOCALES contains xhdpi hdpi) 
+ifeq ($(strip $(MTK_INTERNAL_HDMI_SUPPORT)),yes)
+  ifeq ($(strip $(MTK_INTERNAL_MHL_SUPPORT)),yes)
+    $(call dep-err-offa-or-offb, MTK_INTERNAL_HDMI_SUPPORT, MTK_INTERNAL_MHL_SUPPORT)
+  endif
+  ifneq ($(strip $(MTK_HDMI_SUPPORT)),yes)
+    $(call dep-err-ona-or-offb, MTK_HDMI_SUPPORT, MTK_INTERNAL_HDMI_SUPPORT)
+  endif
+else
+  ifeq ($(strip $(MTK_INTERNAL_MHL_SUPPORT)),yes)
+    ifneq ($(strip $(MTK_HDMI_SUPPORT)),yes)
+      $(call dep-err-ona-or-offb, MTK_HDMI_SUPPORT, MTK_INTERNAL_MHL_SUPPORT)
     endif
-  endif
-  ifeq ($(filter xhdpi hdpi ,$(MTK_PRODUCT_LOCALES)),)
-    ifneq ($(strip $(MTK_TABLET_PLATFORM)),yes)
-      $(call dep-err-common,MTK_MEDIA3D_APP can set to yes only if MTK_TABLET_PLATFORM is yes or MTK_PRODUCT_LOCALES contains xhdpi hdpi) 
-    endif
-  endif
-endif
-
-############################################################
-ifeq ($(strip $(MTK_HDMI_SUPPORT)),yes)
-  ifeq ($(strip $(CUSTOM_KERNEL_HDMI)),)
-    $(call dep-err-common, CUSTOM_KERNEL_HDMI should not be NULL when MTK_HDMI_SUPPORT=yes)
-  endif
-endif
-
-ifeq (MT6572,$(strip $(MTK_PLATFORM)))
-  ifeq ($(strip $(MTK_HDMI_SUPPORT)),yes)
-    $(call dep-err-common, Please turn off MTK_HDMI_SUPPORT when MTK_PLATFORM=MT6572)
-  endif
-  ifneq ($(strip $(CUSTOM_KERNEL_HDMI)),)
-    $(call dep-err-common, Please do not set CUSTOM_KERNEL_HDMI when MTK_PLATFORM=MT6572)
   endif
 endif
 ############################################################
@@ -993,18 +728,6 @@ ifneq ($(filter OP02%, $(OPTR_SPEC_SEG_DEF)),)
   ifeq ($(strip $(MTK_GEMINI_3G_SWITCH)),yes)
     $(call dep-err-common, Please do not set OPTR_SPEC_SEG_DEF as OP02* or set MTK_GEMINI_3G_SWITCH as no)
   endif
-  ifneq ($(strip $(MTK_APKINSTALLER_APP)),yes)
-    $(call dep-err-common, Please do not set OPTR_SPEC_SEG_DEF as OP02* or set MTK_APKINSTALLER_APP as yes)
-  endif
-  ifneq ($(strip $(MTK_SMSREG_APP)),yes)
-    $(call dep-err-common, Please do not set OPTR_SPEC_SEG_DEF as OP02* or set MTK_SMSREG_APP as yes)
-  endif
-endif
-############################################################
-ifeq ($(strip $(OPTR_SPEC_SEG_DEF)),OP01_SPEC0200_SEGC)
-  ifeq ($(strip $(MTK_GEMINI_3G_SWITCH)),yes)
-    $(call dep-err-common, Please do not set OPTR_SPEC_SEG_DEF as OP01* or set MTK_GEMINI_3G_SWITCH as no)
-  endif
 endif
 ############################################################
 ifeq ($(strip $(MTK_MT8193_HDCP_SUPPORT)),yes)
@@ -1034,19 +757,345 @@ ifneq ($(filter OP02%, $(OPTR_SPEC_SEG_DEF)),)
     $(call dep-err-common, Please do not set OPTR_SPEC_SEG_DEF as OP02* or set MTK_SIP_SUPPORT as no)
   endif
 endif
-
-ifeq ($(strip $(MTK_GAMELOFT_GLL_ULC_CN_APP)), yes)
-  ifeq ($(strip $(MTK_GAMELOFT_GLL_ULC_WW_APP)), yes)
-    $(call dep-err-offa-or-offb, MTK_GAMELOFT_GLL_ULC_CN_APP, MTK_GAMELOFT_GLL_ULC_WW_APP)
+############################################################
+ifeq (yes, $(strip $(MTK_WVDRM_L1_SUPPORT)))
+  ifneq (yes , $(strip $(MTK_IN_HOUSE_TEE_SUPPORT)))
+    ifneq (yes, $(strip $(TRUSTONIC_TEE_SUPPORT)))
+      $(call dep-err-common, Please turn on MTK_IN_HOUSE_TEE_SUPPORT or turn on TRUSTONIC_TEE_SUPPORT when MTK_WVDRM_L1_SUPPORT set as yes)
+    endif
+  endif
+  ifneq (yes , $(strip $(MTK_DRM_KEY_MNG_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_DRM_KEY_MNG_SUPPORT,MTK_WVDRM_L1_SUPPORT)
+  endif
+  ifneq (yes , $(strip $(MTK_SEC_VIDEO_PATH_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_SEC_VIDEO_PATH_SUPPORT,MTK_WVDRM_L1_SUPPORT)
   endif
 endif
-###########################################################
+ifeq (yes, $(strip $(MTK_DRM_KEY_MNG_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_IN_HOUSE_TEE_SUPPORT)))
+    ifneq (yes, $(strip $(TRUSTONIC_TEE_SUPPORT)))
+      $(call dep-err-common, Please turn on MTK_IN_HOUSE_TEE_SUPPORT or turn on TRUSTONIC_TEE_SUPPORT when MTK_DRM_KEY_MNG_SUPPORT set as yes)
+    endif
+  endif
+endif
+ifeq (yes , $(strip $(MTK_SEC_VIDEO_PATH_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_IN_HOUSE_TEE_SUPPORT)))
+    ifneq (yes, $(strip $(TRUSTONIC_TEE_SUPPORT)))
+      $(call dep-err-common, Please turn on MTK_IN_HOUSE_TEE_SUPPORT or turn on TRUSTONIC_TEE_SUPPORT when MTK_SEC_VIDEO_PATH_SUPPORT set as yes)
+    endif
+  endif
+endif
+
+ifneq (yes,$(strip $(MTK_AUDIO_HD_REC_SUPPORT)))
+  ifeq (yes,$(strip $(MTK_VOIP_ENHANCEMENT_SUPPORT)))
+    $(call dep-err-ona-or-offb, MTK_AUDIO_HD_REC_SUPPORT, MTK_VOIP_ENHANCEMENT_SUPPORT)
+  endif
+  ifeq (yes,$(strip $(MTK_HANDSFREE_DMNR_SUPPORT)))
+    $(call dep-err-ona-or-offb, MTK_AUDIO_HD_REC_SUPPORT, MTK_HANDSFREE_DMNR_SUPPORT)
+  endif
+endif
+
+ifeq ($(filter zh_CN,$(MTK_PRODUCT_LOCALES)),)
+  ifeq (yes,$(strip $(MTK_QQBROWSER_SUPPORT)))
+    $(call dep-err-common, pelase add zh_CN in MTK_PRODUCT_LOCALES or turn off MTK_QQBROWSER_SUPPORT)
+  endif
+  ifeq (yes,$(strip $(MTK_TENCENT_MOBILE_MANAGER_SLIM_SUPPORT)))
+    $(call dep-err-common, pelase add zh_CN in MTK_PRODUCT_LOCALES or turn off MTK_TENCENT_MOBILE_MANAGER_SLIM_SUPPORT)
+  endif
+  ifeq (yes,$(strip $(MTK_TENCENT_MOBILE_MANAGER_NORMAL_SUPPORT)))
+    $(call dep-err-common, pelase add zh_CN in MTK_PRODUCT_LOCALES or turn off MTK_TENCENT_MOBILE_MANAGER_NORMAL_SUPPORT)
+  endif
+  ifeq (yes,$(strip $(MTK_SINA_WEIBO_SUPPORT)))
+    $(call dep-err-common, pelase add zh_CN in MTK_PRODUCT_LOCALES or turn off MTK_SINA_WEIBO_SUPPORT)
+  endif
+endif
+
+################################################################
+ifeq (yes, $(strip $(MTK_AUTO_SANITY)))
+  ifneq (yes, $(strip $(HAVE_AEE_FEATURE)))
+     $(call dep-err-ona-or-offb,HAVE_AEE_FEATURE,MTK_AUTO_SANITY)
+  endif
+endif
+###############################################################
+###############################################################
+#for mp release  check release package OPTR_SPEC_SEG_DEF 
+ifneq ($(filter OP01%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_cmcc, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_cmcc)
+    $(call dep-err-common, please use rel_customer_operator_cmcc as optr release package in MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP01)
+  endif
+endif
+ifneq ($(filter OP02%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_cu, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_cu)
+    $(call dep-err-common, please use rel_customer_operator_cu as optr release package in to MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP02)
+  endif
+endif
+ifneq ($(filter OP03%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_orange, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_orange)
+    $(call dep-err-common, please use rel_customer_operator_orange as optr release package in to MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP03)
+  endif
+endif
+
+ifneq ($(filter OP06%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_vodafone, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_vodafone)
+    $(call dep-err-common, please use rel_customer_operator_vodafone as optr release package in to MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP06)
+  endif
+endif
+ifneq ($(filter OP07%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_att, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_att)
+    $(call dep-err-common, please use rel_customer_operator_att as optr release package in to MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP07)
+  endif
+endif
+ifneq ($(filter OP08%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_tmo_us, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_tmo_us)
+    $(call dep-err-common, please use rel_customer_operator_tmo_us as optr release package in to MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP08)
+  endif
+endif
+ifneq ($(filter OP09%,$(strip $(OPTR_SPEC_SEG_DEF))),)
+  ifneq ($(filter rel_customer_operator_ct, $(MTK_RELEASE_PACKAGE)),rel_customer_operator_ct)
+    $(call dep-err-common, please use rel_customer_operator_ct as optr release package in to MTK_RELEASE_PACKAGE When OPTR_SEPEC_SEG_DEF set as OP09)
+  endif
+endif
+
+
+ifeq ($(strip $(MTK_BSP_PACKAGE)),yes)
+  ifneq ($(filter rel_customer_bsp, $(MTK_RELEASE_PACKAGE)),rel_customer_bsp)
+     $(call dep-err-common, please add rel_customer_bsp in to MTK_RELEASE_PACKAGE When MTK_BSP_PACKAGE is yes)
+  endif
+endif
+ifneq (,$(strip $(MTK_PLATFORM)))
+  ifeq ($(filter rel_customer_platform%,$(MTK_RELEASE_PACKAGE)),)
+     $(call dep-err-common, please add rel_customer_platform_xxx in to MTK_RELEASE_PACKAGE)
+  endif
+endif
+#############################################################
+ifeq (yes,$(strip $(MTK_AIV_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_DRM_PLAYREADY_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_AIV_SUPPORT,MTK_DRM_PLAYREADY_SUPPORT)
+  endif
+endif
+################################################################
+ifneq (yes, $(strip $(MTK_DUAL_MIC_SUPPORT)))
+    ifeq (yes, $(strip $(MTK_ASR_SUPPORT)))
+       $(call dep-err-ona-or-offb,MTK_DUAL_MIC_SUPPORT,MTK_ASR_SUPPORT)
+    endif
+    ifeq (yes, $(strip $(MTK_VOIP_NORMAL_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_DUAL_MIC_SUPPORT,MTK_VOIP_NORMAL_DMNR)
+    endif 
+    ifeq (yes, $(strip $(MTK_VOIP_NORMAL_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_DUAL_MIC_SUPPORT,MTK_VOIP_NORMAL_DMNR)
+    endif
+    ifeq (yes, $(strip $(MTK_VOIP_HANDSFREE_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_DUAL_MIC_SUPPORT,MTK_VOIP_HANDSFREE_DMNR)
+    endif
+    ifeq (yes, $(strip $(MTK_INCALL_HANDSFREE_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_DUAL_MIC_SUPPORT,MTK_INCALL_HANDSFREE_DMNR)
+    endif
+    ifeq (yes, $(strip $(MTK_INCALL_NORMAL_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_DUAL_MIC_SUPPORT,MTK_INCALL_NORMAL_DMNR)
+    endif
+else
+    ifneq (yes, $(strip $(MTK_INCALL_NORMAL_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_INCALL_NORMAL_DMNR,MTK_DUAL_MIC_SUPPORT)
+    endif
+endif
+ifneq (yes, $(strip $(MTK_VOIP_ENHANCEMENT_SUPPORT)))
+   ifeq (yes, $(strip $(MTK_VOIP_NORMAL_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_VOIP_ENHANCEMENT_SUPPORT,MTK_VOIP_NORMAL_DMNR)
+    endif 
+   ifeq (yes, $(strip $(MTK_VOIP_HANDSFREE_DMNR)))
+       $(call dep-err-ona-or-offb,MTK_VOIP_ENHANCEMENT_SUPPORT,MTK_VOIP_HANDSFREE_DMNR)
+    endif
+endif
+################################################################
+ifeq (yes,$(strip $(MTK_WFD_HDCP_TX_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_DRM_KEY_MNG_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_DRM_KEY_MNG_SUPPORT,MTK_WFD_HDCP_TX_SUPPORT)
+  endif
+  ifneq (yes, $(strip $(MTK_IN_HOUSE_TEE_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_IN_HOUSE_TEE_SUPPORT,MTK_WFD_HDCP_TX_SUPPORT)
+  endif
+endif
+ifneq (yes, $(strip $(MTK_REGIONALPHONE_SUPPORT)))
+   ifeq (yes, $(strip $(MTK_TER_SERVICE)))
+     $(call dep-err-ona-or-offb,TK_REGIONALPHONE_SUPPORT,MTK_TER_SERVICE)
+   endif
+endif
+
+ifeq (yes,$(strip $(MTK_SEC_WFD_VIDEO_PATH_SUPPORT)))
+  ifneq (yes,$(strip $(MTK_WFD_HDCP_TX_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_WFD_HDCP_TX_SUPPORT,MTK_SEC_WFD_VIDEO_PATH_SUPPORT)
+  endif
+  ifneq (yes,$(strip $(MTK_SEC_VIDEO_PATH_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_SEC_VIDEO_PATH_SUPPORT,MTK_SEC_WFD_VIDEO_PATH_SUPPORT)
+  endif
+  ifneq (yes,$(strip $(MTK_IN_HOUSE_TEE_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_IN_HOUSE_TEE_SUPPORT,MTK_SEC_WFD_VIDEO_PATH_SUPPORT)
+  endif
+endif
+#######################################################################
 ifeq (yes, $(strip $(MTK_SIM_HOT_SWAP_COMMON_SLOT)))
   ifneq (yes, $(strip $(MTK_SIM_HOT_SWAP)))
     $(call dep-err-ona-or-offb,MTK_SIM_HOT_SWAP,MTK_SIM_HOT_SWAP_COMMON_SLOT)
   endif
 endif
 
+ifeq (yes,$(strip $(MTK_INTERNAL)))
+  ifeq ($(strip $(OPTR_SPEC_SEG_DEF)), OP01_SPEC0200_SEGC)
+     ifneq (yes,$(strip $(MTK_CTSC_MTBF_INTERNAL_SUPPORT)))
+       $(call dep-err-ona-or-offb, MTK_CTSC_MTBF_INTERNAL_SUPPORT, MTK_INTERNAL)
+     endif
+ else
+     ifeq (yes,$(strip $(MTK_CTSC_MTBF_INTERNAL_SUPPORT)))
+       $(call dep-err-common, turn off MTK_CTSC_MTBF_INTERNAL_SUPPORT or set OPTR_SPEC_SEG_DEF as OP01_SPEC0200_SEGC)
+     endif
+ endif
+else
+    ifeq (yes,$(strip $(MTK_CTSC_MTBF_INTERNAL_SUPPORT)))
+      $(call dep-err-ona-or-offb, MTK_INTERNAL, MTK_CTSC_MTBF_INTERNAL_SUPPORT)
+    endif
+endif
+############################
+ifeq ($(strip $(MTK_SWIP_WMAPRO)), yes)
+  ifneq (yes, $(strip $(MTK_WMV_PLAYBACK_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_WMV_PLAYBACK_SUPPORT,MTK_SWIP_WMAPRO)
+  endif
+endif
+################################################
+ifeq (yes,$(strip $(MTK_TENCENT_MOBILE_MANAGER_SLIM_SUPPORT)))
+  ifeq (yes, $(strip $(MTK_TENCENT_MOBILE_MANAGER_NORMAL_SUPPORT)))
+    $(call dep-err-common,,Please turn off MTK_TENCENT_MOBILE_MANAGER_SLIM_SUPPORT or turn off MTK_TENCENT_MOBILE_MANAGER_NORMAL_SUPPORT) 
+  endif
+endif
+################################################
+ifeq (OP01_SPEC0200_SEGC, $(strip $(OPTR_SPEC_SEG_DEF)))
+   ifeq ($(filter cmcc_%, $(BOOT_LOGO)),)
+      $(call dep-err-common, Please set BOOT_LOGO as cmcc_% or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+   ifneq ($(MTK_UMTS_TDD128_MODE),yes)
+      $(call dep-err-common, Please turn on MTK_UMTS_TDD128_MODE or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
 
+# lenovo-sw oujf 2014-4-10 remove notebook compile dependment begin
+#   ifneq ($(MTK_NOTEBOOK_SUPPORT),yes)
+#      $(call dep-err-common, Please turn on MTK_NOTEBOOK_SUPPORT or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+#   endif
+# lenovo-sw oujf 2014-4-10 remove notebook dependment end
 
+   ifneq ($(MTK_WML_SUPPORT),yes)
+      $(call dep-err-common, Please turn on MTK_WML_SUPPORT or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+   ifneq ($(MTK_WORLD_CLOCK_WIDGET_APP),yes)
+      $(call dep-err-common, Please turn on MTK_WORLD_CLOCK_WIDGET_APP or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+   ifeq ($(MTK_APKINSTALLER_APP),yes)
+      $(call dep-err-common, Please turn off MTK_APKINSTALLER_APP or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+   ifeq ($(MTK_DATA_TRANSFER_APP),yes)
+      $(call dep-err-common, Please turn off   or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+   ifneq ($(MTK_RTSP_BITRATE_ADAPTATION_SUPPORT),yes)
+      $(call dep-err-common, Please turn on MTK_RTSP_BITRATE_ADAPTATION_SUPPORT  or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+   #Begin,Lenovo-sw 20140409, unbind the dependence between MTK_SHARED_SDCARD and OP01_SPEC0200_SEGC
+   #ifeq ($(MTK_SHARED_SDCARD),yes)
+   #   $(call dep-err-common, Please turn off MTK_SHARED_SDCARD  or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   #endif
+   #End,Lenovo-sw 20140409, unbind the dependence between MTK_SHARED_SDCARD and OP01_SPEC0200_SEGC
+   ifeq ($(MTK_STREAMING_VIDEO_SUPPORT),yes)
+      $(call dep-err-common, Please turn off MTK_STREAMING_VIDEO_SUPPORT or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+   endif
+  ifeq ($(filter zh_CN en_US, $(MTK_PRODUCT_LOCALES)),)
+      $(call dep-err-common, Please add zh_CN en_US to MTK_PRODUCT_LOCALES or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC)
+  endif
+ifeq ($(MTK_INTERNAL), yes)
+   ifeq ($(MTK_DM_APP),yes)
+      $(call dep-err-common, Please turn off MTK_DM_APP or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC When MTK_INTERNAL set as yes)
+   endif
+   ifeq ($(MTK_QQBROWSER_SUPPORT),yes)
+      $(call dep-err-common, Please turn off MTK_QQBROWSER_SUPPORT or set OPTR_SPEC_SEG_DEF as not OP01_SPEC0200_SEGC When MTK_INTERNAL set as yes) 
+   endif
+endif
+endif
 
+ifeq (yes,$(strip $(MTK_PERMISSION_CONTROL)))
+  ifneq (yes,$(strip $(MTK_MOBILE_MANAGEMENT)))
+    $(call dep-err-ona-or-offb,MTK_MOBILE_MANAGEMENT,MTK_PERMISSION_CONTROL)
+  endif
+endif
+
+ifeq (yes,$(strip $(MTK_GAMELOFT_GLL_ULC_CN_APP)))
+  ifeq (yes,$(strip $(MTK_GAMELOFT_GLL_ULC_WW_APP)))
+    $(call dep-err-offa-or-offb,MTK_GAMELOFT_GLL_ULC_CN_APP,MTK_GAMELOFT_GLL_ULC_WW_APP)
+  endif
+endif
+ifeq (yes,$(strip $(MTK_GAMELOFT_AVENGERS_ULC_CN_APP)))
+  ifeq (yes,$(strip $(MTK_GAMELOFT_AVENGERS_ULC_WW_APP)))
+    $(call dep-err-offa-or-offb,MTK_GAMELOFT_AVENGERS_ULC_CN_APP,MTK_GAMELOFT_AVENGERS_ULC_WW_APP)
+  endif
+endif
+ifeq (yes,$(strip $(MTK_GAMELOFT_LBC_ULC_CN_APP)))
+  ifeq (yes,$(strip $(MTK_GAMELOFT_LBC_ULC_WW_APP)))
+    $(call dep-err-offa-or-offb,MTK_GAMELOFT_LBC_ULC_CN_APP,MTK_GAMELOFT_LBC_ULC_WW_APP)
+  endif
+endif
+ifeq (yes,$(strip $(MTK_GAMELOFT_WONDERZOO_ULC_CN_APP)))
+  ifeq (yes,$(strip $(MTK_GAMELOFT_WONDERZOO_ULC_WW_APP)))
+    $(call dep-err-offa-or-offb,MTK_GAMELOFT_WONDERZOO_ULC_CN_APP,MTK_GAMELOFT_WONDERZOO_ULC_WW_APP)
+  endif
+endif
+##############################################################################################################
+ifeq (yes, $(strip $(MTK_GAMELOFT_KINGDOMANDLORDS_CN_APP)))
+  ifeq (yes, $(strip $(MTK_GAMELOFT_KINGDOMANDLORDS_WW_APP)))
+        $(call dep-err-common, Please turn off MTK_GAMELOFT_KINGDOMANDLORDS_CN_APP or turn off MTK_GAMELOFT_KINGDOMANDLORDS_WW_APP)
+  endif
+endif
+ifeq (yes, $(strip $(MTK_GAMELOFT_UNOANDFRIENDS_CN_APP)))
+  ifeq (yes, $(strip $(MTK_GAMELOFT_UNOANDFRIENDS_WW_APP)))
+        $(call dep-err-common, Please turn off MTK_GAMELOFT_UNOANDFRIENDS_CN_APP or turn off MTK_GAMELOFT_UNOANDFRIENDS_WW_APP)
+  endif
+endif
+ifeq (yes, $(strip $(MTK_GAMELOFT_WONDERZOO_CN_APP)))
+  ifeq (yes, $(strip $(MTK_GAMELOFT_WONDERZOO_WW_APP)))
+        $(call dep-err-common, Please turn off MTK_GAMELOFT_WONDERZOO_CN_APP or turn off MTK_GAMELOFT_WONDERZOO_WW_APP)
+  endif
+endif
+###############################################################################################################
+ifeq ($(strip $(MTK_GEMINI_SMART_3G_SWITCH)),2)
+  ifneq ($(strip $(MTK_RILD_READ_IMSI)),yes)
+          $(call dep-err-common, Please turn on MTK_RILD_READ_IMSI or set MTK_RILD_READ_IMSI not 2)
+  endif
+endif
+############################################################
+ifeq (yes,$(strip $(MTK_EMMC_SUPPORT)))
+  ifeq (yes,$(strip $(MTK_COMBO_NAND_SUPPORT)))
+    $(call dep-err-offa-or-offb,MTK_EMMC_SUPPORT,MTK_COMBO_NAND_SUPPORT)
+  endif
+endif
+#############################################################
+ifeq (yes,$(strip $(MTK_PLAYREADY_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_SEC_VIDEO_PATH_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_SEC_VIDEO_PATH_SUPPORT,MTK_PLAYREADY_SUPPORT)
+  endif
+endif
+#############################################################
+ifeq (yes,$(strip $(MTK_DX_HDCP_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_PERSIST_PARTITION_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_PERSIST_PARTITION_SUPPORT,MTK_DX_HDCP_SUPPORT)
+  endif
+endif
+ifeq (yes,$(strip $(MTK_PLAYREADY_SUPPORT)))
+  ifneq (yes, $(strip $(MTK_PERSIST_PARTITION_SUPPORT)))
+    $(call dep-err-ona-or-offb,MTK_PERSIST_PARTITION_SUPPORT,MTK_PLAYREADY_SUPPORT)
+  endif
+endif
+#########################################################
+ifneq ($(filter yes,$(MTK_DM_APP) $(MTK_DEVREG_APP) $(MTK_MDM_APP) $(MTK_SMSREG_APP)),)
+  ifneq ($(strip $(MTK_DM_AGENT_SUPPORT)), yes)
+    $(call dep-err-common, please set MTK_DM_APP and MTK_DEVREG_APP and MTK_MDM_APP and MTK_SMSREG_APP as no or set MTK_DM_AGENT_SUPPORT as yes)
+  endif
+endif
+ifeq ($(strip $(MTK_DM_AGENT_SUPPORT)), yes)
+  ifeq ($(filter yes,$(MTK_DM_APP) $(MTK_DEVREG_APP) $(MTK_MDM_APP) $(MTK_SMSREG_APP)),)
+    $(call dep-err-common, please set MTK_DM_APP or MTK_DEVREG_APP or MTK_MDM_APP or MTK_SMSREG_APP as yes or set MTK_DM_AGENT_SUPPORT as no)
+  endif
+endif

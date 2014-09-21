@@ -2,16 +2,15 @@
 SYMBOL_EMPTY :=
 SYMBOL_SPACE := $(SYMBOL_EMPTY) $(SYMBOL_EMPTY)
 
-ifndef MTK_CHECK_DEPENDENCY
+ifndef MTK_DEPENDENCY_AUTO_CHECK
   MTK_DEPENDENCY_AUTO_CHECK := false
-#  MTK_DEPENDENCY_AUTO_CHECK := true
 endif
 export MTK_DEPENDENCY_AUTO_CHECK
 
-MTK_DEPENDENCY_CHECK_LIST :=
-# $(MTK_ROOT_CONFIG_OUT)/ProjectConfig.mk
-MTK_DEPENDENCY_OUTPUT := out/target/product/$(PROJECT)/obj/dep
-MTK_DEPENDENCY_SCRIPT := mediatek/build/tools/pack_dep_gen.pl
+MTK_DEPENDENCY_CHECK_LIST := $(MTK_ROOT_CONFIG_OUT)/ProjectConfig.mk
+MTK_DEPENDENCY_OUTPUT := $(OUT_DIR)/target/product/$(PROJECT)/obj/dep
+MTK_DEPENDENCY_SCRIPT := $(MTK_ROOT_BUILD)/tools/pack_dep_gen.pl
+MTK_DEPENDENCY_LOG = && $(SHOWRSLT) $${PIPESTATUS[0]} $(LOG)$(basename $(notdir $@)).log || $(SHOWRSLT) $${PIPESTATUS[0]} $(LOG)$(basename $(notdir $@)).log
 
 # $(1): PHONY action name, also used in dependency file basename
 # $(2): path of the dependency file

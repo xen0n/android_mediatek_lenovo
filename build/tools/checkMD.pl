@@ -1,6 +1,7 @@
 #!/usr/bin/perl
-
+use strict;
 use lib "mediatek/build/tools";
+use mtk_modem;
 use pack_dep_gen;
 PrintDependModule($0);
 
@@ -41,7 +42,7 @@ if($ARGV[4]=~/MTK_MD2_SUPPORT=(.*)/){
 	$mtk_modem_2nd_support = $1;
 }
 
-if($ARGV[5]=~/MTK_GET_BIN_INFO=(.*)/){	
+if($ARGV[5]=~/MTK_GET_BIN_INFO=(.*)/){
 	$bin_info = $1;
 	if ($bin_info =~ /info/)
 	{
@@ -54,157 +55,94 @@ if($ARGV[5]=~/MTK_GET_BIN_INFO=(.*)/){
 #######################################
 # Initialization
 #######################################
-my $whence = 0;
-
-my $length1 = 188; # modem.img rear
-my $length2 = 172;
-
-my $length3 = 128; # modem.img project name
-my $length4 = 36;  # modem.img flavor
-my $length5 = 64;  # modem.img verno
-
-my $mode;
-
-my $MD_IMG;
-my $MD_IMG_DEBUG;
-my $MD_IMG_MODE;
-my $MD_IMG_PLATFORM;
-my $MD_IMG_CHIPVER;
-my $MD_IMG_PROJECT_ID;
-my $MD_IMG_SERIAL_NO;
-
-my $MD_IMG_2ND;
-my $MD_IMG_DEBUG_2ND;
-my $MD_IMG_MODE_2ND;
-my $MD_IMG_PLATFORM_2ND;
-my $MD_IMG_CHIPVER_2ND;
-my $MD_IMG_PROJECT_ID_2ND;
-my $MD_IMG_SERIAL_NO_2ND;
-
-my $MD_IMG_PROJECT_NAME;
-my $MD_IMG_PROJECT_NAME_2ND;
-my $MD_IMG_PROJECT_FLAVOR;
-my $MD_IMG_PROJECT_FLAVOR_2ND;
-my $MD_IMG_PROJECT_VERNO;
-my $MD_IMG_PROJECT_VERNO_2ND;
-
+my %MD_INDEX;
 my $errCnt = 0;
-
-#######################################
-# Check if MODEM file exists
-#######################################
-my $MD_IMG = "";
-
-if ($ENV{"MTK_ENABLE_MD1"} eq "yes") {
-	if ($mtk_modem_support == 1) { # 2g
-		$MD_IMG = $modem_path . "/modem_1_2g_n.img";
-		print "\$MD_IMG = $MD_IMG\n";
-		die "[MODEM CHECK FAILED]: The file \"$MD_IMG\" does NOT exist!\n" if (!-e $MD_IMG);	
-	} elsif ($mtk_modem_support == 3) { # wg
-		$MD_IMG = $modem_path . "/modem_1_wg_n.img";
-		print "\$MD_IMG = $MD_IMG\n";
-		die "[MODEM CHECK FAILED]: The file \"$MD_IMG\" does NOT exist!\n" if (!-e $MD_IMG);	
-	} elsif ($mtk_modem_support == 4) { # tg
-		$MD_IMG = $modem_path . "/modem_1_tg_n.img";
-		print "\$MD_IMG = $MD_IMG\n";
-		die "[MODEM CHECK FAILED]: The file \"$MD_IMG\" does NOT exist!\n" if (!-e $MD_IMG);	
-	} else {
-		die "[MODEM CHECK FAILED]: Invalid value of MTK_MD1_SUPPORT: $mtk_modem_support!\n";
-	}
-}
-
-#######################################
-# Read mode(2G/3G), debug/release flag, platform info, project info, serial number, etc. from modem.img
-#######################################
-if ($ENV{MTK_ENABLE_MD1} eq "yes") {
-	($MD_IMG_DEBUG, $MD_IMG_MODE, $MD_IMG_PLATFORM, $MD_IMG_PROJECT_ID, $MD_IMG_SERIAL_NO, $MD_IMG_PROJECT_NAME, $MD_IMG_PROJECT_FLAVOR, $MD_IMG_PROJECT_VERNO) = &Parse_MD($MD_IMG); 
-}
-if ($ENV{MTK_ENABLE_MD2} eq "yes") {
-	($MD_IMG_DEBUG_2ND, $MD_IMG_MODE_2ND, $MD_IMG_PLATFORM_2ND, $MD_IMG_PROJECT_ID_2ND, $MD_IMG_SERIAL_NO_2ND, $MD_IMG_PROJECT_NAME_2ND, $MD_IMG_PROJECT_FLAVOR_2ND, $MD_IMG_PROJECT_VERNO_2ND) = &Parse_MD($MD_IMG_2ND);
-}
-
-sub Parse_MD {
-	my $tmp_header_str;
-	my $tmp_inutility1;
-	my $tmp_debug_mode;
-	my $tmp_mode;
-	my $tmp_platform;
-	my $tmp_inutility2;
-	my $tmp_project_id;
-	my $tmp_serial_num;
-	
-	my $tmp_project_name;
-	my $tmp_flavor;
-	my $tmp_verno;
-
-	my ($parse_md_file) = @_;
-	my $md_file_size = -s $parse_md_file;
-	my $tmp = $length1+$length3+$length4+$length5;
-
-	open(MODEM, "< $parse_md_file") or die "Can NOT open file $parse_md_file\n";
-	PrintDependency($parse_md_file);
-	binmode(MODEM);
-	seek(MODEM, $md_file_size - $tmp, $whence) or die "Can NOT seek to the position $position_point in \"$parse_md_file\"!\n";
-	read(MODEM, $buffer, $tmp) or die "Failed to read the file \"$parse_md_file\"!\n";
-	($tmp_project_name, $tmp_flavor, $tmp_verno, $tmp_header_str, $tmp_inutility1, $tmp_debug_mode, $tmp_mode, $tmp_platform, $tmp_inutility2, $tmp_project_id, $tmp_serial_num) = unpack("A128 A36 A64 A12 L L L A16 A64 A64, L", $buffer);
-	#$tmp_project_name = $tmp_header_str;
-	die "[MODEM CHECK FAILED]: Reading from MODEM failed! No CHECK_HEADER info!\n" if ($tmp_header_str ne "CHECK_HEADER") ;
-	close(MODEM);
-	return ($tmp_debug_mode, $tmp_mode, $tmp_platform, $tmp_project_id, $tmp_serial_num, $tmp_project_name, $tmp_flavor, $tmp_verno);
+my $debug = 1; # output debug info.
 
 
-}
-
-#######################################
-# Output debug information
-#######################################
-my $debug = 0; # output debug info.
-
-if ($debug) {
+if ($debug)
+{
 	print "\n==========================\n";
 	print "Modem path = $modem_path\n";
-	if ($ENV{MTK_ENABLE_MD1} eq "yes") {
-		print "\n==========================\n";
-		print "*** Info from 1st modem image ***\n\n";
-		print "modem image is $MD_IMG\n";
-		print "\$MD_IMG_DEBUG = $MD_IMG_DEBUG [" . sprintf("0x%08x",$MD_IMG_DEBUG) . "]\n";
-		print "\$MD_IMG_MODE = $MD_IMG_MODE [" . sprintf("0x%08x",$MD_IMG_MODE) . "]\n";
-		print "\$MD_IMG_PLATFORM = $MD_IMG_PLATFORM\n";
-		print "\$MD_IMG_PROJECT_ID = $MD_IMG_PROJECT_ID\n";
-		print "\$MD_IMG_SERIAL_NO = $MD_IMG_SERIAL_NO [" . sprintf("0x%08x",$MD_IMG_SERIAL_NO) . "]\n";
+	print "\n==========================\n";
+}
+
+if (1)
+{
+	my $MAX_MODEM_NUMBER = 5;
+	my $md_id;
+	for ($md_id = 1; $md_id <= $MAX_MODEM_NUMBER; $md_id++)
+	{
+		#print "md_id = $md_id\n";
+		if (! exists $ENV{"MTK_ENABLE_MD" . $md_id})
+		{
+			print "\$MTK_ENABLE_MD" . $md_id . " is not defined\n";
+		}
+		elsif ($ENV{"MTK_ENABLE_MD" . $md_id} ne "yes")
+		{
+			print "\$MTK_ENABLE_MD" . $md_id . " = " . $ENV{"MTK_ENABLE_MD" . $md_id} . "\n";
+			$MD_INDEX{$md_id} = undef;
+		}
+		else
+		{
+			print "\$MTK_ENABLE_MD" . $md_id . " = " . $ENV{"MTK_ENABLE_MD" . $md_id} . "\n";
+			my $modem_name = get_modem_name(\%ENV, $md_id);
+			$MD_INDEX{$md_id} = {"modem_name" => $modem_name};
+			$errCnt += Check_MD_Info($MD_INDEX{$md_id}, $md_id, $modem_path . "/" . $modem_name, $debug);
+		}
 	}
-	if ($ENV{MTK_ENABLE_MD2} eq "yes") {
-		print "\n==========================\n";
-		print "*** Info from 2nd modem image ***\n\n";
-		print "modem image is $MD_IMG_2ND\n";
-		print "\$MD_IMG_DEBUG_2ND = $MD_IMG_DEBUG_2ND [" . sprintf("0x%08x",$MD_IMG_DEBUG_2ND) . "]\n";
-		print "\$MD_IMG_MODE_2ND = $MD_IMG_MODE_2ND [" . sprintf("0x%08x",$MD_IMG_MODE_2ND) . "]\n";
-		print "\$MD_IMG_PLATFORM_2ND = $MD_IMG_PLATFORM_2ND\n";
-		print "\$MD_IMG_PROJECT_ID_2ND = $MD_IMG_PROJECT_ID_2ND\n";
-		print "\$MD_IMG_SERIAL_NO_2ND = $MD_IMG_SERIAL_NO_2ND [" . sprintf("0x%08x",$MD_IMG_SERIAL_NO_2ND) . "]\n";
-	}
+}
+else
+{
+	print "Skip checking modem\n";
+	exit 0;
+}
+
+if ($debug)
+{
 	print "\n==========================\n";
 	print "*** Info from feature option configuration ***\n\n";
-	print "\$MTK_MD1_SUPPORT = $mtk_modem_support\n";
-	print "\$MTK_MD2_SUPPORT = $mtk_modem_2nd_support\n";
+	foreach my $md_id (sort keys %MD_INDEX)
+	{
+		print "\$MTK_MD" . $md_id . "_SUPPORT = " . $ENV{"MTK_MD" . $md_id . "_SUPPORT"} . "\n";
+	}
 	print "\$MTK_PLATFORM = $MTK_PLATFORM\n\n";
 }
+
+
+
+
 #######################################
 # Output modem information
 #######################################
-if ($bin_info){
+if ($bin_info)
+{
 	print "\[AP Project Name\]: $AP_Project_Name\n";
 	print "\[AP SW Version\]: $AP_SW_Version\n";
-	print "\[MD1 Project Name\]: $MD_IMG_PROJECT_NAME\n";
-	print "\[MD1 SW Version\]: $MD_IMG_PROJECT_VERNO\n";
-	print "\[MD1 Flavor\]: $MD_IMG_PROJECT_FLAVOR\n";
-	print "\[MD2 Project Name\]: $MD_IMG_PROJECT_NAME_2ND\n";
-	print "\[MD2 SW Version\]: $MD_IMG_PROJECT_VERNO_2ND\n";
-	print "\[MD2 Flavor\]: $MD_IMG_PROJECT_FLAVOR_2ND\n";
+	foreach my $md_id (sort keys %MD_INDEX)
+	{
+		if (exists $MD_INDEX{$md_id}->{"modem_name"})
+		{
+			my $MD_IMG_PROJECT_NAME = $MD_INDEX{$md_id}->{"project_name"};
+			my $MD_IMG_PROJECT_FLAVOR = $MD_INDEX{$md_id}->{"flavor"};
+			my $MD_IMG_PROJECT_VERNO = $MD_INDEX{$md_id}->{"verno"};
+			print "\[MD$md_id Project Name\]: $MD_IMG_PROJECT_NAME\n";
+			print "\[MD$md_id SW Version\]: $MD_IMG_PROJECT_VERNO\n";
+			print "\[MD$md_id Flavor\]: $MD_IMG_PROJECT_FLAVOR\n";
+		}
+	}
 	print "\[Site\]: ALPS\n";
 }
 
-exit 0;
+exit $errCnt;
+
+
+
+
+
+
+
+
 
 sub usage
 {

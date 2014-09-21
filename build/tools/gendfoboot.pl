@@ -4,6 +4,10 @@ usage() if ($#ARGV < 1); # This means checking the last index of ARGV
 
 my $genMode = lc($ARGV[0]);
 my $outFilePath = $ARGV[1];
+my $isLegacy = 0;
+if ($ENV{LEGACY_DFO_GEN} eq "yes") {
+    $isLegacy = 1;
+}
 
 my $DEBUG = 0; # global debug switch
 my @dfoBootArray = split(/\s+/, $ENV{DFO_MISC});
@@ -35,7 +39,7 @@ $tmpOutput .= "} tag_dfo_boot;\n\n";
 $tmpOutput .= "#endif\n";
 #####generate DFO Boot header end#####
 }
-elsif ($genMode eq "bootdft") {
+elsif ($genMode eq "bootdft" && $isLegacy == 1) {
 #####generate DFO Boot Default value header#####
 $tmpOutput .= "#ifndef DFO_BOOT_DEFAULT_H\n";
 $tmpOutput .= "#define DFO_BOOT_DEFAULT_H\n\n";
@@ -93,6 +97,42 @@ $tmpOutput .= "        0\n";
 $tmpOutput .= "    }\n";
 $tmpOutput .= "};\n\n";
 } # else end
+
+$tmpOutput .= "#endif\n";
+#####generate DFO Boot header Default value end#####
+}
+elsif ($genMode eq "bootdft" && $isLegacy == 0) {
+#####generate DFO Boot Default value header#####
+$tmpOutput .= "#ifndef DFO_BOOT_DEFAULT_H\n";
+$tmpOutput .= "#define DFO_BOOT_DEFAULT_H\n\n";
+$tmpOutput .= "#define DFO_BOOT_COUNT $dfoBootCount\n\n";
+$tmpOutput .= "typedef struct\n";
+$tmpOutput .= "{\n";
+$tmpOutput .= "    char name[32];   // kernel dfo name\n";
+$tmpOutput .= "    unsigned long value;       // kernel dfo value\n";
+$tmpOutput .= "} dfo_boot_info;\n\n";
+
+if ($dfoBootCount > 0) {
+$tmpOutput .= "const dfo_boot_info dfo_boot_default[DFO_BOOT_COUNT] =\n";
+$tmpOutput .= "{\n";
+    my $tmpIndex = 0;
+    foreach my $dfoBoot (@dfoBootArray) {
+        die "$dfoBoot name length too long\n" if (length($dfoBoot) >= 31);
+        my $val = getValue($dfoBoot);
+$tmpOutput .= "    // boot dfo $tmpIndex\n";
+$tmpOutput .= "    {\n";
+$tmpOutput .= "        \"$dfoBoot\",\n";
+$tmpOutput .= "        $val\n";
+        if ($tmpIndex < ($dfoBootCount-1)) {
+$tmpOutput .= "    },\n\n";
+        }
+        else {
+$tmpOutput .= "    }\n";
+        }
+        $tmpIndex++;
+    }
+$tmpOutput .= "};\n\n";
+} # ($dfoBootCount > 0) end
 
 $tmpOutput .= "#endif\n";
 #####generate DFO Boot header Default value end#####

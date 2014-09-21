@@ -2,7 +2,6 @@
 my $configFile = $ARGV[0];
 my $optrConfigFile = $ARGV[1];
 die "the file $configFile is NOT exsit\n" if ( ! -e $configFile);
-die "the file $optrConfigFile is NOT exsit\n" if ( (! -e $optrConfigFile) && ($optrConfigFile ne "") );
 open FILE, "<$configFile";
 my %config_for;
 while (<FILE>) {
@@ -11,16 +10,18 @@ while (<FILE>) {
 	}
 }
 close FILE;
-open FILE, "<$optrConfigFile";
-while (<FILE>) {
+if($optrConfigFile ne 'NONE'){
+  die "the file $optrConfigFile is NOT exsit\n" if (! -e $optrConfigFile);
+  open FILE, "<$optrConfigFile";
+  while (<FILE>) {
         if (/^(\w+)\s*=\s*(\w+)/) {
                 $config_for{$1} = $2;
         }
+  }
+  close FILE;
 }
-close FILE;
 
-
-my $filedir = "mediatek/frameworks/common/src/com/mediatek/common/featureoption";
+my $filedir = $ARGV[2];
 my $write_filename = "$filedir/FeatureOption.java";
 my $input_file = "mediatek/build/tools/javaoption.pm";
 open(INPUT,$input_file) or die "can not open $input_file:$!\n";
@@ -33,13 +34,13 @@ while(<INPUT>)
 	if(/\s*(\w+)\s*/)
 	{
                 if ($javaoption{$1} == 1)
-                {   
+                {
                         die "$1 already define in $input_file";
                 } else {
                         push (@need_options,$1);
                         $javaoption{$1} = 1;
-                }   
-        }   
+                }
+        }
 }
 
 
@@ -65,7 +66,7 @@ my @dfoArray = ();
 foreach my $tempDfo (@dfoAll) {
     my $isFind = 0;
     #only eng load will enable dfo
-    if ($ENV{"TARGET_BUILD_VARIANT"} eq "eng") {
+    if ($ENV{"TARGET_BUILD_VARIANT"} ne "user" && $ENV{"TARGET_BUILD_VARIANT"} ne "userdebug") {
         foreach my $isDfoSupport (@dfoSupport) {
             if ($ENV{$isDfoSupport} eq "yes") {
                 my $dfoSupportName = $isDfoSupport."_VALUE";
@@ -94,12 +95,20 @@ my %dfoHashArray;
 #pre-parse dfo array end
 
 foreach my $option (@need_options) {
+    # if option is overrided by config.mk
+    if ($option eq "MTK_DFO_RESOLUTION_SUPPORT")
+    {
+        if (exists $ENV{$option})
+        {
+            $config_for{$option} = $ENV{$option};
+        }
+    }
     # if option in  DFO_LIST THEN GEN FUNCTION CALL ELSE GEN AS NOMARL!
     if ($config_for{$option} eq "yes") {
         if (exists $dfoHashArray{$option}){
-            &gen_java_file ($write_filename, $option, "DynFeatureOption.getBoolean(\"$option\")", "boolean");
-        }else {
-            &gen_java_file ($write_filename, $option, "true", "boolean");
+            &gen_java_file($write_filename, $option, "DynFeatureOption.getBoolean(\"$option\")", "boolean");
+        } else {
+            &gen_java_file($write_filename, $option, "true", "boolean");
         }
     }
     elsif ($config_for{$option} eq "no") {

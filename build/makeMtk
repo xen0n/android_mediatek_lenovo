@@ -32,17 +32,24 @@
 # RELATED THERETO SHALL BE SETTLED BY ARBITRATION IN SAN FRANCISCO, CA, UNDER
 # THE RULES OF THE INTERNATIONAL CHAMBER OF COMMERCE (ICC).
 # 
-
-my $DEBUG = 0; # enable/disable script debugging message
+use Sys::Hostname;
+my $DEBUG = 1; # enable/disable script debugging message
 
 # Set environment variable for current Android version building
 # such as, JDK version, arm-eabi version etc.
 # If anymore, you can specify them in ./mbldenv.sh
 setBuildEnvVars("./mbldenv.sh");
+setCacheEnvVars() if (uc($ENV{"MTK_INTERNAL"}) eq "TRUE");
 # End
 
 $myCmd = "makeMtk"; #$0
 
+#chenlh2
+if (!-e "../bsp/out")
+{
+   symlink("../android/out", "../bsp/out");
+}
+###end
 #space check for build path
 $result = `pwd`;
 @number = split(" ",$result);
@@ -94,26 +101,29 @@ my $products =
   "default" => "phone"
 };
 
+#Lenovo-sw weimh1 mod 2014-4-30 begin:add mtxgen
 @actions = 
 qw(
    new n bm_new remake r bm_remake clean c listproject listp
    drvgen codegen emigen nandgen custgen javaoptgen ptgen run-preprocess remove-preprocessed
    check-modem update-modem sign-image encrypt-image sign-modem check-dep
    dump-memusage gen-relkey check-appres
-   rel-cust modem-info bindergen mrproper
+   rel-cust modem-info bindergen mrproper pregen check-seandroid mtxgen
   );
+#Lenovo-sw weimh1 mod 2014-4-30 end
 
 my @ABSNativeActions = 
 qw(
    customimage bootimage systemimage recoveryimage secroimage cacheimage factoryimage
    userdataimage userdataimage-nodeps target-files-package
    sdk win_sdk banyan_addon banyan_addon_x86 cts otapackage dist updatepackage
-   update-api mm snod dump-comp-build-info
+   update-api mm mma snod dump-comp-build-info dump-products bootimage-nodeps
+   ramdisk-nodeps
   );
 
 push(@actions, @ABSNativeActions);
 
-@modules = qw(android kernel dr k preloader pl lk);
+@modules = qw(android kernel dr k preloader pl lk tz md32);
 @orgARGV = @ARGV;
 
 while ($#ARGV != -1)
@@ -167,7 +177,7 @@ while ($#ARGV != -1)
             . "mediatek/config/${project}/ProjectConfig.mk from $ini\n"
         if (!-e "mediatek/config/${project}/ProjectConfig.mk");
       }
-    } 
+    }
     else
     {
       shift(@ARGV);
@@ -197,11 +207,6 @@ foreach $prj ("mediatek/config/${project}/ProjectConfig.mk", "mediatek/config/co
   close FILE_HANDLE;
 }
 
-if (($project ne "banyan_addon") && ($project ne "banyan_addon_x86")) {
-  die "Lack off the action.\nIt should be one of (@actions)\nOr try $myCmd -h\n" if ($action eq "");
-}
-#p_system("perl mediatek/build/tools/flavor_configuration.pl $project $ENV{\"CUSTOM_KERNEL_LCM\"}");
-#&writeINI;
 
 my $flavor = "";
 if ( $project =~ /\[(.*)\]/ )
@@ -216,7 +221,13 @@ if ($project =~ /^(tablet)/ || $project =~ /_(ph|tb|tv|phone|tablet)$/)
   $product = $products->{$key};
 }
 
+if (($project ne "banyan_addon") && ($project ne "banyan_addon_x86")) {
+  die "Lack off the action.\nIt should be one of (@actions)\nOr try $myCmd -h\n" if ($action eq "");
+}
+
 @acts = split(",", $action);
+my $snod;
+my $MM_PATH;
 foreach $uAct (@acts)
 {
   $isFound = 0;
@@ -234,16 +245,27 @@ foreach $uAct (@acts)
     $uAct =~ s/^bm_//;
     push(@mOpts, "-k");
   }
-  if ($uAct eq "mm")
+  if (($uAct eq "mm")||($uAct eq "mma"))
   {
-    $MM_PATH = shift(@arguments);
-    die "the given path does not exist!" if (! -d $MM_PATH);
-    $snod = shift(@arguments) if ($#arguments == 0);
+    foreach my $path (@arguments)
+    {
+      if ($path eq "snod")
+      {
+        $snod = $path;
+      }
+      else
+      {
+        die "the given $path does not exist!" if (! -d $path);
+        $MM_PATH .= "\\ " if ($MM_PATH ne "");
+        $MM_PATH .= $path;
+      }
+    }
     die "the target behind mm must be snod, not $snod" if (($snod ne "") && ($snod ne "snod"));
+    @arguments = ();
   }
   ($uAct = "new") if ($uAct eq "n");
   ($uAct = "clean") if ($uAct eq "c");
-  ($uAct = "remake") if ($uAct eq "r");  
+  ($uAct = "remake") if ($uAct eq "r");
   if (($uAct eq "remake") || ($uAct eq "bm_remake"))
   {
      unshift(@mOpts, "MTK_DEPENDENCY_AUTO_CHECK=true");
@@ -255,7 +277,7 @@ foreach $uAct (@acts)
           if (/^(\S+)\s*=\s*(\S+)/)
           {   
             $keyname = $1;
-            if ($keyname eq "build_mode") {$${keyname} = $2;} 
+            if ($keyname eq "build_mode") {$${keyname} = $2;}
           }   
         }  
         foreach $i (@mOpts)
@@ -263,7 +285,7 @@ foreach $uAct (@acts)
           @temp = split("=","$i");
           if ($temp[0] eq "TARGET_BUILD_VARIANT")
           {
-             $TARGET_BUILD_VARIANT = $temp[1]; 
+             $TARGET_BUILD_VARIANT = $temp[1];
           }
         }
         if ($TARGET_BUILD_VARIANT eq "") { $TARGET_BUILD_VARIANT = "eng"; }
@@ -309,6 +331,7 @@ else
         . "It should be one of (@modules)\nOr try $myCmd -h\n"
       if ( ($isFound == 0) && ($arguments[$i - 1] !~ /[k|kernel|dr|android]/) );
       ($uMod = "preloader") if ($uMod eq "pl");
+      ($uMod = "trustzone") if ($uMod eq "tz");
       ($uMod = "kernel") if ($uMod eq "k");  
       ($uMod = "android") if ($uMod eq "dr");
       if (($uMod eq "kernel") && ($arguments[$i + 1] =~ /^(.*)\//))
@@ -327,11 +350,20 @@ else
   }
   else
   {
-    @default_arguments = qw(preloader lk kernel android);
+    @default_arguments = qw(preloader lk md32 tz kernel android);
   }
 }
 
 #logdir should sync with Makefile.yusu
+my $out_dir = "out";
+foreach my $i (@mOpts)
+{
+  my @temp = split("=",$i);
+  if ($temp[0] eq "OUT_DIR")
+  {
+    $out_dir = $temp[1];
+  }
+}
 $ENV{"MTK_PROJECT"} = $project;
 my $actPttn = join('|', @actions);
 if (join(' ', @acts) =~ /($actPttn)/ || $project eq "banyan_addon" || $project eq "banyan_addon_x86")
@@ -348,7 +380,7 @@ if (join(' ', @acts) =~ /($actPttn)/ || $project eq "banyan_addon" || $project e
 
   if ($action ne "gen-relkey")
   {
-    $logdir = "out/target/product";
+    $logdir = $out_dir . "/target/product";
     &p_system("mkdir -p $logdir") if (!-d $logdir);
 
     my $ABSActPttn = join('|',@ABSNativeActions);
@@ -389,8 +421,19 @@ if ($action eq "gen-relkey")
   exit $result;
 }
 
-$result += &p_system("$makeCmd banyan_addon") if($#acts == -1 && $project eq "banyan_addon");
-$result += &p_system("$makeCmd banyan_addon_x86") if($#acts == -1 && $project eq "banyan_addon_x86");
+if($#acts == -1 && $project eq "banyan_addon")
+{
+ &chkMustEnv;
+ &chkDep;
+ $result += &p_system("$makeCmd banyan_addon");
+}
+
+if($#acts == -1 && $project eq "banyan_addon_x86")
+{
+ &chkMustEnv;
+ &chkDep;
+ $result += &p_system("$makeCmd banyan_addon_x86");
+}
 
 foreach $uAct (@acts)
 {
@@ -398,7 +441,7 @@ foreach $uAct (@acts)
   {
     $result += &p_system("$makeCmd $uAct");
   }
-  elsif ($uAct eq "mm")
+  elsif (($uAct eq "mm")||($uAct eq "mma"))
   {
     $result += &p_system("$makeCmd $uAct SNOD=$snod MM_PATH=$MM_PATH");
   }
@@ -485,6 +528,7 @@ Actions:
   bm_new        : "new" + GNU make's "-k"(keep going when encounter error) feature.
   bm_remake     : "remake" + GNU make's "-k"(keep going when encounter error) feature.
   mm            : Build module through Android native command "mm"
+  mma           : Build module through Android native command "mma"
 
   emigen        : Generate EMI setting source code.
   nandgen       : Generate supported NAND flash device list.
@@ -522,6 +566,7 @@ Actions:
   userdataimage-nodeps
                 : Build userdata image without dependency.
                   (that is, ONLY pack the userdata image, NOT checking its dependencies.)
+  dump-products : Dump products related configuration(PRODUCT_PACKAGE,PRODUCT_NAME ect.)
   target-files-package
                 : Build the target files package.
                   (A zip of the directories that map to the target filesystem.
@@ -533,6 +578,8 @@ Actions:
 Modules:
   pl, preloader : Specify to build preloader.
   lk            : Specify to build little kernel.
+  md32          : Specify to build DSP md32.
+  tz, trustzone : Specify to build trusted execution environment.
   k,  kernel    : Specify to build kernel.
   dr, android   : Specify to build android.
   NULL          : Specify to build all components/modules in default.
@@ -540,6 +587,10 @@ Modules:
                 : Specify to build kernel component/module with the source path.
   dr <module name>
                 : Specify to build android component/module with module name.
+
+Other tools:
+  prebuilts/misc/linux-x86/ccache/ccache -M 10G
+                : Set CCACHE pool size to 10GB
 
 Example:
   ./mk -t e1k emigen
@@ -560,6 +611,8 @@ Example:
                 : Rebuild android module named Gallery for e1k project.
   ./makeMtk e1k mm packages/apps/Settings
     : Change Directory to packages/apps/Settings and execute "mm"
+  ./makeMtk e1k mma packages/apps/Settings
+    : Change Directory to packages/apps/Settings and execute "mma"
 
 
 __END_OF_USAGE
@@ -582,6 +635,10 @@ sub writeINI
     if ($m eq "build_mode" && $build_mode eq "")
     {
       print FILE_HANDLE "$m = eng\n";
+    }
+    elsif ($m eq "project" && $flavor ne "")
+    {
+      print FILE_HANDLE "$m = $project\[$flavor\]\n";
     }
     else
     {
@@ -644,7 +701,7 @@ sub chkDep
   {
     $string = all;
   }
-#  print "*********************************\n \"$string\" Dependency Checking...\n";
+  print "*********************************\n \"$string\" Dependency Checking...\n";
   my $result;
   $result = &p_system("CUR_MODULE=$module make -f mediatek/build/makemtk.mk check-dep $cmdArg @mOpts > $logdir/${project}_check-dep.log 2>&1");
   &p_system("cat $logdir/${project}_check-dep.log");
@@ -661,6 +718,7 @@ sub setBuildEnvVars
   die "\"$bldProfile\" does NOT exist!\n" if (!-e $bldProfile);
   # Todo: error handling for '. $bldProfile' command
   my $envVarList = `. $bldProfile && env | grep ".*=.*"`;
+  print "$envVarList: Current build $bldProfile...\n";
   map
     {
       chomp;
@@ -676,6 +734,79 @@ sub setBuildEnvVars
     print "PYTHONPATH=$ENV{PYTHONPATH}\n";
     print "[END LOGGING]\n";
   }
+}
+
+sub setCacheEnvVars
+{
+	my $host_server;
+	if ($ENV{"LSB_SUB_HOST"} ne "")
+	{
+		$host_server = $ENV{"LSB_SUB_HOST"};
+	}
+	else
+	{
+		$host_server = hostname;
+	}
+	print "Server = " . $host_server . "\n" if ($DEBUG);
+	if (($host_server =~ /m\w\wswgbm/i) || ($ENV{"USER"} =~ /wcxbm/i) || ($ENV{"USER"} =~ /arsbm/i))
+	{
+		# ignore for special server/user
+	}
+	else
+	{
+		my $ccache_bin = "prebuilts/misc/linux-x86/ccache/ccache";
+		if ((exists $ENV{"USE_CCACHE"}) && ($ENV{"USE_CCACHE"} eq ""))
+		{
+			# print "CCACHE: ignore for special setting\n";
+		}
+		elsif (-d $ENV{"HOME"} . "/.ccache")
+		{
+			my $size_cur = 0;
+			my $size_max = 0;
+			my @message = `$ccache_bin -s`;
+			foreach my $line (@message)
+			{
+				if ($line =~ /^cache size\s+(\S+)\s+([GMK])bytes/)
+				{
+					$size_cur = $1;
+					$size_cur /= 1024 if ($2 eq "M");
+					$size_cur /= 1048576 if ($2 eq "K");
+				}
+				elsif ($line =~ /^max cache size\s+(\S+)\s+([GMK])bytes/)
+				{
+					$size_max = $1;
+					$size_max /= 1024 if ($2 eq "M");
+					$size_max /= 1048576 if ($2 eq "K");
+				}
+			}
+			if ($size_cur + 0.9 > $size_max)
+			{
+				print "Warning: CCACHE is disabled due to cache pool is almost full\n";
+				print "Current = $size_cur GB, max = $size_max GB\n";
+				print "Please run \"$ccache_bin -C\" to clean cache pool first\n";
+			}
+			{
+				# default cache is turned on
+				$ENV{"USE_CCACHE"} = 1;
+			}
+		}
+		else
+		{
+			print "Warning: CCACHE is disabled due to it has not been initialized before\n";
+			print "Please run \"$ccache_bin -M 10G\" to set CCACHE pool size first\n";
+		}
+		if ((exists $ENV{"USE_DXCACHE"}) && ($ENV{"USE_DXCACHE"} eq ""))
+		{
+		}
+		elsif (-d $ENV{"HOME"} . "/.dxcache")
+		{
+			if ($ENV{"USE_CCACHE"} == 1)
+			{
+				# dxcache follows ccache's rule
+				$ENV{"USE_DXCACHE"} = 1;
+			}
+		}
+	}
 }
 
 # interactive mode for inputting signature subject

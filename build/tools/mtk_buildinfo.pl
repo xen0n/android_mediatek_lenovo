@@ -1,13 +1,21 @@
 #!/usr/bin/perl
 ($#ARGV != 0) && &Usage;
-$prj = $ARGV[0];
-$prjmk = "mediatek/config/${prj}/ProjectConfig.mk";
-$prjmk = "mediatek/config/common/ProjectConfig.mk";
+my $prj = $ARGV[0];
+my @prjmks;
+if ((exists $ENV{"MTK_ROOT_CONFIG_OUT"}) && (-e $ENV{"MTK_ROOT_CONFIG_OUT"} . "/ProjectConfig.mk"))
+{
+  push(@prjmks, $ENV{"MTK_ROOT_CONFIG_OUT"} . "/ProjectConfig.mk");
+}
+else
+{
+  push(@prjmks, "mediatek/config/common/ProjectConfig.mk");
+  push(@prjmks, "mediatek/config/${prj}/ProjectConfig.mk");
+}
 
 print "\n";
 print "# begin mediatek build properties\n";
 
-foreach $prjmk ("mediatek/config/${prj}/ProjectConfig.mk", "mediatek/config/common/ProjectConfig.mk") {
+foreach my $prjmk (@prjmks) {
   if (!-e $prjmk) {
     die "#### Can't find $prjmk\n";
   } else {

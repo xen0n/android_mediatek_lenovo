@@ -14,7 +14,9 @@ my $modem_encode = $ARGV[1];
 my $modem_auth = $ARGV[2];
 my $custom_dir = $ARGV[3];
 my $secro_ac = $ARGV[4];
-
+my $MTK_SECURITY_SW_SUPPORT = $ENV{"MTK_SECURITY_SW_SUPPORT"};
+my $MTK_ROOT_CUSTOM_OUT = $ENV{"MTK_ROOT_CUSTOM_OUT"};
+my $OUT_DIR = $ENV{OUT_DIR};
 my $modem_cipher = "yes";
 
 my $sml_dir = "mediatek/custom/$custom_dir/security/sml_auth";
@@ -40,34 +42,35 @@ if (${modem_auth} eq "yes")
 	}
 }
 
-if (${prj} eq "mt6577_evb_mt" || ${prj} eq "mt6577_phone_mt" || ${prj} eq "moto77_ics")
+if (${MTK_SECURITY_SW_SUPPORT} ne "yes")
 {
 	$modem_cipher = "no"
 }
 
-
 print "parameter check pass (2 MDs)\n";
 print "MTK_SEC_MODEM_AUTH    =  $modem_auth\n";
 print "MTK_SEC_MODEM_ENCODE  =  $modem_encode\n";
+print "MTK_SECURITY_SW_SUPPORT  =  $MTK_SECURITY_SW_SUPPORT\n";
+print "MTK_ROOT_CUSTOM_OUT  =  $MTK_ROOT_CUSTOM_OUT\n";
 print "modem_cipher  =  $modem_cipher\n";
 
 ##########################################################
 # Process Modem Image
 ##########################################################
 
-my $md_load = "mediatek/custom/out/$prj/modem/modem.img";
-my $b_md_load = "mediatek/custom/out/$prj/modem/modem.img.bak";
-my $c_md_load = "mediatek/custom/out/$prj/modem/cipher_modem.img";
-my $s_md_load = "mediatek/custom/out/$prj/modem/signed_modem.img";
+my $md_load = "$MTK_ROOT_CUSTOM_OUT/modem/modem.img";
+my $b_md_load = "$MTK_ROOT_CUSTOM_OUT/modem/modem.img.bak";
+my $c_md_load = "$MTK_ROOT_CUSTOM_OUT/modem/cipher_modem.img";
+my $s_md_load = "$MTK_ROOT_CUSTOM_OUT/modem/signed_modem.img";
 
-opendir(DIR, "mediatek/custom/out/$prj/modem");
+opendir(DIR, "$MTK_ROOT_CUSTOM_OUT/modem");
 @files = grep(/\.img/,readdir(DIR));
 foreach my $file (@files)
 {
-	$md_load = "mediatek/custom/out/$prj/modem/$file";
-	$b_md_load = "mediatek/custom/out/$prj/modem/$file.bak";
-	$c_md_load = "mediatek/custom/out/$prj/modem/cipher_$file";
-	$s_md_load = "mediatek/custom/out/$prj/modem/signed_$file";
+	$md_load = "$MTK_ROOT_CUSTOM_OUT/modem/$file";
+	$b_md_load = "$MTK_ROOT_CUSTOM_OUT/modem/$file.bak";
+	$c_md_load = "$MTK_ROOT_CUSTOM_OUT/modem/cipher_$file";
+	$s_md_load = "$MTK_ROOT_CUSTOM_OUT/modem/signed_$file";
 	&process_modem_image;
 }
 closedir(DIR);
@@ -99,6 +102,7 @@ sub process_modem_image
 					PrintDependency("$sml_dir/SML_ENCODE_KEY.ini");
 					PrintDependency("$sml_dir/SML_ENCODE_CFG.ini");
 					PrintDependency($md_load);
+					PrintDependency($cipher_tool);
 					system("./$cipher_tool ENC $sml_dir/SML_ENCODE_KEY.ini $sml_dir/SML_ENCODE_CFG.ini $md_load $c_md_load") == 0 or die "Cipher Tool return error\n";
 				
 					if(-e "$c_md_load")
@@ -110,19 +114,19 @@ sub process_modem_image
 				PrintDependency("$sml_dir/SML_AUTH_KEY.ini");
 				PrintDependency("$sml_dir/SML_AUTH_CFG.ini");
 				PrintDependency("$md_load");
-				
+				PrintDependency($sign_tool);
 				system("./$sign_tool $sml_dir/SML_AUTH_KEY.ini $sml_dir/SML_AUTH_CFG.ini $md_load $s_md_load");
 	
 				if(-e "$s_md_load")
 				{
 					system("rm -f $md_load") == 0 or die "can't remove original modem binary\n";
 					system("mv -f $s_md_load $md_load") == 0 or die "can't generate signed modem binary\n";
-				}			
+				}
 			}
 			else
 			{
 				print "doesn't execute Cipher Tool and Sign Tool ... \n";
-			}		
+			}
 		}
 		else
 		{
@@ -141,9 +145,17 @@ print " Fill AC_REGION \n";
 print "********************************************\n";
 
 my $secro_def_cfg = "mediatek/custom/common/secro/SECRO_DEFAULT_LOCK_CFG.ini";
-my $secro_out = "mediatek/custom/$custom_dir/secro/AC_REGION";
+# use $custom_dir to specify project only , not including flavor project part. ie:mt6582_evb , not mt6582_evb[tee]
+my $secro_out_dir = "$OUT_DIR/target/product/$custom_dir/secro";
+my $secro_out = "$secro_out_dir/AC_REGION";
+
 my $secro_script = "mediatek/build/tools/SecRo/secro_post.pl";
 PrintDependency($secro_def_cfg);
+
+if (! -d "$secro_out_dir"){
+    system("mkdir -p $secro_out_dir");
+}
+
 system("./$secro_script $secro_def_cfg $prj $custom_dir $secro_ac $secro_out") == 0 or die "SECRO post process return error\n";
 
 ##########################################################

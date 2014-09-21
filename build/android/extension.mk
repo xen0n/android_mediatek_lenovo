@@ -1,52 +1,15 @@
-# Copyright Statement:
-#
-# This software/firmware and related documentation ("MediaTek Software") are
-# protected under relevant copyright laws. The information contained herein
-# is confidential and proprietary to MediaTek Inc. and/or its licensors.
-# Without the prior written permission of MediaTek inc. and/or its licensors,
-# any reproduction, modification, use or disclosure of MediaTek Software,
-# and information contained herein, in whole or in part, shall be strictly prohibited.
-
-# MediaTek Inc. (C) 2010. All rights reserved.
-#
-# BY OPENING THIS FILE, RECEIVER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
-# THAT THE SOFTWARE/FIRMWARE AND ITS DOCUMENTATIONS ("MEDIATEK SOFTWARE")
-# RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE PROVIDED TO RECEIVER ON
-# AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NONINFRINGEMENT.
-# NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH RESPECT TO THE
-# SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY, INCORPORATED IN, OR
-# SUPPLIED WITH THE MEDIATEK SOFTWARE, AND RECEIVER AGREES TO LOOK ONLY TO SUCH
-# THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO. RECEIVER EXPRESSLY ACKNOWLEDGES
-# THAT IT IS RECEIVER'S SOLE RESPONSIBILITY TO OBTAIN FROM ANY THIRD PARTY ALL PROPER LICENSES
-# CONTAINED IN MEDIATEK SOFTWARE. MEDIATEK SHALL ALSO NOT BE RESPONSIBLE FOR ANY MEDIATEK
-# SOFTWARE RELEASES MADE TO RECEIVER'S SPECIFICATION OR TO CONFORM TO A PARTICULAR
-# STANDARD OR OPEN FORUM. RECEIVER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S ENTIRE AND
-# CUMULATIVE LIABILITY WITH RESPECT TO THE MEDIATEK SOFTWARE RELEASED HEREUNDER WILL BE,
-# AT MEDIATEK'S OPTION, TO REVISE OR REPLACE THE MEDIATEK SOFTWARE AT ISSUE,
-# OR REFUND ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY RECEIVER TO
-# MEDIATEK FOR SUCH MEDIATEK SOFTWARE AT ISSUE.
-#
-# The following software/firmware and/or related documentation ("MediaTek Software")
-# have been modified by MediaTek Inc. All revisions are subject to any receiver's
-# applicable license agreements with MediaTek Inc.
-
-
-force: ;
-$(INSTALLED_BUILD_PROP_TARGET): force
-droid: make-platform
-make-platform: droidcore
-	@mediatek/build/android/make-platform.sh $(PRODUCT_OUT) $(TARGET_PRODUCT)
-#	@mediatek/build/tools/mkimage $(PRODUCT_OUT)/ramdisk.img ROOTFS > $(PRODUCT_OUT)/android_rootfs.bin
-#	@mediatek/build/tools/mkimage $(PRODUCT_OUT)/ramdisk-recovery.img RECOVERY > $(PRODUCT_OUT)/android_rootfs_recovery.bin
-#	@mediatek/build/tools/mkimage $(PRODUCT_OUT)/ramdisk-factory.img ROOTFS > $(PRODUCT_OUT)/factory.bin
-
 ##############################################################################
 # FOR RELEASE POLICY                                                         #
 ##############################################################################
 # GENERATE ARTIFACTS                                                         #
 ##############################################################################
+define expand-depend-installed-modules
+$(eval _erm_new_modules := $(sort $(filter-out $($(1)),\
+  $(call module-installed-files,$(foreach m,$(2),$(ARTIFACT.$(m).LIBRARIES))))))\
+$(if $(_erm_new_modules),$(eval $(1) += $(_erm_new_modules))\
+  $(call expand-depend-installed-modules,$(1),$(_erm_new_modules)))
+endef
+
 ifneq (,$(DO_PUT_ARTIFACTS))
 
 ARTIFACT_TARGET := $(sort $(strip $(ARTIFACT_TARGET)))
@@ -55,7 +18,11 @@ ARTIFACT_MODULE := $(sort $(strip $(ARTIFACT_MODULE)))
 # write targets for installation to a file
 $(shell if [ -e $(ARTIFACT_TARGET_FILE) ]; then rm -f $(ARTIFACT_TARGET_FILE); fi)
 $(foreach item,$(ARTIFACT_TARGET),\
-  $(eval $(call add-install-target,$(ARTIFACT_TARGET_FILE),$(item))) \
+  $(eval _src := $(call word-colon,1,$(item))) \
+  $(eval _des := $(call word-colon,2,$(item))) \
+  $(eval _src := $(patsubst $(OUT_DIR)/%,out/%,$(_src))) \
+  $(eval _des := $(patsubst $(OUT_DIR)/%,out/%,$(_des))) \
+  $(eval $(call add-install-target,$(ARTIFACT_TARGET_FILE),$(_src):$(_des))) \
 )
 
 # don't know the impact to mark this line to "other"... need try
@@ -65,22 +32,28 @@ ARTIFACT_FILES  := $(strip $(sort $(foreach item,$(ARTIFACT_MODULE),$(ARTIFACT.$
 #$(info ---$(ARTIFACT_FILES)---)
 
 # write copy for installation to a file
-$(shell if [ -e $(ARTIFACT_COPY_FILE) ]; then rm -f $(ARTIFACT_COPY_FILE); fi)
-$(foreach item,$(ARTIFACT_FILES),\
-  $(eval $(call add-install-target,$(ARTIFACT_COPY_FILE),$(item))) \
-)
+$(shell if [ -e $(ARTIFACT_COPY_FILE) ]; then rm -f $(ARTIFACT_COPY_FILE); else mkdir -p $(dir $(ARTIFACT_COPY_FILE)); fi)
 
 #ALL_DEFAULT_INSTALLED_MODULES += $(ARTIFACT_COPY_FILE)
 #ALL_DEFAULT_INSTALLED_MODULES += $(ARTIFACT_TARGET_FILE)
 #ALL_DEFAULT_INSTALLED_MODULES += $(ARTIFACT_DEFAULT_INSTALLED_HEADERS)
 
+modules_to_install_expand := $(modules_to_install)
+$(call expand-depend-installed-modules,modules_to_install_expand,$(modules_to_install_expand))
+modules_to_install_release := $(filter-out $(modules_to_install),$(modules_to_install_expand))
 
 # generate artifacts
 $(foreach artifacts,$(ARTIFACT_FILES), \
   $(eval _src := $(call word-colon,1,$(artifacts))) \
   $(eval _des := $(call word-colon,2,$(artifacts))) \
   $(eval $(call copy-one-file,$(_src),$(_des)))    \
-  $(eval ALL_DEFAULT_INSTALLED_MODULES += $(_des)) \
+  $(eval _cpy := $(if $(filter $(TARGET_OUT)/% $(TARGET_OUT_DATA)/%,$(_src)),$(if $(filter $(modules_to_install) $(modules_to_install_release),$(_src)),yes,no),yes)) \
+  $(if $(filter yes,$(_cpy)), \
+    $(eval ALL_DEFAULT_INSTALLED_MODULES += $(_des)) \
+    $(eval _src := $(patsubst $(OUT_DIR)/%,out/%,$(_src))) \
+    $(eval _des := $(patsubst $(OUT_DIR)/%,out/%,$(_des))) \
+    $(eval $(call add-install-target,$(ARTIFACT_COPY_FILE),$(_src):$(_des))) \
+  , $(eval $(info Skip releasing $(_src):$(_des)))) \
 )
 
 # generate the switch artifacts when add RELEASE_POLICY
@@ -98,12 +71,16 @@ artifacts_target := $(sort $(artifacts_target))
 $(foreach item,$(artifacts_target), \
   $(eval _src := $(call word-colon,1,$(item))) \
   $(eval _des := $(call word-colon,2,$(item))) \
+  $(eval _src := $(patsubst out/%,$(OUT_DIR)/%,$(_src))) \
+  $(eval _des := $(patsubst out/%,$(OUT_DIR)/%,$(_des))) \
   $(eval $(call add-dependency,$(_src),$(_des))) \
 )
 artifacts_copy := $(sort $(artifacts_copy))
 $(foreach item,$(artifacts_copy), \
   $(eval _src := $(call word-colon,2,$(item))) \
   $(eval _des := $(call word-colon,1,$(item))) \
+  $(eval _src := $(patsubst out/%,$(OUT_DIR)/%,$(_src))) \
+  $(eval _des := $(patsubst out/%,$(OUT_DIR)/%,$(_des))) \
   $(eval $(call copy-one-file,$(_src),$(_des))) \
   $(eval ALL_DEFAULT_INSTALLED_MODULES += $(_des)) \
 )
@@ -113,6 +90,8 @@ include $(BUILD_SYSTEM_MTK_EXTENSION)/switch.mk
 $(foreach item,$(SWITCH_DIRECTORY), \
    $(eval _src := $(call word-colon,2,$(item))) \
    $(eval _des := $(call word-colon,1,$(item))) \
+   $(eval _src := $(patsubst out/%,$(OUT_DIR)/%,$(_src))) \
+   $(eval _des := $(patsubst out/%,$(OUT_DIR)/%,$(_des))) \
    $(eval $(shell if [ -e $(_des) ];then rm -rf $(_des);fi)) \
    $(eval _result := $(shell cp -a $(_src) $(_des) > /dev/null 2>&1;echo $$?)) \
    $(eval $(if $(filter 0,$(_result)),,$(error the switch cp has a wrong!))) \

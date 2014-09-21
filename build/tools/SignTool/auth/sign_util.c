@@ -1,37 +1,3 @@
-/* Copyright Statement:
- *
- * This software/firmware and related documentation ("MediaTek Software") are
- * protected under relevant copyright laws. The information contained herein
- * is confidential and proprietary to MediaTek Inc. and/or its licensors.
- * Without the prior written permission of MediaTek inc. and/or its licensors,
- * any reproduction, modification, use or disclosure of MediaTek Software,
- * and information contained herein, in whole or in part, shall be strictly prohibited.
- *
- * MediaTek Inc. (C) 2011. All rights reserved.
- *
- * BY OPENING THIS FILE, RECEIVER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
- * THAT THE SOFTWARE/FIRMWARE AND ITS DOCUMENTATIONS ("MEDIATEK SOFTWARE")
- * RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE PROVIDED TO RECEIVER ON
- * AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NONINFRINGEMENT.
- * NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH RESPECT TO THE
- * SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY, INCORPORATED IN, OR
- * SUPPLIED WITH THE MEDIATEK SOFTWARE, AND RECEIVER AGREES TO LOOK ONLY TO SUCH
- * THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO. RECEIVER EXPRESSLY ACKNOWLEDGES
- * THAT IT IS RECEIVER'S SOLE RESPONSIBILITY TO OBTAIN FROM ANY THIRD PARTY ALL PROPER LICENSES
- * CONTAINED IN MEDIATEK SOFTWARE. MEDIATEK SHALL ALSO NOT BE RESPONSIBLE FOR ANY MEDIATEK
- * SOFTWARE RELEASES MADE TO RECEIVER'S SPECIFICATION OR TO CONFORM TO A PARTICULAR
- * STANDARD OR OPEN FORUM. RECEIVER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S ENTIRE AND
- * CUMULATIVE LIABILITY WITH RESPECT TO THE MEDIATEK SOFTWARE RELEASED HEREUNDER WILL BE,
- * AT MEDIATEK'S OPTION, TO REVISE OR REPLACE THE MEDIATEK SOFTWARE AT ISSUE,
- * OR REFUND ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY RECEIVER TO
- * MEDIATEK FOR SUCH MEDIATEK SOFTWARE AT ISSUE.
- *
- * The following software/firmware and/or related documentation ("MediaTek Software")
- * have been modified by MediaTek Inc. All revisions are subject to any receiver's
- * applicable license agreements with MediaTek Inc.
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -87,6 +53,11 @@ extern SEC_CRYPTO_SIGNATURE_TYPE g_sig_type;
 void set_hdr_version(SEC_IMG_HEADER_VER ver)
 {
     g_hdr_ver = ver;
+}
+
+bool is_hdr_version4()
+{
+    return (g_hdr_ver == SEC_HDR_V4);
 }
 
 bool is_hdr_version3()
@@ -163,6 +134,27 @@ SEC_EXTENSTION_HASH_ONLY* allocate_ext_hash_only(SEC_CRYPTO_HASH_TYPE hash)
     return ext;
 }
 
+unsigned int get_ext_hash_only_64_struct_size(SEC_CRYPTO_HASH_TYPE hash)
+{
+    return get_hash_size(hash) + sizeof(SEC_EXTENSTION_HASH_ONLY_64);
+}
+
+SEC_EXTENSTION_HASH_ONLY_64* allocate_ext_hash_only_64(SEC_CRYPTO_HASH_TYPE hash)
+{
+    SEC_EXTENSTION_HASH_ONLY_64 *ext;
+    unsigned int total_size = get_ext_hash_only_64_struct_size(hash);
+    
+    ext = (SEC_EXTENSTION_HASH_ONLY_64 *)malloc(total_size);
+    memset(ext, 0, total_size);
+
+    ext->magic = SEC_EXTENSION_HEADER_MAGIC;
+    ext->ext_type = SEC_EXT_HDR_HASH_ONLY_64;
+    ext->sub_type = hash;
+    ext->hash_offset_64 = 0;
+    ext->hash_len_64 = 0;
+
+    return ext;
+}
 
 unsigned int get_ext_hash_sig_struct_size(SEC_CRYPTO_HASH_TYPE hash,
     SEC_CRYPTO_SIGNATURE_TYPE sig)
@@ -255,20 +247,15 @@ int config_header_v1_v2_chk(SEC_IMG_HEADER *sec_hdr)
     return 0;
 }
 
-int config_header_v3_chk(SEC_IMG_HEADER *sec_hdr)
+int config_header_v3_chk(unsigned long long img_len)
 {
     int i;
     SEC_EXTENTION_CFG *p_ext_cfg = (SEC_EXTENTION_CFG *)get_ext_cfg();
-    unsigned min_pos = 0;
-    unsigned max_pos = sec_hdr->img_len;
-    unsigned region_end = 0;
+    unsigned long long min_pos = 0;
+    unsigned long long max_pos = img_len;
+    unsigned long long region_end = 0;
 
-    DBG("[%s] sec_hdr->img_len = %d\n", MOD, sec_hdr->img_len);
-
-    sec_hdr->sig_len = get_sigature_size(g_sig_type)+get_hash_size(g_hash_type);
-    
-    sec_hdr->s_off = SEC_EXTENSION_MAGIC;
-    sec_hdr->s_len = SEC_EXTENSION_MAGIC;
+    DBG("[%s] sec_hdr->img_len = %lld\n", MOD, img_len);
 
     if(p_ext_cfg->verify_count == 0)
     {
@@ -293,9 +280,9 @@ int config_header_v3_chk(SEC_IMG_HEADER *sec_hdr)
         }
     
         //region_end = p_ext_cfg->verify_offset[i] + p_ext_cfg->verify_length[i];
-        if(p_ext_cfg->verify_offset[i] > sec_hdr->img_len)
+        if(p_ext_cfg->verify_offset[i] > img_len)
         {
-            MSG("[%s] Remove config of offset %d (0x%x)(v3)\n",MOD,
+            MSG("[%s] Remove config of offset %lld (0x%llx)(v3)\n",MOD,
                 p_ext_cfg->verify_offset[i],p_ext_cfg->verify_offset[i]);
             p_ext_cfg->verify_count = p_ext_cfg->verify_count - 1;
         }
@@ -310,26 +297,26 @@ int config_header_v3_chk(SEC_IMG_HEADER *sec_hdr)
     region_end = p_ext_cfg->verify_offset[i] + p_ext_cfg->verify_length[i];
     if( max_pos < region_end )
     {
-        MSG("[%s] The last region's original length is %d (0x%x)\n", MOD,
+        MSG("[%s] The last region's original length is %lld (0x%llx)\n", MOD,
             p_ext_cfg->verify_length[i], p_ext_cfg->verify_length[i]);
         p_ext_cfg->verify_length[i] = max_pos - p_ext_cfg->verify_offset[i];
-        MSG("[%s] Adjust last region's original length to %d (0x%x)\n", MOD,
+        MSG("[%s] Adjust last region's original length to %lld (0x%llx)\n", MOD,
             p_ext_cfg->verify_length[i], p_ext_cfg->verify_length[i]);
     }
 
     /* check if need to sign for whole image */
     if(p_ext_cfg->verify_count == 1 && p_ext_cfg->verify_length[0]==0 )
     {        
-        MSG("[%s] The sign length is zero, and sign offset is : %d (0x%x)\n",MOD,p_ext_cfg->verify_offset[0],p_ext_cfg->verify_offset[0]);
-        p_ext_cfg->verify_length[0] = sec_hdr->img_len - p_ext_cfg->verify_offset[0] ;
-        MSG("[%s] Set the sign length to rest whole image length : %d (0x%x)\n",MOD,p_ext_cfg->verify_length[0],p_ext_cfg->verify_length[0]);
+        MSG("[%s] The sign length is zero, and sign offset is : %lld (0x%llx)\n",MOD,p_ext_cfg->verify_offset[0],p_ext_cfg->verify_offset[0]);
+        p_ext_cfg->verify_length[0] = img_len - p_ext_cfg->verify_offset[0] ;
+        MSG("[%s] Set the sign length to rest whole image length : %lld (0x%llx)\n",MOD,p_ext_cfg->verify_length[0],p_ext_cfg->verify_length[0]);
     }
 
     /* check if sign region is inside the image length */
     p_ext_cfg->verify_offset[p_ext_cfg->verify_count] = max_pos;
     for(i=0;i<p_ext_cfg->verify_count;i++)
     {    
-        if(sec_hdr->img_len < p_ext_cfg->verify_length[i])
+        if(img_len < p_ext_cfg->verify_length[i])
         {
             MSG("[%s] Sign length exceeds image length(v3)\n",MOD);
             return -1;
@@ -343,21 +330,21 @@ int config_header_v3_chk(SEC_IMG_HEADER *sec_hdr)
         
         region_end = p_ext_cfg->verify_offset[i] + p_ext_cfg->verify_length[i];
 
-        if(sec_hdr->img_len < region_end)
+        if(img_len < region_end)
         {
             MSG("[%s] Sign region exceeds image length(v3)\n",MOD);
             return -1;
         }
 
-        DBG("[%d] min_pos is %d\n", i, min_pos);
-        DBG("p_ext_cfg->verify_offset[%d] is %d\n", i, p_ext_cfg->verify_offset[i]);
-        DBG("[%d] region_end is %d\n", i, region_end);
-        DBG("[%d] next region start is %d\n", i, p_ext_cfg->verify_offset[i+1]);
+        DBG("[%d] min_pos is %lld\n", i, min_pos);
+        DBG("p_ext_cfg->verify_offset[%d] is %lld\n", i, p_ext_cfg->verify_offset[i]);
+        DBG("[%d] region_end is %lld\n", i, region_end);
+        DBG("[%d] next region start is %lld\n", i, p_ext_cfg->verify_offset[i+1]);
         /* check if sign region is overlay */
         if((min_pos<=p_ext_cfg->verify_offset[i])&&
             (region_end<=p_ext_cfg->verify_offset[i+1]))
         {
-            DBG("[%s] Sign region (%d->%d) ok(v3)\n",MOD,
+            DBG("[%s] Sign region (%lld->%lld) ok(v3)\n",MOD,
                 p_ext_cfg->verify_offset[i],
                 region_end-1);
         }

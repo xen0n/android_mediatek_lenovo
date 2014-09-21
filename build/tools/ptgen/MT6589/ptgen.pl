@@ -13,9 +13,10 @@
 # Included Modules
 #****************************************************************************
 use File::Basename;
-my $Version=4.0;
-my $ChangeHistory = "4.0 Support UBIFS/Support YAML/Created Files new proper folder\n";
-
+use File::Path;
+my $Version=4.1;
+#my $ChangeHistory = "4.0 Support UBIFS/Support YAML/Created Files new proper folder\n";
+my $ChangeHistory = "4.1 YAML spec 1.1.1\n";
 #Switcher
 $DebugPrint="yes";
 #Global Value
@@ -49,7 +50,8 @@ my %preloader_alias; #alias for preloader c and h files modify
 my %uboot_alias;	#alias for uboot c and h files modify
 my %kernel_alias;	#alias for kernel c  file modify
 
-
+my $TARGET_BUILD_VARIANT;
+my $PRODUCT_OUT;
 
 BEGIN
 {
@@ -72,54 +74,54 @@ $EMMC_SUPPORT= $ENV{MTK_EMMC_SUPPORT};
 $LDVT_SUPPORT= $ENV{MTK_LDVT_SUPPORT};
 $MTK_EMMC_OTP_SUPPORT= $ENV{MTK_EMMC_SUPPORT_OTP};
 $MTK_SHARED_SDCARD=$ENV{MTK_SHARED_SDCARD};
-$TARGET_BUILD_VARIANT=$ENV{TARGET_BUILD_VARIANT};
 $MTK_NAND_UBIFS_SUPPORT=$ENV{MTK_NAND_UBIFS_SUPPORT};
 $YAML_SUPPORT=$ENV{MTK_YAML_SCATTER_FILE_SUPPORT};
+$MTK_CIP_SUPPORT= $ENV{MTK_CIP_SUPPORT};
+if (!$ENV{TARGET_BUILD_VARIANT})
+{
+    $TARGET_BUILD_VARIANT = "eng";
+}
+else
+{
+    $TARGET_BUILD_VARIANT = $ENV{TARGET_BUILD_VARIANT};
+}
 
+if (exists $ENV{OUT_DIR})
+{
+    $PRODUCT_OUT = "$ENV{OUT_DIR}/target/product/${PROJECT}";
+}
+else
+{
+    $PRODUCT_OUT = "out/target/product/${PROJECT}";
+}
+my $ptgen_out_prefix = "$ENV{MTK_ROOT_OUT}/PTGEN";
+my $preloader_out_prefix = "$ENV{MTK_ROOT_OUT}/PRELOADER_OBJ";
 my $PART_TABLE_FILENAME   = "mediatek/build/tools/ptgen/$PLATFORM/partition_table_${PLATFORM}.xls"; # excel file name
 my $REGION_TABLE_FILENAME = "mediatek/build/tools/emigen/$PLATFORM/MemoryDeviceList_${PLATFORM}.xls";  #eMMC region information
 my $EMMC_COMPO	= "mediatek/config/$PROJECT/mbr_addr.pl" ;
-
 my $CUSTOM_MEMORYDEVICE_H_NAME  = "mediatek/custom/$PROJECT/preloader/inc/custom_MemoryDevice.h";
-my $PARTITION_DEFINE_H_NAME     = "mediatek/custom/$PROJECT/common/partition_define.h"; # 
-my $PARTITION_DEFINE_C_NAME		= "mediatek/platform/$platform/kernel/drivers/dum-char/partition_define.c";
-my $PART_SIZE_LOCATION		= "mediatek/config/$PROJECT/configs/partition_size.mk" ; 
-my $PMT_H_NAME          = "mediatek/custom/$PROJECT/common/pmt.h";
-my $PRODUCT_OUT="out/target/product/$PROJECT/";
-#for autogen uboot preload and kernel partition struct
-my $ProjectConfig		="mediatek/config/$PROJECT/ProjectConfig.mk";
-my $UbootH	="mediatek/custom/$PROJECT/uboot/inc/mt65xx_partition.h";
-my $UbootC	="mediatek/custom/$PROJECT/uboot/mt65xx_partition.c";
-my $PreloaderH	="mediatek/custom/$PROJECT/preloader/inc/cust_part.h";
-my $PreloaderC	="mediatek/custom/$PROJECT/preloader/cust_part.c";
-my $KernelH 	="mediatek/custom/$PROJECT/kernel/core/src/partition.h";
-my $Uboot_PartitionC = "mediatek/custom/$PROJECT/uboot/partition.c"; 
 
-my $LK_CUSTOM = "mediatek/custom/$PROJECT/lk";
-my $LK_CUSTOM_INC = "mediatek/custom/$PROJECT/lk/inc";
-my $LK_MT_PartitionH = "mediatek/custom/$PROJECT/lk/inc/mt_partition.h";
-my $LK_PartitionC = "mediatek/custom/$PROJECT/lk/partition.c"; 
-my $LK_CUSTOM_OUT_LK = "mediatek/custom/out/$FULL_PROJECT/lk";
-my $LK_CUSTOM_OUT_LK_INC = "mediatek/custom/out/$FULL_PROJECT/lk/inc";
-my $CUSTOM_OUT_COMMON = "mediatek/custom/out/$FULL_PROJECT/common";
+#for autogen lk preload and kernel partition struct
+my $PMT_H_NAME          		= "$ptgen_out_prefix/common/pmt.h";
+my $PARTITION_DEFINE_H_NAME     = "$ptgen_out_prefix/common/partition_define.h"; 
+my $PreloaderC					= "$preloader_out_prefix/cust_part.c";
+my $LK_MT_PartitionH 			= "$ptgen_out_prefix/lk/inc/mt_partition.h";
+my $LK_PartitionC 				= "$ptgen_out_prefix/lk/partition.c"; 
+my $KernelH 					= "$ptgen_out_prefix/kernel/partition.h";
+my $PARTITION_DEFINE_C_NAME		= "$ptgen_out_prefix/kernel/partition_define_private.h";
+my $EMMC_PART_SIZE_LOCATION		= "$ptgen_out_prefix/configs/partition_size.mk" ; 
 
-my $SCAT_NAME_DIR   = "mediatek/misc/"; # 
 
 #Set SCAT_NAME
-mkdir($SCAT_NAME_DIR) if (!-d $SCAT_NAME_DIR);
-if ($LCA_PRJ eq "yes")
-{
-    $SCAT_NAME = $SCAT_NAME_DIR . $PLATFORM ."_Android_scatter_LCA.txt" ;
-}
 
 if($YAML_SUPPORT eq "yes"){
-	$SCAT_NAME = "${SCAT_NAME_DIR}${PLATFORM}_Android_scatter.txt";
+	$SCAT_NAME = "$PRODUCT_OUT/${PLATFORM}_Android_scatter.txt";
 }else{
 	if ($EMMC_SUPPORT eq "yes") 
 	{
-		$SCAT_NAME = $SCAT_NAME_DIR . $PLATFORM ."_Android_scatter_emmc.txt" ;
+		$SCAT_NAME = "$PRODUCT_OUT/${PLATFORM}_Android_scatter_emmc.txt" ;
 	}else{
-		$SCAT_NAME = $SCAT_NAME_DIR . $PLATFORM ."_Android_scatter.txt" ;
+		$SCAT_NAME = "$PRODUCT_OUT/${PLATFORM}_Android_scatter.txt" ;
 	}
 }
 #Set SHEET_NAME
@@ -136,10 +138,10 @@ if($EMMC_SUPPORT eq "yes"){
 		$Page_Size=2;	
 	}
 }
-if($TARGET_BUILD_VARIANT eq "user"){
-	$SHEET_NAME = $SHEET_NAME . " user";
+if($TARGET_BUILD_VARIANT eq "eng"){
+	$SHEET_NAME = $SHEET_NAME . " eng";
 }else{
-	$SHEET_NAME = $SHEET_NAME . " eng";	
+	$SHEET_NAME = $SHEET_NAME . " user";	
 }
 if($LDVT_SUPPORT eq "yes"){
 	$SHEET_NAME = "ldvt";	
@@ -163,11 +165,13 @@ MTK_EMMC_OTP_SUPPORT= $ENV{MTK_EMMC_OTP_SUPPORT};
 MTK_SHARED_SDCARD=$ENV{MTK_SHARED_SDCARD};
 MTK_NAND_UBIFS_SUPPORT=$ENV{MTK_NAND_UBIFS_SUPPORT};
 MTK_YAML_SCATTER_FILE_SUPPORT=$ENV{MTK_YAML_SCATTER_FILE_SUPPORT};
+MTK_CIP_SUPPORT= ${MTK_CIP_SUPPORT};
 \n";
 print "SHEET_NAME=$SHEET_NAME\n";
 print "SCAT_NAME=$SCAT_NAME\n" ;
 
 print "*******************Arguments*********************\n\n\n\n" ;
+&clear_files();
 
 if ($EMMC_SUPPORT eq "yes"){
 	&GetMBRStartAddress();
@@ -199,14 +203,6 @@ if ($EMMC_SUPPORT eq "yes" || $MTK_NAND_UBIFS_SUPPORT eq "yes"){
 &GenLK_MT_PartitionH();
 if($EMMC_SUPPORT ne "yes"){
 	&GenKernel_PartitionC();
-}
-#&ModifyPreloaderCust_PartH();
-#&ModifyPreloaderCust_PartC();
-#&ModifyUbootMt65xx_partitionH();
-#&ModifyUbootMt65xx_partitionC();
-
-unless ($EMMC_SUPPORT eq "yes"){
-	#&ModifyKernelPartitionC();
 }
 
 print "**********Ptgen Done********** ^_^\n" ;
@@ -399,6 +395,8 @@ sub ReadExcelFile()
 		if($type eq "EXT4" || $type eq "FAT" ){
 			if($pt_name eq "FAT" && $MTK_SHARED_SDCARD eq "yes"){
 				print "Skip FAT because of MTK_SHARED_SDCARD On\n";
+			}elsif($pt_name eq "CUSTOM" && $MTK_CIP_SUPPORT ne "yes"){
+	  			print "Skip CUSTOM because of MTK_CIP_SUPPORT off\n";
 			}else{
 						$p_count++;			
 			}			
@@ -414,6 +412,8 @@ sub ReadExcelFile()
 	while($pt_name ne "END"){
 		if($pt_name eq "FAT" && $MTK_SHARED_SDCARD eq "yes"){
 			print "Skip FAT because of MTK_SHARED_SDCARD On\n";
+		}elsif($pt_name eq "CUSTOM" && $MTK_CIP_SUPPORT ne "yes"){
+	  		print "Skip CUSTOM because of MTK_CIP_SUPPORT off\n";
 		}else{
 		$PARTITION_FIELD[$row_t -1] = $pt_name;
 		$SIZE_FIELD_KB[$row_t -1]    = &xls_cell_value($sheet, $row, $COLUMN_SIZEKB,$SHEET_NAME) ;
@@ -490,6 +490,50 @@ sub ReadExcelFile()
 		$pt_name = &xls_cell_value($sheet, $row, $COLUMN_PARTITION,$SHEET_NAME);
 		
 	}
+	
+	    #modify size for some part
+    my $board_config = &open_for_read("mediatek/config/$PROJECT/BoardConfig.mk");
+    my $iter;
+    if ($board_config)
+    {
+        my $line;
+        while (defined($line = <$board_config>))
+        {
+            for($iter=0;$iter< @PARTITION_FIELD;$iter++)
+            {
+                my $part_name = $PARTITION_FIELD[$iter];
+                if ($line =~ /\A\s*BOARD_MTK_${part_name}_SIZE_KB\s*:=\s*(\d+)/)
+                {
+                    $SIZE_FIELD_KB[$iter] = $1;
+                    print "by project size $part_name = $1 KB\n";
+                }
+            }
+        }
+        close $board_config;
+    }
+    if ($FULL_PROJECT ne $PROJECT)
+    {
+        my $flavor_board_config = &open_for_read("mediatek/config/$FULL_PROJECT/BoardConfig.mk");
+        if ($flavor_board_config)
+        {
+            my $line;
+            while (defined($line = <$flavor_board_config>))
+            {
+            	for($iter=0;$iter< @PARTITION_FIELD;$iter++)
+                {
+                    my $part_name = $PARTITION_FIELD[$iter];
+                    if ($line =~ /\A\s*BOARD_MTK_${part_name}_SIZE_KB\s*:=\s*(\d+)/)
+                    {
+                    	$SIZE_FIELD_KB[$iter] = $1;
+                        print "by flavor project size $part_name = $1 KB\n";
+                    }
+                }
+            }
+            close $flavor_board_config;
+        }
+    }
+    
+    
 #init start_address of partition
 	$START_FIELD_Byte[0] = 0;	
 	$PARTITION_IDX_FIELD[0] = 0;	
@@ -585,71 +629,63 @@ sub GenHeaderFile ()
     my $iter = 0 ;
     my $temp ;
 	my $t;
-	unless(-e "mediatek/custom/$PROJECT/common/"){
-		mkdir("mediatek/custom/$PROJECT/common/",0777);
-	}
-
-	if (-e $PARTITION_DEFINE_H_NAME)
-	{
-		`chmod 777 $PARTITION_DEFINE_H_NAME`;
-	}
-    open (PARTITION_DEFINE_H_NAME, ">$PARTITION_DEFINE_H_NAME") or &error_handler("Ptgen open PARTITION_DEFINE_H_NAME fail!\n", __FILE__, __LINE__);
-
+	my $partition_define_h_fd=&open_for_rw($PARTITION_DEFINE_H_NAME);
+    
 #write header
-    print PARTITION_DEFINE_H_NAME &copyright_file_header_for_c();
-    print PARTITION_DEFINE_H_NAME "\n#ifndef __PARTITION_DEFINE_H__\n#define __PARTITION_DEFINE_H__\n\n" ;
-    print PARTITION_DEFINE_H_NAME "\n\n\n#define KB  (1024)\n#define MB  (1024 * KB)\n#define GB  (1024 * MB)\n\n" ;
+    print $partition_define_h_fd &copyright_file_header_for_c();
+    print $partition_define_h_fd "\n#ifndef __PARTITION_DEFINE_H__\n#define __PARTITION_DEFINE_H__\n\n" ;
+    print $partition_define_h_fd "\n\n\n#define KB  (1024)\n#define MB  (1024 * KB)\n#define GB  (1024 * MB)\n\n" ;
 #write part_name define
  	for ($iter=0; $iter< $total_rows; $iter++){
 		$temp = "#define PART_$PARTITION_FIELD[$iter] \"$PARTITION_FIELD[$iter]\" \n";
-		print PARTITION_DEFINE_H_NAME $temp ;
+		print $partition_define_h_fd $temp ;
  	}
 #preloader re-name
-	print PARTITION_DEFINE_H_NAME "/*preloader re-name*/\n";
+	print $partition_define_h_fd "/*preloader re-name*/\n";
 	for ($iter=0; $iter< $total_rows; $iter++){
 		if($preloader_alias{$PARTITION_FIELD[$iter]}){
 			$temp = "#define PART_$preloader_alias{$PARTITION_FIELD[$iter]} \"$preloader_alias{$PARTITION_FIELD[$iter]}\" \n";
-			print PARTITION_DEFINE_H_NAME $temp ;
+			print $partition_define_h_fd $temp ;
 		}
 	}
 #Uboot re-name
-	print PARTITION_DEFINE_H_NAME "/*Uboot re-name*/\n";
+	print $partition_define_h_fd "/*Uboot re-name*/\n";
 	for ($iter=0; $iter< $total_rows; $iter++){
 		if($uboot_alias{$PARTITION_FIELD[$iter]}&&($uboot_alias{$PARTITION_FIELD[$iter]} ne $preloader_alias{$PARTITION_FIELD[$iter]})){
 			$temp = "#define PART_$uboot_alias{$PARTITION_FIELD[$iter]} \"$uboot_alias{$PARTITION_FIELD[$iter]}\" \n";
-			print PARTITION_DEFINE_H_NAME $temp ;
+			print $partition_define_h_fd $temp ;
 		}
 	}
-    print PARTITION_DEFINE_H_NAME "\n#define PART_FLAG_NONE              0 \n";   
-    print PARTITION_DEFINE_H_NAME "#define PART_FLAG_LEFT             0x1 \n";  
-    print PARTITION_DEFINE_H_NAME "#define PART_FLAG_END              0x2 \n";  
-    print PARTITION_DEFINE_H_NAME "#define PART_MAGIC              0x58881688 \n\n";  
+    print $partition_define_h_fd "\n#define PART_FLAG_NONE              0 \n";   
+    print $partition_define_h_fd "#define PART_FLAG_LEFT             0x1 \n";  
+    print $partition_define_h_fd "#define PART_FLAG_END              0x2 \n";  
+    print $partition_define_h_fd "#define PART_MAGIC              0x58881688 \n\n";  
     for ($iter=0; $iter< $total_rows; $iter++)
     {
         if($PARTITION_FIELD[$iter] eq "BMTPOOL")
         {
 			my $bmtpool=sprintf("%x",$SIZE_FIELD_KB[$iter]/64/$Page_Size);
 			$temp = "#define PART_SIZE_$PARTITION_FIELD[$iter]\t\t\t(0x$bmtpool)\n" ;
-    		print PARTITION_DEFINE_H_NAME $temp ;
+    		print $partition_define_h_fd $temp ;
         }else
         {
     		$temp = "#define PART_SIZE_$PARTITION_FIELD[$iter]\t\t\t($SIZE_FIELD_KB[$iter]*KB)\n" ;
-			print PARTITION_DEFINE_H_NAME $temp ;
+			print $partition_define_h_fd $temp ;
         }
 	if($PARTITION_FIELD[$iter] eq "SECCFG" || $PARTITION_FIELD[$iter] eq "SEC_RO"){
 		$temp = "#define PART_OFFSET_$PARTITION_FIELD[$iter]\t\t\t($START_FIELD_Byte_HEX[$iter])\n"; 
-		print PARTITION_DEFINE_H_NAME $temp ;
+		print $partition_define_h_fd $temp ;
 	}
         
     }
     
-    print PARTITION_DEFINE_H_NAME "\n\n#define PART_NUM\t\t\t$total_rows\n\n";
-    print PARTITION_DEFINE_H_NAME "\n\n#define PART_MAX_COUNT\t\t\t 40\n\n";
-	print PARTITION_DEFINE_H_NAME "#define MBR_START_ADDRESS_BYTE\t\t\t($MBR_Start_Address_KB*KB)\n\n";
+    print $partition_define_h_fd "\n\n#define PART_NUM\t\t\t$total_rows\n\n";
+    print $partition_define_h_fd "\n\n#define PART_MAX_COUNT\t\t\t 40\n\n";
+	print $partition_define_h_fd "#define MBR_START_ADDRESS_BYTE\t\t\t($MBR_Start_Address_KB*KB)\n\n";
 	if($EMMC_SUPPORT eq "yes"){
-		print PARTITION_DEFINE_H_NAME "#define WRITE_SIZE_Byte		512\n";
+		print $partition_define_h_fd "#define WRITE_SIZE_Byte		512\n";
 	}else{
-		print PARTITION_DEFINE_H_NAME "#define WRITE_SIZE_Byte		($Page_Size*1024)\n";
+		print $partition_define_h_fd "#define WRITE_SIZE_Byte		($Page_Size*1024)\n";
 	}
 	my $ExcelStruct = <<"__TEMPLATE";
 typedef enum  {
@@ -691,20 +727,14 @@ extern struct MBR_EBR_struct MBR_EBR_px[MBR_COUNT];
 #endif
 __TEMPLATE
 
-	print PARTITION_DEFINE_H_NAME $ExcelStruct;
-	print PARTITION_DEFINE_H_NAME "extern struct excel_info PartInfo[PART_NUM];\n";
-	print PARTITION_DEFINE_H_NAME "\n\n#endif\n" ; 
-   	close PARTITION_DEFINE_H_NAME ;
+	print $partition_define_h_fd $ExcelStruct;
+	print $partition_define_h_fd "extern struct excel_info *PartInfo;\n";
+	print $partition_define_h_fd "\n\n#endif\n" ; 
+   	close $partition_define_h_fd ;
 
-	if (-e $PARTITION_DEFINE_C_NAME)
-	{
-		`chmod 777 $PARTITION_DEFINE_C_NAME`;
-	}
- 	open (PARTITION_DEFINE_C_NAME, ">$PARTITION_DEFINE_C_NAME") or &error_handler("Ptgen open PARTITION_DEFINE_C_NAME fail!\n", __FILE__, __LINE__);	
-    	print PARTITION_DEFINE_C_NAME &copyright_file_header_for_c();
-	print PARTITION_DEFINE_C_NAME "#include <linux/module.h>\n";
-	print PARTITION_DEFINE_C_NAME "#include \"partition_define.h\"\n";
-	print PARTITION_DEFINE_C_NAME "struct excel_info PartInfo[PART_NUM]={\n";
+ 	my $partition_define_c_fd=&open_for_rw($PARTITION_DEFINE_C_NAME);
+    print $partition_define_c_fd &copyright_file_header_for_c();
+	print $partition_define_c_fd "#include \"partition_define.h\"\nstatic const struct excel_info PartInfo_Private[PART_NUM]={\n";
 	
 	for ($iter=0; $iter<$total_rows; $iter++)
     {
@@ -719,41 +749,35 @@ __TEMPLATE
 			$temp .= ", NAND";	
 		}
 		$temp .= "},\n";
-		print PARTITION_DEFINE_C_NAME $temp;
+		print $partition_define_c_fd $temp;
 	}
-	print PARTITION_DEFINE_C_NAME " };\n"; 
-	print PARTITION_DEFINE_C_NAME "EXPORT_SYMBOL(PartInfo);\n";
+	print $partition_define_c_fd " };\n"; 
 #generate MBR struct
-	print PARTITION_DEFINE_C_NAME "\n#ifdef  MTK_EMMC_SUPPORT\n";
-	print PARTITION_DEFINE_C_NAME "struct MBR_EBR_struct MBR_EBR_px[MBR_COUNT]={\n";
+	print $partition_define_c_fd "\n#ifdef  MTK_EMMC_SUPPORT\n";
+	print $partition_define_c_fd "struct MBR_EBR_struct MBR_EBR_px[MBR_COUNT]={\n";
 	my $iter_p=0;
 	my $iter_c = @BR_INDEX;
 	print "BR COUNT is $iter_c $BR_INDEX[$iter_c-1]\n";
 	for($iter_p=0;$iter_p<=$BR_INDEX[$iter_c-1];$iter_p++){
 		if($iter_p ==0){
-			print PARTITION_DEFINE_C_NAME "\t{\"mbr\", {";
+			print $partition_define_c_fd "\t{\"mbr\", {";
 		}else{
-			print PARTITION_DEFINE_C_NAME "\t{\"ebr$iter_p\", {";
+			print $partition_define_c_fd "\t{\"ebr$iter_p\", {";
 		}
 		for ($iter=1; $iter<$iter_c; $iter++){
 			if($iter == 1){
 				$BR_INDEX[$iter] = 0;			
 			}
 			if($iter_p == $BR_INDEX[$iter]){
-				print PARTITION_DEFINE_C_NAME "$iter, ";
+				print $partition_define_c_fd "$iter, ";
 			}		
 		}
-		print PARTITION_DEFINE_C_NAME "}},\n";			
+		print $partition_define_c_fd "}},\n";			
 	}
-	print PARTITION_DEFINE_C_NAME "};\n\n";
-	print PARTITION_DEFINE_C_NAME "EXPORT_SYMBOL(MBR_EBR_px);\n";
-	print PARTITION_DEFINE_C_NAME "#endif\n\n";
-   	close PARTITION_DEFINE_C_NAME ;
-
-	unless(-e $CUSTOM_OUT_COMMON){
-		{`mkdir -p $CUSTOM_OUT_COMMON`;}	
-	}
-	{`cp $PARTITION_DEFINE_H_NAME $CUSTOM_OUT_COMMON`;}
+	print $partition_define_c_fd "};\n\n";
+	print $partition_define_c_fd "EXPORT_SYMBOL(MBR_EBR_px);\n";
+	print $partition_define_c_fd "#endif\n\n";
+   	close $partition_define_c_fd ;
 
 }
 #****************************************************************************
@@ -763,8 +787,7 @@ __TEMPLATE
 sub GenScatFile ()
 {
     my $iter = 0 ;
-	`chmod 777 $SCAT_NAME_DIR` if (-e $SCAT_NAME_DIR);
-    open (SCAT_NAME, ">$SCAT_NAME") or &error_handler("Ptgen open $SCAT_NAME Fail!", __FILE__, __LINE__) ;
+    my $scatter_file_fd=&open_for_rw($SCAT_NAME);
 
     for ($iter=0; $iter<$total_rows; $iter++)
     {   
@@ -774,7 +797,7 @@ sub GenScatFile ()
         {
             $temp .= "__NODL_" ;
         }
-	if($EMMC_SUPPORT eq "yes" && $RESERVED_FIELD[$iter] == 1 && $PLATFORM eq "MT6589"){
+	if($EMMC_SUPPORT eq "yes" && $RESERVED_FIELD[$iter] == 1){
 			$temp .= "RSV_";
 	}
 	$temp .= "$PARTITION_FIELD[$iter]" ;
@@ -788,23 +811,15 @@ sub GenScatFile ()
 	$temp .= " $START_FIELD_Byte_HEX[$iter]\n{\n}\n";
 
 
-        print SCAT_NAME $temp ;
+        print $scatter_file_fd $temp ;
     }
 
-    print SCAT_NAME "\n\n" ;
-    close SCAT_NAME ;
+    print $scatter_file_fd "\n\n" ;
+    close $scatter_file_fd ;
 }
 sub GenYAMLScatFile(){
 	my $iter = 0 ;
-	if(!-e $SCAT_NAME_DIR)
-	{
-		`mkdir -p $SCAT_NAME_DIR `;
-	}
-	if(-e $SCAT_NAME)
-	{
-		`chmod 777 $SCAT_NAME`;
-	}
-    open (SCAT_NAME, ">$SCAT_NAME") or &error_handler("Ptgen open $SCAT_NAME Fail!", __FILE__, __LINE__) ;
+   my $scatter_file_fd=&open_for_rw($SCAT_NAME);
 	my %fileHash=(
 		PRELOADER=>"preloader_$PROJECT.bin",
 		DSP_BL=>"DSP_BL",
@@ -817,8 +832,18 @@ sub GenYAMLScatFile(){
 		CACHE=>"cache.img",
 		USRDATA=>"userdata.img"
 	);
+
+	my %sepcial_operation_type=(
+		PRELOADER=>"BOOTLOADERS",
+		DSP_BL=>"BOOTLOADERS",
+		NVRAM=>"BINREGION",
+		PRO_INFO=>"PROTECTED",
+		PROTECT_F=>"PROTECTED",
+		PROTECT_S=>"PROTECTED",
+		PMT=>"RESERVED",
+		BMTPOOL=>"RESERVED",
+	);
 	my %protect=(PRO_INFO=>"TRUE",NVRAM=>"TRUE",PROTECT_F=>"TRUE",PROTECT_S=>"TRUE",FAT=>"KEEPVISIBLE",FAT=>"INVISIBLE",BMTPOOL=>"INVISIBLE");
-	my %op_type;
 	my %Scatter_Info={};
 	for ($iter=0; $iter<$total_rows; $iter++){
 		$Scatter_Info{$PARTITION_FIELD[$iter]}={partition_index=>$iter,physical_start_addr=>sprintf("0x%x",$START_ADDR_PHY_Byte_DEC[$iter]),linear_start_addr=>$START_FIELD_Byte_HEX[$iter],partition_size=>sprintf("0x%x",${SIZE_FIELD_KB[$iter]}*1024)};
@@ -853,12 +878,8 @@ sub GenYAMLScatFile(){
 		{
 			$Scatter_Info{$PARTITION_FIELD[$iter]}{type}="SV5_BL_BIN";
 		}
-		if(exists $protect{$PARTITION_FIELD[$iter]}){
-			if($DL_FIELD[$iter] == 0){
-				$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}="PROTECTED";
-			}else{
-				$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}="KEEPVISIBLE";
-			}		
+		if(exists $sepcial_operation_type{$PARTITION_FIELD[$iter]}){
+			$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}=$sepcial_operation_type{$PARTITION_FIELD[$iter]};
 		}else{
 			if($DL_FIELD[$iter] == 0){
 				$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}="INVISIBLE";
@@ -866,10 +887,6 @@ sub GenYAMLScatFile(){
 				$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}="UPDATE";
 			}	
 		}
-		if($PARTITION_FIELD[$iter]=~/PRELOADER/ || $PARTITION_FIELD[$iter]=~/DSP_BL/){
-			$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}="BOOTLOADERS";
-		}
-
 		if($EMMC_SUPPORT eq "yes"){
 			$Scatter_Info{$PARTITION_FIELD[$iter]}{region}="EMMC_$REGION_FIELD[$iter]";
 		}else{
@@ -927,39 +944,39 @@ __TEMPLATE
 	my ${SecondSpaceSymbol}="      ";
 	my ${SecondDashes}="    - ";
 	my ${colon}=": ";
-	print SCAT_NAME $Head1;
-	print SCAT_NAME "${FirstDashes}general${colon}MTK_PLATFORM_CFG\n";
-	print SCAT_NAME "${FirstSpaceSymbol}info${colon}\n";
-	print SCAT_NAME "${SecondDashes}config_version${colon}V1.1.0\n";
-	print SCAT_NAME "${SecondSpaceSymbol}platform${colon}${PLATFORM}\n";
-	print SCAT_NAME "${SecondSpaceSymbol}project${colon}${FULL_PROJECT}\n";
+	print $scatter_file_fd $Head1;
+	print $scatter_file_fd "${FirstDashes}general${colon}MTK_PLATFORM_CFG\n";
+	print $scatter_file_fd "${FirstSpaceSymbol}info${colon}\n";
+	print $scatter_file_fd "${SecondDashes}config_version${colon}V1.1.1\n";
+	print $scatter_file_fd "${SecondSpaceSymbol}platform${colon}${PLATFORM}\n";
+	print $scatter_file_fd "${SecondSpaceSymbol}project${colon}${FULL_PROJECT}\n";
 	if($EMMC_SUPPORT eq "yes"){
-		print SCAT_NAME "${SecondSpaceSymbol}storage${colon}EMMC\n";
-		print SCAT_NAME "${SecondSpaceSymbol}boot_channel${colon}MSDC_0\n";
-		printf SCAT_NAME ("${SecondSpaceSymbol}block_size${colon}0x%x\n",2*64*1024);
+		print $scatter_file_fd "${SecondSpaceSymbol}storage${colon}EMMC\n";
+		print $scatter_file_fd "${SecondSpaceSymbol}boot_channel${colon}MSDC_0\n";
+		printf $scatter_file_fd ("${SecondSpaceSymbol}block_size${colon}0x%x\n",2*64*1024);
 	}else{
-		print SCAT_NAME "${SecondSpaceSymbol}storage${colon}NAND\n";
-		print SCAT_NAME "${SecondSpaceSymbol}boot_channel${colon}NONE\n";
-		printf SCAT_NAME ("${SecondSpaceSymbol}block_size${colon}0x%x\n",${Page_Size}*64*1024);
+		print $scatter_file_fd "${SecondSpaceSymbol}storage${colon}NAND\n";
+		print $scatter_file_fd "${SecondSpaceSymbol}boot_channel${colon}NONE\n";
+		printf $scatter_file_fd ("${SecondSpaceSymbol}block_size${colon}0x%x\n",${Page_Size}*64*1024);
 	}
-	print SCAT_NAME $Head2;
+	print $scatter_file_fd $Head2;
 	for ($iter=0; $iter<$total_rows; $iter++){
-		print SCAT_NAME "${FirstDashes}partition_index${colon}SYS$Scatter_Info{$PARTITION_FIELD[$iter]}{partition_index}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}partition_name${colon}${PARTITION_FIELD[$iter]}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}file_name${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{file_name}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}is_download${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{is_download}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}type${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{type}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}linear_start_addr${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{linear_start_addr}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}physical_start_addr${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{physical_start_addr}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}partition_size${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{partition_size}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}region${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{region}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}storage${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{storage}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}boundary_check${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{boundary_check}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}is_reserved${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{is_reserved}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}operation_type${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}\n";
-		print SCAT_NAME "${FirstSpaceSymbol}reserve${colon}0x00\n\n";
+		print $scatter_file_fd "${FirstDashes}partition_index${colon}SYS$Scatter_Info{$PARTITION_FIELD[$iter]}{partition_index}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}partition_name${colon}${PARTITION_FIELD[$iter]}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}file_name${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{file_name}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}is_download${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{is_download}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}type${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{type}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}linear_start_addr${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{linear_start_addr}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}physical_start_addr${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{physical_start_addr}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}partition_size${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{partition_size}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}region${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{region}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}storage${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{storage}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}boundary_check${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{boundary_check}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}is_reserved${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{is_reserved}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}operation_type${colon}$Scatter_Info{$PARTITION_FIELD[$iter]}{operation_type}\n";
+		print $scatter_file_fd "${FirstSpaceSymbol}reserve${colon}0x00\n\n";
 	}
-	close SCAT_NAME;	
+	close $scatter_file_fd;	
 }
 #****************************************************************************************
 # subroutine:  GenMBRFile 
@@ -987,9 +1004,9 @@ sub GenMBRFile {
 	my @size_block;
 	my @ebr_start_block;
 	my $ebr_count = 0;
-	my $br_folder = "mediatek/misc/";
+	my $br_folder = $PRODUCT_OUT;
 my @BR = (
-	["mediatek/misc/MBR", [	[0x00,0x0,0x0],
+	["$PRODUCT_OUT/MBR", [	[0x00,0x0,0x0],
 					[0x00,0x0,0x0],
 					[0x00,0x0,0x0],
 					[0x00,0x0,0x0]]],
@@ -1005,7 +1022,7 @@ my @BR = (
 		}
 		if($PARTITION_FIELD[$iter] =~ /EBR(\d)/){
 			$ebr_start_block[$1] =  ($START_FIELD_Byte[$iter]-$mbr_start)/512;
-			$BR[$1][0] = "mediatek/misc/"."$PARTITION_FIELD[$iter]";
+			$BR[$1][0] = "$PRODUCT_OUT/$PARTITION_FIELD[$iter]";
 			$BR[$1][1] = [[0,0,0],[0,0,0],[0,0,0],[0,0,0]];
 			printf ("%s %d %x\n",$BR[$1][0], $1 ,$ebr_start_block[$1]);
 			$ebr_count ++;
@@ -1082,27 +1099,27 @@ foreach my $sBR (@BR){
 	print("Generate $sBR->[0] bin file\n");
 	
 	#create file
-	open(FH,">$sBR->[0]")|| die "create $sBR->[0] file failed\n";
-	print FH pack("C512",0x0);
+	my $xbr_fd=&open_for_rw("$sBR->[0]");
+	print $xbr_fd pack("C512",0x0);
 
 	#seek to tabel
-	seek(FH,446,0);
+	seek($xbr_fd,446,0);
 
 	foreach (@{$sBR->[1]}){
 		#type
-		seek(FH,4,1);
-		print FH pack("C1",$_->[0]);
+		seek($xbr_fd,4,1);
+		print $xbr_fd pack("C1",$_->[0]);
 		#offset and length
-		seek(FH,3,1);
-		print FH pack("I1",$_->[1]);
-		print FH pack("I1",$_->[2]);
+		seek($xbr_fd,3,1);
+		print $xbr_fd pack("I1",$_->[1]);
+		print $xbr_fd pack("I1",$_->[2]);
 	}
 	
 	#end label
-	seek(FH,510,0);
-	print FH pack("C2",0x55,0xAA);
+	seek($xbr_fd,510,0);
+	print $xbr_fd pack("C2",0x55,0xAA);
 
-	close(FH);
+	close($xbr_fd);
 }
 
 }
@@ -1141,13 +1158,13 @@ sub GenMBRFile_old {
 	my $p6_size_block;
 
 my @BR = (
-	["mediatek/misc/MBR", [	[0x5,	0x0,0x0],
+	["$PRODUCT_OUT/MBR", [	[0x5,	0x0,0x0],
 						[0x83,0x0,0x0],
 						[0x83,0x0,0x0],
 						[0xb,0x0,0x0]]],
-	["mediatek/misc/EBR1", [[0x83,0x0,0x0],
+	["$PRODUCT_OUT/EBR1", [[0x83,0x0,0x0],
 						[0x05,0x0,0x0]]],
-	["mediatek/misc/EBR2", [[0x83,0x0,0x0]]]
+	["$PRODUCT_OUT/EBR2", [[0x83,0x0,0x0]]]
 );
 
     #$sheet = get_sheet($SHEET_NAME,$PartitonBook) ;
@@ -1213,27 +1230,27 @@ foreach my $sBR (@BR){
 	print("Generate $sBR->[0] bin file\n");
 	
 	#create file
-	open(FH,">$sBR->[0]")|| die "create $sBR->[0] file failed\n";
-	print FH pack("C512",0x0);
+	my $xbr_fd=open_for_rw("$sBR->[0]");
+	print $xbr_fd pack("C512",0x0);
 
 	#seek to tabel
-	seek(FH,446,0);
+	seek($xbr_fd,446,0);
 
 	foreach (@{$sBR->[1]}){
 		#type
-		seek(FH,4,1);
-		print FH pack("C1",$_->[0]);
+		seek($xbr_fd,4,1);
+		print $xbr_fd pack("C1",$_->[0]);
 		#offset and length
-		seek(FH,3,1);
-		print FH pack("I1",$_->[1]);
-		print FH pack("I1",$_->[2]);
+		seek($xbr_fd,3,1);
+		print $xbr_fd pack("I1",$_->[1]);
+		print $xbr_fd pack("I1",$_->[2]);
 	}
 	
 	#end label
-	seek(FH,510,0);
-	print FH pack("C2",0x55,0xAA);
+	seek($xbr_fd,510,0);
+	print $xbr_fd pack("C2",0x55,0xAA);
 
-	close(FH);
+	close($xbr_fd);
 }
 
 }
@@ -1245,8 +1262,7 @@ foreach my $sBR (@BR){
 
 sub GenPartSizeFile
 {
-	`chmod 777 $PART_SIZE_LOCATION` if (-e $PART_SIZE_LOCATION);
-        open (PART_SIZE_LOCATION, ">$PART_SIZE_LOCATION") or &error_handler("CAN NOT open $PART_SIZE_LOCATION\n", __FILE__, __LINE__) ;	
+	my $part_size_fd=&open_for_rw($EMMC_PART_SIZE_LOCATION);
 	my $Total_Size=512*1024*1024; #Hard Code 512MB for 4+2 project FIX ME!!!!!
 	my $temp;
 	my $index=0;
@@ -1270,10 +1286,10 @@ sub GenPartSizeFile
 		$PEB=$IOSIZE*64;
 		$LEB=$IOSIZE*62;
 		$min_ubi_vol_size = $PEB*28;
-		printf PART_SIZE_LOCATION ("BOARD_UBIFS_MIN_IO_SIZE:=%d\n",$IOSIZE);
-		printf PART_SIZE_LOCATION ("BOARD_FLASH_BLOCK_SIZE:=%d\n",$PEB);
-		printf PART_SIZE_LOCATION ("BOARD_UBIFS_VID_HDR_OFFSET:=%d\n",$IOSIZE);
-		printf PART_SIZE_LOCATION ("BOARD_UBIFS_LOGICAL_ERASEBLOCK_SIZE:=%d\n",$LEB);
+		printf $part_size_fd ("BOARD_UBIFS_MIN_IO_SIZE:=%d\n",$IOSIZE);
+		printf $part_size_fd ("BOARD_FLASH_BLOCK_SIZE:=%d\n",$PEB);
+		printf $part_size_fd ("BOARD_UBIFS_VID_HDR_OFFSET:=%d\n",$IOSIZE);
+		printf $part_size_fd ("BOARD_UBIFS_LOGICAL_ERASEBLOCK_SIZE:=%d\n",$LEB);
 	}
 
 	for($index=0;$index < $total_rows;$index++){
@@ -1281,20 +1297,20 @@ sub GenPartSizeFile
 	}
 	for($index=0;$index < $total_rows;$index++){
 		if($TYPE_FIELD[$index] eq "EXT4" || $TYPE_FIELD[$index] eq "FAT"){
-			$temp = $SIZE_FIELD_KB[$index]/1024;
+			$temp = $SIZE_FIELD_KB[$index]*1024;
 			if($PARTITION_FIELD[$index] eq "USRDATA"){
-				$temp -=1;	
+				$temp -=1*1024*1024;	
 			}
 			if(exists($PSalias{$PARTITION_FIELD[$index]})){
-				print PART_SIZE_LOCATION "BOARD_$PSalias{$PARTITION_FIELD[$index]}IMAGE_PARTITION_SIZE:=$temp". "M\n" ;
+				print $part_size_fd "BOARD_$PSalias{$PARTITION_FIELD[$index]}IMAGE_PARTITION_SIZE:=$temp\n" ;
 			}else{
-				print PART_SIZE_LOCATION "BOARD_$PARTITION_FIELD[$index]IMAGE_PARTITION_SIZE:=$temp". "M\n" ;
+				print $part_size_fd "BOARD_$PARTITION_FIELD[$index]IMAGE_PARTITION_SIZE:=$temp\n" ;
 			}
 		}
 		
 		if($MTK_NAND_UBIFS_SUPPORT eq "yes" && $TYPE_FIELD[$index] eq "UBIFS/YAFFS2"){
 			my $part_name=lc($PARTITION_FIELD[$index]);
-			my $INIFILE="${PRODUCT_OUT}ubi_${part_name}.ini";
+			my $INIFILE="$PRODUCT_OUT/ubi_${part_name}.ini";
 			if($SIZE_FIELD_KB[$index] == 0){
 				$SIZE_FIELD_KB[$index]=$Total_Size/1024;
 			}	
@@ -1302,37 +1318,30 @@ sub GenPartSizeFile
 			if($min_ubi_vol_size > $SIZE_FIELD_KB[$index]*1024){
 				&error_handler("$PARTITION_FIELD[$index] is too small, UBI partition is at least $min_ubi_vol_size byte, Now it is $SIZE_FIELD_KB[$index] KiB", __FILE__, __LINE__);
 			}
-			if(!-e $PRODUCT_OUT)
-			{
-				`mkdir -p $PRODUCT_OUT `;
-			}
-			if(-e $INIFILE)
-			{
-				`chmod 777 $INIFILE`;
-			}
-			open (INIFILE, ">$INIFILE") or &error_handler("CAN NOT open $INIFILE\n", __FILE__, __LINE__);
-			print INIFILE "[ubifs]\n";
-			print INIFILE "mode=ubi\n";
-			print INIFILE "image=${PRODUCT_OUT}ubifs.${part_name}.img\n";
-			print INIFILE "vol_id=0\n";
-			print INIFILE "vol_size=$vol_size\n";
-			print INIFILE "vol_type=dynamic\n";
+
+			my $ini_file_fd=&open_for_rw($INIFILE);
+			print $ini_file_fd "[ubifs]\n";
+			print $ini_file_fd "mode=ubi\n";
+			print $ini_file_fd "image=${PRODUCT_OUT}/ubifs.${part_name}.img\n";
+			print $ini_file_fd "vol_id=0\n";
+			print $ini_file_fd "vol_size=$vol_size\n";
+			print $ini_file_fd "vol_type=dynamic\n";
 			if(exists $kernel_alias{$PARTITION_FIELD[$index]}){
-				print INIFILE "vol_name=$kernel_alias{$PARTITION_FIELD[$index]}\n";
+				print $ini_file_fd "vol_name=$kernel_alias{$PARTITION_FIELD[$index]}\n";
 			}else{
-				print INIFILE "vol_name=${part_name}\n";
+				print $ini_file_fd "vol_name=${part_name}\n";
 			}
 			if($PARTITION_FIELD[$index] ne "SEC_RO"){
-				print INIFILE "vol_flags=autoresize\n";
+				print $ini_file_fd "vol_flags=autoresize\n";
 			}
-			print INIFILE "vol_alignment=1\n";
-			close INIFILE;
-			printf PART_SIZE_LOCATION ("BOARD_UBIFS_%s_MAX_LOGICAL_ERASEBLOCK_COUNT:=%d\n",$PARTITION_FIELD[$index],int((${vol_size}/$LEB)*1.1));
+			print $ini_file_fd "vol_alignment=1\n";
+			close $ini_file_fd;
+			printf $part_size_fd ("BOARD_UBIFS_%s_MAX_LOGICAL_ERASEBLOCK_COUNT:=%d\n",$PARTITION_FIELD[$index],int((${vol_size}/$LEB)*1.1));
 		}
 	}
 
- 	#print PART_SIZE_LOCATION "endif \n" ;
-    close PART_SIZE_LOCATION ;
+ 	#print $part_size_fd "endif \n" ;
+    close $part_size_fd ;
 }
 
 #****************************************************************************
@@ -1354,40 +1363,6 @@ sub error_handler()
 sub copyright_file_header_for_c()
 {
     my $template = <<"__TEMPLATE";
-/* Copyright Statement:
- *
- * This software/firmware and related documentation ("MediaTek Software") are
- * protected under relevant copyright laws. The information contained herein
- * is confidential and proprietary to MediaTek Inc. and/or its licensors.
- * Without the prior written permission of MediaTek inc. and/or its licensors,
- * any reproduction, modification, use or disclosure of MediaTek Software,
- * and information contained herein, in whole or in part, shall be strictly prohibited.
- */
-/* MediaTek Inc. (C) 2012. All rights reserved.
- *
- * BY OPENING THIS FILE, RECEIVER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
- * THAT THE SOFTWARE/FIRMWARE AND ITS DOCUMENTATIONS ("MEDIATEK SOFTWARE")
- * RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE PROVIDED TO RECEIVER ON
- * AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NONINFRINGEMENT.
- * NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH RESPECT TO THE
- * SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY, INCORPORATED IN, OR
- * SUPPLIED WITH THE MEDIATEK SOFTWARE, AND RECEIVER AGREES TO LOOK ONLY TO SUCH
- * THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO. RECEIVER EXPRESSLY ACKNOWLEDGES
- * THAT IT IS RECEIVER'S SOLE RESPONSIBILITY TO OBTAIN FROM ANY THIRD PARTY ALL PROPER LICENSES
- * CONTAINED IN MEDIATEK SOFTWARE. MEDIATEK SHALL ALSO NOT BE RESPONSIBLE FOR ANY MEDIATEK
- * SOFTWARE RELEASES MADE TO RECEIVER'S SPECIFICATION OR TO CONFORM TO A PARTICULAR
- * STANDARD OR OPEN FORUM. RECEIVER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S ENTIRE AND
- * CUMULATIVE LIABILITY WITH RESPECT TO THE MEDIATEK SOFTWARE RELEASED HEREUNDER WILL BE,
- * AT MEDIATEK'S OPTION, TO REVISE OR REPLACE THE MEDIATEK SOFTWARE AT ISSUE,
- * OR REFUND ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY RECEIVER TO
- * MEDIATEK FOR SUCH MEDIATEK SOFTWARE AT ISSUE.
- *
- * The following software/firmware and/or related documentation ("MediaTek Software")
- * have been modified by MediaTek Inc. All revisions are subject to any receiver's
- * applicable license agreements with MediaTek Inc.
- */
 __TEMPLATE
 
    return $template;
@@ -1399,114 +1374,9 @@ __TEMPLATE
 sub copyright_file_header_for_shell()
 {
     my $template = <<"__TEMPLATE";
- # Copyright Statement:
- #
- # This software/firmware and related documentation ("MediaTek Software") are
- # protected under relevant copyright laws. The information contained herein
- # is confidential and proprietary to MediaTek Inc. and/or its licensors.
- # Without the prior written permission of MediaTek inc. and/or its licensors,
- # any reproduction, modification, use or disclosure of MediaTek Software,
- # and information contained herein, in whole or in part, shall be strictly prohibited.
- #
- # MediaTek Inc. (C) 2012. All rights reserved.
- #
- # BY OPENING THIS FILE, RECEIVER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
- # THAT THE SOFTWARE/FIRMWARE AND ITS DOCUMENTATIONS ("MEDIATEK SOFTWARE")
- # RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE PROVIDED TO RECEIVER ON
- # AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES,
- # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
- # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NONINFRINGEMENT.
- # NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH RESPECT TO THE
- # SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY, INCORPORATED IN, OR
- # SUPPLIED WITH THE MEDIATEK SOFTWARE, AND RECEIVER AGREES TO LOOK ONLY TO SUCH
- # THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO. RECEIVER EXPRESSLY ACKNOWLEDGES
- # THAT IT IS RECEIVER'S SOLE RESPONSIBILITY TO OBTAIN FROM ANY THIRD PARTY ALL PROPER LICENSES
- # CONTAINED IN MEDIATEK SOFTWARE. MEDIATEK SHALL ALSO NOT BE RESPONSIBLE FOR ANY MEDIATEK
- # SOFTWARE RELEASES MADE TO RECEIVER'S SPECIFICATION OR TO CONFORM TO A PARTICULAR
- # STANDARD OR OPEN FORUM. RECEIVER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S ENTIRE AND
- # CUMULATIVE LIABILITY WITH RESPECT TO THE MEDIATEK SOFTWARE RELEASED HEREUNDER WILL BE,
- # AT MEDIATEK'S OPTION, TO REVISE OR REPLACE THE MEDIATEK SOFTWARE AT ISSUE,
- # OR REFUND ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY RECEIVER TO
- # MEDIATEK FOR SUCH MEDIATEK SOFTWARE AT ISSUE.
- #
- # The following software/firmware and/or related documentation ("MediaTek Software")
- # have been modified by MediaTek Inc. All revisions are subject to any receiver's
- # applicable license agreements with MediaTek Inc.
- #/
 __TEMPLATE
 
    return $template;
-}
-
-#****************************************************************************************
-# subroutine:  ModifyPreloaderCust_PartH
-# return:		Modify Cust_Part.H in Preloader
-# input:       no input
-#****************************************************************************************
-sub ModifyPreloaderCust_PartH {
-	if (-e $PreloaderH)
-	{`chmod 777 $PreloaderH`;}	
-	open (SOURCE, "$PreloaderH") or &error_handler("Ptgen CAN NOT open $PreloaderH", __FILE__, __LINE__);
-	
-	my $index=0;
-	my $iter=0;
-	my $findpt=0;
-	my $NeedAdd=0;	
-	my @arry=<SOURCE>;
-	my $partalians;
-	my @AddPart;
-	foreach $part (@PARTITION_FIELD){
-		if($part eq "END" || $part eq "BMTPOOL" || $part eq "OTP"){
-			next;
-		}
-		if($preloader_alias{$part}){
-			$partalians = $preloader_alias{$part};
-		}else{
-			$partalians = $part;
-		}
-		$index=0;
-		while($index < @arry){
-			if($arry[$index]=~/#define.*PART_$partalians/){
-				$foundpt=1;
-				last;
-			}
-			$index++;
-		}
-		
-		if($foundpt eq 0){
-			$AddPart[$iter]=$part;
-			$NeedAdd=1;
-			$iter++;
-		}
-		$foundpt=0;
-	}
-	
-	if($NeedAdd == 1){
-		$PreloaderHBUF=$PreloaderH.".tmp";
-		open (BUF,">$PreloaderHBUF");
-		$index=0;
-		while($index < @arry){
-			print BUF $arry[$index];
-			if($arry[$index]=~/#define.*CUST_PART_H/){
-				my $i=0;
-				print BUF "/*autogen by Ptgen(Kai.Zhu mtk81086)*/\n";
-				while($i < @AddPart){
-					print BUF "#define PART_$AddPart[$i]			\"$AddPart[$i]\" \n";
-					print BUF "#define CFG_USE_$AddPart[$i]_PARTITION	\n";
-					$i++;
-				}
-				print BUF "/*autogen by Ptgen(Kai.Zhu mtk81086)*/\n";
-			}
-		$index++;
-		}
-		print "$PreloaderH has been modified\n";
-		close SOURCE;
-		close BUF;
-		rename($PreloaderHBUF,$PreloaderH) or &error_handler("CAN NOT rename $PreloaderHBUF\n",__FILE__, __LINE__);
-	}else{
-		close SOURCE;
-	}
-	
 }
 
 #****************************************************************************************
@@ -1517,39 +1387,36 @@ sub ModifyPreloaderCust_PartH {
 sub GenPerloaderCust_partC{
  	my $iter = 0 ;
  	my $temp;
- 	
-	if (-e $PreloaderC)
-		{`chmod 777 $PreloaderC`;}	
-	open (SOURCE, ">$PreloaderC") or &error_handler("Ptgen CAN NOT open $PreloaderC", __FILE__, __LINE__);
-	print SOURCE &copyright_file_header_for_c();
-	print SOURCE "\n#include \"typedefs.h\"\n";
-	print SOURCE "#include \"platform.h\"\n";
-	print SOURCE "#include \"blkdev.h\"\n";
-	print SOURCE "#include \"cust_part.h\"\n";
+my $preloader_c_fd=&open_for_rw($PreloaderC);
+	print $preloader_c_fd &copyright_file_header_for_c();
+	print $preloader_c_fd "\n#include \"typedefs.h\"\n";
+	print $preloader_c_fd "#include \"platform.h\"\n";
+	print $preloader_c_fd "#include \"blkdev.h\"\n";
+	print $preloader_c_fd "#include \"cust_part.h\"\n";
 #static part_t platform_parts[PART_MAX_COUNT];
-	print SOURCE "\nstatic part_t platform_parts[PART_MAX_COUNT] = {\n";
+	print $preloader_c_fd "\nstatic part_t platform_parts[PART_MAX_COUNT] = {\n";
 
 	for ($iter=0; $iter< $total_rows; $iter++){
 		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" ||$PARTITION_FIELD[$iter] eq "OTP" );
 		if($preloader_alias{$PARTITION_FIELD[$iter]}){
 			$temp = "\t{PART_$preloader_alias{$PARTITION_FIELD[$iter]}, 0, PART_SIZE_$PARTITION_FIELD[$iter], 0,PART_FLAG_NONE},\n";
-			print SOURCE $temp;		
+			print $preloader_c_fd $temp;		
 		}else{
 			$temp = "\t{PART_$PARTITION_FIELD[$iter], 0, PART_SIZE_$PARTITION_FIELD[$iter], 0,PART_FLAG_NONE},\n";
-			print SOURCE $temp;
+			print $preloader_c_fd $temp;
 		}
 	}
 	$temp = "\t{NULL,0,0,0,PART_FLAG_END},\n};\n\n";
-	print SOURCE $temp;
+	print $preloader_c_fd $temp;
 
 #fuction
 
-#   print SOURCE  "void cust_part_init(void){}\n\n";
+#   print $preloader_c_fd  "void cust_part_init(void){}\n\n";
 
- #  print SOURCE  "part_t *cust_part_tbl(void)\n";
-#   print SOURCE "{\n";
- #  print SOURCE "\t return &platform_parts[0];\n";
-  # print SOURCE "}\n";
+ #  print $preloader_c_fd  "part_t *cust_part_tbl(void)\n";
+#   print $preloader_c_fd "{\n";
+ #  print $preloader_c_fd "\t return &platform_parts[0];\n";
+  # print $preloader_c_fd "}\n";
 	 my $template = <<"__TEMPLATE";
 void cust_part_init(void){}
 
@@ -1559,455 +1426,17 @@ part_t *cust_part_tbl(void)
 }
 
 __TEMPLATE
-	print SOURCE $template;
-	close SOURCE;
+	print $preloader_c_fd $template;
+	close $preloader_c_fd;
 }
-#****************************************************************************************
-# subroutine:  ModifyPreloaderCust_PartC
-# return:		Modify Cust_Part.C in Preloader
-# input:       no input
-#****************************************************************************************
-sub ModifyPreloaderCust_PartC {
-	if (-e $PreloaderC)
-	{`chmod 777 $PreloaderC`;}	
-	open (SOURCE, "$PreloaderC") or &error_handler("Ptgen CAN NOT open $PreloaderC", __FILE__, __LINE__);
-	
-	my $new=$PreloaderC.".tmp";
-	open (NEW,">$new");
 
-	my $index=0;
-	my $start_replace=0;
-	my $end_replace=0;
-	my $br=0;
-	my $matchBr=0;
-	my $findbr=0;	
-	my @arry=<SOURCE>;
-	my $i;
-
-	for($index=0;$index < @arry;$index++){
-		#need replacement if match
-		if($arry[$index]=~/void.*cust_part_init.*(.*void.*)/)
-		{
-			$start_replace = $index;
-		}
-		if($start_replace ne 0){
-		#if number of { eq number of },stop the replacement
-			my @leftbr;
-			my @rightbr;
-			@leftbr = $arry[$index] =~/\{/g ;
-			$br += @leftbr;
-			$matchBr +=@leftbr;
-			@rightbr = $arry[$index] =~/\}/g ;
-			$br += @rightbr;
-			$matchBr -=@rightbr;
-			if($br ne 0 && $matchBr eq 0){
-				$end_replace = $index;
-				last;	
-			}
-		}
-	}
-	
-#write tmp file
-	for($index=0;$index < @arry;$index++){
-		if($index == $start_replace){
-			print NEW "void cust_part_init(void)
-{
-	u32 index = 0;
-    memset(platform_parts, 0, sizeof(part_t) * PART_MAX_COUNT);\n";
-			for($i=0;$i < @PARTITION_FIELD;$i++){
-				if($PARTITION_FIELD[$i] eq "BMTPOOL" || $PARTITION_FIELD[$i] eq "OTP"){
-					next;
-				}
-				print NEW "	{\n";
-				if($preloader_alias{$PARTITION_FIELD[$i]}){
-					print NEW "		platform_parts[index].name = PART_$preloader_alias{$PARTITION_FIELD[$i]};\n"
-				}else{
-					print NEW "		platform_parts[index].name = PART_$PARTITION_FIELD[$i];\n";
-				}
-				
-				print NEW "		platform_parts[index].size = PART_SIZE_$PARTITION_FIELD[$i];\n";
-				print NEW "		platform_parts[index].flags = PART_FLAG_NONE;\n";
-				
-				if($i == 0){
-					print NEW "		platform_parts[index].startblk = 0;\n";
-				}
-				
-				print NEW "		index++;\n";
-				print NEW "	}\n";
-			}
-			
-			print NEW "
-\#ifdef CFG_USE_DSP_ROM_PARTITION    
-    {
-        platform_parts[index].name = PART_DSP_ROM;
-        platform_parts[index].size = 1 * MB;
-        platform_parts[index].flags = PART_FLAG_NONE;
-        index++;
-    }
-\#endif
-
-\#ifdef CFG_USE_AP_ROM_PARTITION
-    {
-        platform_parts[index].name = PART_AP_ROM;
-        platform_parts[index].size = 50 * MB;
-        platform_parts[index].flags = PART_FLAG_NONE;
-        index++;
-    }
-\#endif
-
-\#ifdef CFG_USE_MD_ROM_PARTITION
-    {
-        platform_parts[index].name = PART_MD_ROM;
-        platform_parts[index].size = 8 * MB;
-        platform_parts[index].flags = PART_FLAG_NONE;
-        index++;
-    }
-\#endif
-
-    {
-        platform_parts[index].name = NULL;
-        platform_parts[index].size = 0;
-        platform_parts[index].flags = PART_FLAG_END;
-        index++;
-    }\n";
-		
-			print NEW "}\n";
-			
-			$index=$end_replace;
-		}else{
-			print NEW $arry[$index];
-		}
-			
-	}
-
-	close SOURCE;
-	close NEW;
-	rename($new,$PreloaderC) or &error_handler("CAN NOT rename $new\n",__FILE__, __LINE__);
-}
-#****************************************************************************************
-# subroutine:  ModifyUbootMt65xx_partitionH
-# return:      
-#****************************************************************************************
-sub ModifyUbootMt65xx_partitionH()
-{
-	if (-e $UbootH)
-	{`chmod 777 $UbootH`;}	
-	open (SOURCE, "$UbootH") or &error_handler("Ptgen CAN NOT open $UbootH", __FILE__, __LINE__);
-	
-	my $index=0;
-	my $iter=0;
-	my $findpt=0;
-	my $NeedAdd=0;	
-	my @arry=<SOURCE>;
-	my $partalians;
-	my @AddPart;
-	foreach $part (@PARTITION_FIELD){
-		if($part eq "END" || $part eq "BMTPOOL" || $part eq "OTP"){
-			next;
-		}
-		if($uboot_alias{$part}){
-			$partalians = $uboot_alias{$part};
-		}else{
-			$partalians = $part;
-		}
-		$index=0;
-		while($index < @arry){
-			if($arry[$index]=~/#define.*PART_$partalians/){
-				$foundpt=1;
-				last;
-			}
-			$index++;
-		}
-		
-		if($foundpt eq 0){
-			print "$part not find\n";
-			$AddPart[$iter]=$part;
-			$NeedAdd=1;
-			$iter++;
-		}
-		$foundpt=0;
-	}
-	
-	if($NeedAdd == 1){
-		$UbootHTmp=$UbootH.".tmp";
-		open (BUF,">$UbootHTmp");
-		$index=0;
-		while($index < @arry){
-			print BUF $arry[$index];
-			if($arry[$index]=~/#define.*__MT65XX_PARTITION_H__/){
-				my $i=0;
-				print BUF "/*autogen by Ptgen(Kai.Zhu mtk81086)*/\n";
-				while($i < @AddPart){
-					print BUF "#define PART_$AddPart[$i]			\"$AddPart[$i]\"\n";
-					print BUF "#define PART_BLKS_$AddPart[$i]		\"BLK_NUM(PART_SIZE_$AddPart[$i])\"\n";
-					$i++;
-				}
-				print BUF "/*autogen by Ptgen(Kai.Zhu mtk81086)*/\n";
-			}
-		$index++;
-		}
-		print " $UbootH has been modified\n";
-		close SOURCE;
-		close BUF;
-		rename($UbootHTmp,$UbootH) or &error_handler("CAN NOT rename $UbootHTmp\n",__FILE__, __LINE__);
-	}else{
-		close SOURCE;
-	}
-	
-}
-#****************************************************************************************
-# subroutine:  ModifyUbootMt65xx_partitionC
-# return:      
-#****************************************************************************************
-sub ModifyUbootMt65xx_partitionC(){
-	if (-e $UbootC)
-	{`chmod 777 $UbootC`;}	
-	open (SOURCE, "$UbootC") or &error_handler("Ptgen CAN NOT open $UbootC", __FILE__, __LINE__);
-	
-	my $new=$UbootC.".tmp";
-	open (NEW,">$new");
-
-	my $index=0;
-	my $start_replace=0;
-	my $end_replace=0;
-	my $br=0;
-	my $matchBr=0;
-	my $findbr=0;	
-	my @arry=<SOURCE>;
-	my $i;
-
-	for($index=0;$index < @arry;$index++){
-		#need replacement if match
-		if($PLATFORM eq "MT6575"){
-			if($arry[$index]=~/part_t.*mt6575_parts\[.*\].*=/){
-				$start_replace = $index;
-			}
-		}elsif($PLATFORM eq "MT6577"){
-			if($arry[$index]=~/part_t.*partition_layout\[.*\].*=/){
-				$start_replace = $index;
-			}
-		}
-		if($start_replace ne 0){
-		#if number of { eq number of },stop the replacement
-			my @leftbr;
-			my @rightbr;
-			@leftbr = $arry[$index] =~/\{/g ;
-			$br += @leftbr;
-			$matchBr +=@leftbr;
-			@rightbr = $arry[$index] =~/\}/g ;
-			$br += @rightbr;
-			$matchBr -=@rightbr;
-			if($br ne 0 && $matchBr eq 0){
-				$end_replace = $index;
-				last;	
-			}
-		}
-	}
-	
-
-#write tmp file
-	for($index=0;$index < @arry;$index++){
-		if($index == $start_replace){
-			if($PLATFORM eq "MT6575"){
-				print NEW "part_t mt6575_parts[] = {\n";						
-			}elsif($PLATFORM eq "MT6577"){
-				print NEW "part_t partition_layout[] = {\n";
-			}
-			for($i=0;$i < @PARTITION_FIELD;$i++){
-				if($PARTITION_FIELD[$i] eq "BMTPOOL" || $PARTITION_FIELD[$i] eq "OTP"){
-					next;
-				}
-				print NEW "	{\n";
-				if($uboot_alias{$PARTITION_FIELD[$i]}){
-					print NEW "		.name   = PART_$uboot_alias{$PARTITION_FIELD[$i]},\n"
-				}else{
-					print NEW "		.name   = PART_$PARTITION_FIELD[$i],\n";
-				}
-				print NEW "		.blknum = BLK_NUM(PART_SIZE_$PARTITION_FIELD[$i]),\n";
-				print NEW "		.flags  = PART_FLAG_NONE,\n";
-				
-				if($i == 0){
-					print NEW "		.startblk = 0x0,\n";
-				}
-				
-				print NEW "	},\n";
-			}
-			
-			print NEW "
-    {
-        .name   = NULL,
-        .flags  = PART_FLAG_END,
-    },\n";
-		
-			print NEW "};\n";
-			
-			$index=$end_replace;
-		}else{
-			print NEW $arry[$index];
-		}
-			
-	}
-
-	close SOURCE;
-	close NEW;
-	rename($new,$UbootC) or &error_handler("CAN NOT rename $new\n",__FILE__, __LINE__);
-}
-#****************************************************************************************
-# subroutine:  ModifyKernelPartitionC
-# return:      
-#****************************************************************************************
-sub ModifyKernelPartitionC {
-		if (-e $KernelH)
-	{`chmod 777 $KernelH`;}	
-	open (SOURCE, "$KernelH") or &error_handler("Ptgen CAN NOT open $KernelH", __FILE__, __LINE__);
-	
-	my $new=$KernelH.".tmp";
-	open (NEW,">$new");
-
-	my $index=0;
-	my $start_replace=0;
-	my $end_replace=0;
-	my $br=0;
-	my $matchBr=0;
-	my $findbr=0;	
-	my @arry=<SOURCE>;
-	my $i;
-
-	for($index=0;$index < @arry;$index++){
-		#need replacement if match
-		if($arry[$index]=~/static.*struct.*mtd_partition.*g_pasStatic_Partition.*\[.*\].*=.*{/)
-		{
-			$start_replace = $index;
-		}
-		if($start_replace ne 0){
-		#if number of { eq number of },stop the replacement
-			my @leftbr;
-			my @rightbr;
-			@leftbr = $arry[$index] =~/\{/g ;
-			$br += @leftbr;
-			$matchBr +=@leftbr;
-			@rightbr = $arry[$index] =~/\}/g ;
-			$br += @rightbr;
-			$matchBr -=@rightbr;
-			if($br ne 0 && $matchBr eq 0){
-				$end_replace = $index;
-				last;	
-			}
-		}
-	}
-	
-#write tmp file
-	for($index=0;$index < @arry;$index++){
-		if($index == $start_replace){
-			print NEW "static struct mtd_partition g_pasStatic_Partition[] = {\n";
-			for($i=0;$i < @PARTITION_FIELD;$i++){
-				if($PARTITION_FIELD[$i] eq "BMTPOOL" || $PARTITION_FIELD[$i] eq "OTP"){
-					next;
-				}
-				print NEW "	{\n";
-				if($kernel_alias{$PARTITION_FIELD[$i]}){
-					print NEW "		.name   = \"$kernel_alias{$PARTITION_FIELD[$i]}\",\n"
-				}else{
-					my $t=lc($PARTITION_FIELD[$i]);
-					print NEW "		.name   = \"$t\",\n";
-				}
-				if($i == 0){
-					print NEW "		.offset = 0x0,\n";
-				}else{
-					print NEW "		.offset = MTDPART_OFS_APPEND,\n"
-				}
-				if($PARTITION_FIELD[$i] ne "USRDATA"){
-					print NEW "		.size = PART_SIZE_$PARTITION_FIELD[$i],\n";
-				}else{
-					print NEW "		.size = MTDPART_SIZ_FULL,\n";
-				}
-				if($PARTITION_FIELD[$i] eq "PRELOADER" ||$PARTITION_FIELD[$i] eq "DSP_BL" ||$PARTITION_FIELD[$i] eq "UBOOT" || $PARTITION_FIELD[$i] eq "SEC_RO"){
-					print NEW "		.mask_flags  = MTD_WRITEABLE,\n";
-				}
-				print NEW "	},\n";
-			}
-			print NEW "};\n";
-			$index=$end_replace;
-		}else{
-			print NEW $arry[$index];
-		}
-			
-	}
-
-	close SOURCE;
-	close NEW;
-	rename($new,$KernelH) or &error_handler("CAN NOT rename $new\n",__FILE__, __LINE__);
-}
-sub GenKernel_PartitionC(){
-	my $iter = 0;
- 	my $temp;
- 	
-	if (-e $KernelH)
-		{`chmod 777 $KernelH`;}	
-	open (SOURCE, ">$KernelH") or &error_handler("Ptgen CAN NOT open $KernelH", __FILE__, __LINE__);
-
-	print SOURCE &copyright_file_header_for_c();
-	my $template = <<"__TEMPLATE";
-
-#include <linux/mtd/mtd.h>
-#include <linux/mtd/nand.h>
-#include <linux/mtd/partitions.h>
-#include "partition_define.h"
-
-
-/*=======================================================================*/
-/* NAND PARTITION Mapping                                                  */
-/*=======================================================================*/
-static struct mtd_partition g_pasStatic_Partition[] = {
-
-__TEMPLATE
-	print SOURCE $template;
-	for ($iter=0; $iter< $total_rows; $iter++){
-		
-		$temp = lc($PARTITION_FIELD[$iter]);
-		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" || $PARTITION_FIELD[$iter] eq "OTP");
-		print SOURCE "\t{\n";
-		if($kernel_alias{$PARTITION_FIELD[$iter]}){
-			print SOURCE "\t\t.name = \"$kernel_alias{$PARTITION_FIELD[$iter]}\",\n";
-		}
-		else{
-			print SOURCE "\t\t.name = \"$temp\",\n";
-		}
-		if($iter == 0){
-			print SOURCE "\t\t.offset = 0x0,\n";
-		}else{
-			print SOURCE "\t\t.offset = MTDPART_OFS_APPEND,\n";
-		}
-		if($PARTITION_FIELD[$iter] ne "USRDATA"){
-			print SOURCE "\t\t.size = PART_SIZE_$PARTITION_FIELD[$iter],\n";
-		}else{
-			print SOURCE "\t\t.size = MTDPART_SIZ_FULL,\n";
-		}
-		if($PARTITION_FIELD[$iter] eq "PRELOADER" ||$PARTITION_FIELD[$iter] eq "DSP_BL" ||$PARTITION_FIELD[$iter] eq "UBOOT" || $PARTITION_FIELD[$iter] eq "SEC_RO"){
-			print SOURCE "\t\t.mask_flags  = MTD_WRITEABLE,\n";
-		}
-		print SOURCE "\t},\n";
-	}
-	print SOURCE "};\n";
-
-	$template = <<"__TEMPLATE";
-#define NUM_PARTITIONS ARRAY_SIZE(g_pasStatic_Partition)
-extern int part_num;	// = NUM_PARTITIONS;
-__TEMPLATE
-	print SOURCE $template;
-	close SOURCE;
-
-
-}
 #****************************************************************************************
 # subroutine:  GenPmt_H
 # return:      
 #****************************************************************************************
 sub GenPmt_H(){
-	if (-e $PMT_H_NAME)
-	{`chmod 777 $PMT_H_NAME`;}	
-	open (SOURCE, ">$PMT_H_NAME") or &error_handler("Ptgen CAN NOT open $PMT_H_NAME", __FILE__, __LINE__);
-	print SOURCE &copyright_file_header_for_c();
+	my $pmt_h_fd=&open_for_rw($PMT_H_NAME);
+	print $pmt_h_fd &copyright_file_header_for_c();
 
     my $template = <<"__TEMPLATE";
 
@@ -2015,10 +1444,6 @@ sub GenPmt_H(){
 #define _PMT_H
 
 #include "partition_define.h"
-
-//mt6516_partition.h has defination
-//mt6516_download.h define again, both is 20
-
 #define MAX_PARTITION_NAME_LEN 64
 #ifdef MTK_EMMC_SUPPORT
 /*64bit*/
@@ -2099,153 +1524,8 @@ typedef struct {
 #endif
     
 __TEMPLATE
-	print SOURCE $template;
-	close SOURCE;
-	
-	unless(-e $CUSTOM_OUT_COMMON){
-		{`mkdir -p $CUSTOM_OUT_COMMON`;}	
-	}
-	{`cp $PMT_H_NAME $CUSTOM_OUT_COMMON`;}
-}
-#****************************************************************************************
-# subroutine:  GenUboot_PartitionC
-# return:      
-#****************************************************************************************
-sub GenUboot_PartitionC(){
-	my $iter = 0;
- 	my $temp;
- 	
-	if (-e $Uboot_PartitionC)
-		{`chmod 777 $Uboot_PartitionC`;}	
-	open (SOURCE, ">$Uboot_PartitionC") or &error_handler("Ptgen CAN NOT open $Uboot_PartitionC", __FILE__, __LINE__);
-	print SOURCE &copyright_file_header_for_c();
-
-	print SOURCE "#include <common.h>\n";
-	print SOURCE "#include \"mt65xx_partition.h\"\n";
-
-	if($PLATFORM eq "MT6575"){
-		$temp = lc($PLATFORM);
-		print SOURCE "\npart_t $temp"."_parts[] = {\n";
-	}else{
-		print SOURCE "\npart_t partition_layout[] = {\n";
-	}
-	for ($iter=0; $iter< $total_rows; $iter++){
-		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" ||$PARTITION_FIELD[$iter] eq "OTP");
-		if($uboot_alias{$PARTITION_FIELD[$iter]}){
-			$temp = "\t{PART_$uboot_alias{$PARTITION_FIELD[$iter]}, PART_BLKS_$uboot_alias{$PARTITION_FIELD[$iter]}, 0, PART_FLAG_NONE},\n";
-			print SOURCE $temp;		
-		}else{
-			$temp = "\t{PART_$PARTITION_FIELD[$iter], PART_BLKS_$PARTITION_FIELD[$iter], PART_FLAG_NONE,0},\n";
-			print SOURCE $temp;
-		}
-	}
-	$temp = "\t{NULL, 0, PART_FLAG_END, 0},\n};";
-	print SOURCE $temp;
-
-	close SOURCE;
-	
-}
-#****************************************************************************************
-# subroutine:  GenUboot_Mt65xx_ParitionH
-# return:      
-#****************************************************************************************
-sub GenUboot_Mt65xx_ParitionH(){
-	my $iter = 0;
-	
-	if (-e $UbootH)
-		{`chmod 777 $UbootH`;}	
-	open (SOURCE, ">$UbootH") or &error_handler("Ptgen CAN NOT open $UbootH", __FILE__, __LINE__);
-	print SOURCE &copyright_file_header_for_c();
-
-	my $template = <<"__TEMPLATE";
-
-#ifndef __MT65XX_PARTITION_H__
-#define __MT65XX_PARTITION_H__
-
-
-#include <part.h>
-#include "partition_define.h"
-
-#define NAND_WRITE_SIZE	 2048
-
-#define BLK_BITS         (9)
-#define BLK_SIZE         (1 << BLK_BITS)
-#ifdef MTK_EMMC_SUPPORT
-#define BLK_NUM(size)    ((unsigned long long)(size) / BLK_SIZE)
-#else
-#define BLK_NUM(size)    ((unsigned long)(size) / BLK_SIZE)
-#endif
-#define PART_KERNEL     "KERNEL"
-#define PART_ROOTFS     "ROOTFS"
-
-__TEMPLATE
-	print SOURCE $template;
-	for ($iter=0; $iter< $total_rows; $iter++){
-		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" || $PARTITION_FIELD[$iter] eq "OTP");
-		if($uboot_alias{$PARTITION_FIELD[$iter]}){
-			$temp = "#define PART_BLKS_$uboot_alias{$PARTITION_FIELD[$iter]}   BLK_NUM(PART_SIZE_$PARTITION_FIELD[$iter])\n";
-			print SOURCE $temp;		
-		}else{
-			$temp = "#define PART_BLKS_$PARTITION_FIELD[$iter]   BLK_NUM(PART_SIZE_$PARTITION_FIELD[$iter])\n";
-			print SOURCE $temp;
-		}
-	}
-
-
-	print SOURCE "\n\nstruct NAND_CMD\{\n";
-	
-	$template = <<"__TEMPLATE";
-	u32	u4ColAddr;
-	u32 u4RowAddr;
-	u32 u4OOBRowAddr;
-	u8	au1OOB[64];
-	u8*	pDataBuf;
-};
-
-typedef union {
-    struct {    
-        unsigned int magic;        /* partition magic */
-        unsigned int dsize;        /* partition data size */
-        char         name[32];     /* partition name */
-    } info;
-    unsigned char data[BLK_SIZE];
-} part_hdr_t;
-
-typedef struct {
-    unsigned char *name;        /* partition name */
-    unsigned long  blknum;      /* partition blks */
-    unsigned long  flags;       /* partition flags */
-    unsigned long  startblk;    /* partition start blk */
-} part_t;
-
-
-typedef struct part_dev part_dev_t;
-
-struct part_dev {
-    int init;
-    int id;
-    block_dev_desc_t *blkdev;
-    int (*init_dev) (int id);
-#ifdef MTK_EMMC_SUPPORT
-	int (*read)  (part_dev_t *dev, u64 src, uchar *dst, int size);
-    int (*write) (part_dev_t *dev, uchar *src, u64 dst, int size);
-#else
-    int (*read)  (part_dev_t *dev, ulong src, uchar *dst, int size);
-    int (*write) (part_dev_t *dev, uchar *src, ulong dst, int size);
-#endif
-};
-
-extern int mt_part_register_device(part_dev_t *dev);
-extern part_t* mt_part_get_partition(char *name);
-extern part_dev_t* mt_part_get_device(void);
-extern void mt_part_init(unsigned long totalblks);
-extern void mt_part_dump(void);
-
-#endif /* __MT65XX_PARTITION_H__ */
-
-__TEMPLATE
-	print SOURCE $template;
-	close SOURCE;
+	print $pmt_h_fd $template;
+	close $pmt_h_fd;
 }
 #****************************************************************************************
 # subroutine:  GenLK_PartitionC
@@ -2254,34 +1534,26 @@ __TEMPLATE
 sub GenLK_PartitionC(){
 	my $iter = 0;
  	my $temp;
-	unless (-e $LK_CUSTOM)
-		{mkdir ($LK_CUSTOM,0777) or  &error_handler("Ptgen CAN NOT create $LK_CUSTOM", __FILE__, __LINE__);}
-	if (-e $LK_PartitionC)
-		{`chmod 777 $LK_PartitionC`;}	
-	open (SOURCE, ">$LK_PartitionC") or &error_handler("Ptgen CAN NOT open $LK_PartitionC", __FILE__, __LINE__);
-	print SOURCE &copyright_file_header_for_c();
+ 	my $lk_partition_c_fd=&open_for_rw($LK_PartitionC);
+	print $lk_partition_c_fd &copyright_file_header_for_c();
 
-	print SOURCE "#include \"mt_partition.h\"\n";
+	print $lk_partition_c_fd "#include \"mt_partition.h\"\n";
 
-	if($PLATFORM eq "MT6575"){
-		$temp = lc($PLATFORM);
-		print SOURCE "\npart_t $temp"."_parts[] = {\n";
-	}else{
-		print SOURCE "\npart_t partition_layout[] = {\n";
-	}
+	print $lk_partition_c_fd "\npart_t partition_layout[] = {\n";
+
 	for ($iter=0; $iter< $total_rows; $iter++){
 		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" ||$PARTITION_FIELD[$iter] eq "OTP");
 		if($uboot_alias{$PARTITION_FIELD[$iter]}){
 			$temp = "\t{PART_$uboot_alias{$PARTITION_FIELD[$iter]}, PART_BLKS_$uboot_alias{$PARTITION_FIELD[$iter]}, 0, PART_FLAG_NONE},\n";
-			print SOURCE $temp;		
+			print $lk_partition_c_fd $temp;		
 		}else{
 			$temp = "\t{PART_$PARTITION_FIELD[$iter], PART_BLKS_$PARTITION_FIELD[$iter], PART_FLAG_NONE,0},\n";
-			print SOURCE $temp;
+			print $lk_partition_c_fd $temp;
 		}
 	}
 	$temp = "\t{NULL, 0, PART_FLAG_END, 0},\n};";
-	print SOURCE $temp;
-	print SOURCE "\n\nstruct part_name_map g_part_name_map[PART_MAX_COUNT] = {\n";
+	print $lk_partition_c_fd $temp;
+	print $lk_partition_c_fd "\n\nstruct part_name_map g_part_name_map[PART_MAX_COUNT] = {\n";
 	for ($iter=0; $iter< $total_rows; $iter++){
 		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" || $PARTITION_FIELD[$iter] eq "OTP");
 		if($TYPE_FIELD[$iter] eq "UBIFS/YAFFS2"){
@@ -2299,7 +1571,7 @@ sub GenLK_PartitionC(){
 			}else{	
 				$temp = "\t{\"$lk_alias{$PARTITION_FIELD[$iter]}\",\tPART_$PARTITION_FIELD[$iter],\t\"$temp_t\",\t$iter,\t$FB_ERASE_FIELD[$iter],\t$FB_DL_FIELD[$iter]},\n";
 			}
-			print SOURCE $temp;		
+			print $lk_partition_c_fd $temp;		
 		}else{
 			$temp = lc($PARTITION_FIELD[$iter]);
 			if($uboot_alias{$PARTITION_FIELD[$iter]}){
@@ -2308,16 +1580,11 @@ sub GenLK_PartitionC(){
 				$temp = "\t{\"$temp\",\tPART_$PARTITION_FIELD[$iter],\t\"$temp_t\",\t$iter,\t$FB_ERASE_FIELD[$iter],\t$FB_DL_FIELD[$iter]},\n";
 			}
 			
-			print SOURCE $temp;
+			print $lk_partition_c_fd $temp;
 		}
 	}
-	print SOURCE "};\n";
-	close SOURCE;
-	
-	unless(-e $LK_CUSTOM_OUT_LK){
-		{`mkdir -p $LK_CUSTOM_OUT_LK`;}	
-	}
-	{`cp $LK_PartitionC $LK_CUSTOM_OUT_LK`;}
+	print $lk_partition_c_fd "};\n";
+	close $lk_partition_c_fd;
 }
 #****************************************************************************************
 # subroutine:  GenLK_MT_ParitionH
@@ -2325,12 +1592,8 @@ sub GenLK_PartitionC(){
 #****************************************************************************************
 sub GenLK_MT_PartitionH(){
 	my $iter = 0;
-	unless (-e $LK_CUSTOM_INC)
-		{mkdir ($LK_CUSTOM_INC,0777) or  &error_handler("Ptgen CAN NOT create $LK_CUSTOM_INC", __FILE__, __LINE__);}
-	if (-e $LK_MT_PartitionH)
-		{`chmod 777 $LK_MT_PartitionH`;}	
-	open (SOURCE, ">$LK_MT_PartitionH") or &error_handler("Ptgen CAN NOT open $LK_MT_PartitionH", __FILE__, __LINE__);
-	print SOURCE &copyright_file_header_for_c();
+	my $lk_mt_partition_h_fd=&open_for_rw($LK_MT_PartitionH);
+	print $lk_mt_partition_h_fd &copyright_file_header_for_c();
 
 	my $template = <<"__TEMPLATE";
 
@@ -2358,19 +1621,19 @@ sub GenLK_MT_PartitionH(){
 #define PART_ROOTFS     "ROOTFS"
 
 __TEMPLATE
-	print SOURCE $template;
+	print $lk_mt_partition_h_fd $template;
 	for ($iter=0; $iter< $total_rows; $iter++){
 		last if($PARTITION_FIELD[$iter] eq "BMTPOOL" || $PARTITION_FIELD[$iter] eq "OTP");
 		if($uboot_alias{$PARTITION_FIELD[$iter]}){
 			$temp = "#define PART_BLKS_$uboot_alias{$PARTITION_FIELD[$iter]}   BLK_NUM(PART_SIZE_$PARTITION_FIELD[$iter])\n";
-			print SOURCE $temp;		
+			print $lk_mt_partition_h_fd $temp;		
 		}else{
 			$temp = "#define PART_BLKS_$PARTITION_FIELD[$iter]   BLK_NUM(PART_SIZE_$PARTITION_FIELD[$iter])\n";
-			print SOURCE $temp;
+			print $lk_mt_partition_h_fd $temp;
 		}
 	}
-	print SOURCE "\n\n#define PMT_END_NAME \"$PMT_END_NAME\"";
-	print SOURCE "\n\nstruct NAND"."_CMD\{\n";
+	print $lk_mt_partition_h_fd "\n\n#define PMT_END_NAME \"$PMT_END_NAME\"";
+	print $lk_mt_partition_h_fd "\n\nstruct NAND"."_CMD\{\n";
 	
 	$template = <<"__TEMPLATE";
 	u32	u4ColAddr;
@@ -2448,13 +1711,8 @@ extern unsigned long partition_reserve_size(void);
 #endif /* __MT_PARTITION_H__ */
 
 __TEMPLATE
-	print SOURCE $template;
-	close SOURCE;
-
-	unless(-e $LK_CUSTOM_OUT_LK_INC){
-		{`mkdir -p $LK_CUSTOM_OUT_LK_INC`;}	
-	}
-	{`cp $LK_MT_PartitionH $LK_CUSTOM_OUT_LK_INC`;}
+	print $lk_mt_partition_h_fd $template;
+	close $lk_mt_partition_h_fd;
 }
 #****************************************************************************************
 # subroutine:  get_sheet
@@ -2487,3 +1745,86 @@ sub xls_cell_value()
         return;
     }
 }
+sub open_for_rw
+{
+    my $filepath = shift @_;
+    if (-e $filepath)
+    {
+        chmod(0777, $filepath) or &error_handler_2("chmod 0777 $filepath fail", __FILE__, __LINE__);
+        if (!unlink $filepath)
+        {
+            &error_handler("remove $filepath fail ", __FILE__, __LINE__);
+        }
+    }
+    else
+    {
+        my $dirpath = substr($filepath, 0, rindex($filepath, "/"));
+        eval { mkpath($dirpath) };
+        if ($@)
+        {
+            &error_handler_2("Can not make dir $dirpath", __FILE__, __LINE__, $@);
+        }
+    }
+    open my $filehander, "> $filepath" or &error_handler(" Can not open $filepath for read and write", __FILE__, __LINE__);
+    return $filehander;
+}
+sub open_for_read
+{
+    my $filepath = shift @_;
+    if (-e $filepath)
+    {
+        chmod(0777, $filepath) or &error_handler_2("chmod 777 $filepath fail", __FILE__, __LINE__);
+    }
+    else
+    {
+        print "No such file : $filepath\n";
+        return undef;
+    }
+    open my $filehander, "< $filepath" or &error_handler_2(" Can not open $filepath for read", __FILE__, __LINE__);
+    return $filehander;
+}
+sub error_handler_2
+{
+    my ($error_msg, $file, $line_no, $sys_msg) = @_;
+    if (!$sys_msg)
+    {
+        $sys_msg = $!;
+    }
+    print "Fatal error: $error_msg <file: $file,line: $line_no> : $sys_msg";
+    die;
+}
+#delete some obsolete file
+sub clear_files
+{
+	my @ObsoleteFile;
+    opendir (DIR,"mediatek/custom/$ENV{PROJECT}/common");
+	push @ObsoleteFile,readdir(DIR);
+	close DIR;
+	
+    my $custom_out_prefix_obsolete  = "mediatek/custom/$ENV{PROJECT}";
+    my $configs_out_prefix_obsolete = "mediatek/config/$ENV{PROJECT}";    
+    push @ObsoleteFile, "$configs_out_prefix_obsolete/configs/EMMC_partition_size.mk";
+    push @ObsoleteFile, "$configs_out_prefix_obsolete/configs/partition_size.mk";;
+    push @ObsoleteFile, "$custom_out_prefix_obsolete/preloader/cust_part.c";
+    push @ObsoleteFile, "mediatek/kernel/drivers/dum-char/partition_define.c";
+	push @ObsoleteFile, "mediatek/external/mtd-utils/ubi-utils/combo_nand.h";
+	push @ObsoleteFile, "$custom_out_prefix_obsolete/kernel/core/src/partition.h";
+	push @ObsoleteFile, "$custom_out_prefix_obsolete/lk/inc/mt_partition.h";
+	push @ObsoleteFile, "$custom_out_prefix_obsolete/lk/partition.c";
+	push @ObsoleteFile, "$custom_out_prefix_obsolete/common/pmt.h";
+	push @ObsoleteFile, "$custom_out_prefix_obsolete/common/partition_define.h";
+	push @ObsoleteFile, "$custom_out_prefix_obsolete/common/combo_nand.h";
+    
+	foreach my $filepath (@ObsoleteFile){
+   		if (-e $filepath && !-d $filepath){
+   	    	if (!unlink $filepath)
+        	{
+            	&error_handler_2("remove $filepath fail ", __FILE__, __LINE__);
+        	}else{
+   				print "clean $filepath: clean done \n"
+   			}
+  		}
+	}
+}
+
+

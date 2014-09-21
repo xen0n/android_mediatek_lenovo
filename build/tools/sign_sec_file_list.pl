@@ -12,6 +12,7 @@ my $key_dir = "mediatek/custom/$prj/security/image_auth";
 my $cfg_dir = "mediatek/custom/$prj/security/sec_file_list";
 my $cipher_tool = "mediatek/build/tools/CipherTool/CipherTool";
 my $sign_tool = "mediatek/build/tools/SignTool/SignTool.sh";
+my $OUT_DIR = $ENV{OUT_DIR};
 
 
 ##########################################################
@@ -20,7 +21,12 @@ my $sign_tool = "mediatek/build/tools/SignTool/SignTool.sh";
 print "\n\n*** Sign ANDROID Secure File List ***\n\n";
 
 my $and_secfl = "mediatek/custom/$prj/security/sec_file_list/ANDRO_SFL.ini";
-my $s_andro_fl = "mediatek/external/seclib/S_ANDRO_SFL.ini";
+my $s_andro_fl_dir = "$OUT_DIR/target/product/$prj/system/etc/firmware";
+my $s_andro_fl = "$s_andro_fl_dir/S_ANDRO_SFL.ini";
+
+if (! -d "$s_andro_fl_dir"){
+	system("mkdir -p $s_andro_fl_dir");
+}
 
 if (-e "$and_secfl")
 {
@@ -52,8 +58,8 @@ else
 print "\n\n*** Sign SECRO Secure File List ***\n\n";
 
 my $secro_secfl = "mediatek/custom/$prj/security/sec_file_list/SECRO_SFL.ini";
-my $s_secro_fl_o1 = "mediatek/custom/$prj/secro/S_SECRO_SFL.ini";
-my $s_secro_fl_o2 = "mediatek/external/seclib/S_SECRO_SFL.ini";
+my $s_secro_fl_o1 = "$OUT_DIR/target/product/$prj/secro/S_SECRO_SFL.ini";
+my $s_secro_fl_o2 = "$OUT_DIR/target/product/$prj/secro/S_SECRO_SFL.ini";
 
 if (-e "$secro_secfl")
 {				

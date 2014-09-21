@@ -22,7 +22,7 @@ unless (defined $temp) {
 }
 
 my @projects = split(' ', $temp);
-
+my $size = "0x00000000";
 foreach my $i (@projects) {
     my $search = $modem_path . "$i";
     unless (-e $search) {
@@ -43,12 +43,12 @@ foreach my $i (@projects) {
    
     if ($modem_type eq $type) {
         $result = `xxd -ps -l4 -s-16 $modem |  tr -d [:cntrl:]`;
-        print "0x". substr($result,6,2) . substr($result,4,2) . substr($result,2,2) . substr($result,0,2) . "\n";
-        exit 0;
+        $result = "0x". substr($result,6,2) . substr($result,4,2) . substr($result,2,2) . substr($result,0,2);
+        $size = $result if ($result gt $size);
     } 
 }
 
-print "0x00000000\n";
+print "$size\n";
 exit 0;
 
 sub usage

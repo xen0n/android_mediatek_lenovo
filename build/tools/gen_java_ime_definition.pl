@@ -55,11 +55,13 @@ my @Android_support_locales = (
 
 my @locales_original;
 my @locales_filtered;
+my @locales_original_aapt;
 my @latin_ime;
 
 
 ## Reading locale setting directly from MTK_PRODUCT_LOCALES
 @locales_original = split(/ /, $ENV{MTK_PRODUCT_LOCALES});
+@locales_original_aapt =split(/ /, $ENV{MTK_PRODUCT_AAPT_CONFIG});
 ## Reading default latin ime setting directly from DEFAULT_LATIN_IME_LANGUAGES
 @latin_ime = split(/ /, $ENV{DEFAULT_LATIN_IME_LANGUAGES});
 
@@ -71,8 +73,14 @@ foreach (@locales_original) {
 		}
 	} 
 }
-
-my $filedir = "mediatek/frameworks/common/src/com/mediatek/common/featureoption";
+foreach (@locales_original_aapt) {
+        if (! m/\s*\wdpi\s*/){
+                if (m/\s*(\w+)\s*/) {
+                        push @locales_filtered, $1;
+                }
+        }
+}
+my $filedir = $ARGV[1];
 my $write_filename = "$filedir/IMEFeatureOption.java";
 system("chmod u+w $write_filename") if (-e $write_filename);
 system("mkdir -p $filedir") if ( ! -d "$filedir");
