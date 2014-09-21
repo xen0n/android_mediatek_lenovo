@@ -21,8 +21,6 @@
 #define ENABLE_LOG_I2S
 #define ENABLE_LOG_I2SSTREAMIN
 
-#define ENABLE_SUPPORT_FM_MIC_CONFLICT
-
 // for audio_config_definition
 //#define MTK_DUAL_MIC_SUPPORT
 

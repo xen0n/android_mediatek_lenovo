@@ -27,8 +27,9 @@
 #include <hardware_legacy/AudioSystemLegacy.h>
 #include <cutils/log.h>
 #include <cutils/properties.h>
-#include <pthread.h>
 #endif
+
+#include "AudioLock.h"
 
 /*
     this function should implement the basic function for debug information
@@ -37,7 +38,8 @@
 
 namespace android
 {
-enum {
+enum
+{
     AUDIO_LOG_HARDWARE = 1,
     AUDIO_LOG_A2DPHARDWARE,
     AUDIO_LOG_STREAMOUT,
@@ -55,60 +57,55 @@ enum {
     AUDIO_LOG_AUDIOMIXER
 };
 
-class AudioLock
+enum
 {
-    public:
-        AudioLock();
-        ~AudioLock();
-
-        // lock or unlock the mutex
-        status_t    lock();
-        status_t    unlock();
-        status_t    lock_timeout(unsigned milisecond);
-        status_t    tryLock(unsigned milisecond, unsigned  trybumber);
-
-    private:
-#if defined(PC_EMULATION)
-        CRITICAL_SECTION Mutex;
-#else
-        pthread_mutex_t Mutex;
-#endif
+    AUDIO_SUPPORT_DMIC = 1,
+    AUDIO_SUPPORT_2IN1_SPEAKER,
+    AUDIO_SUPPORT_VIBRATION_SPEAKER
 };
 
-struct RingBuf {
+
+struct RingBuf
+{
     char *pBufBase;
     char *pRead;
     char *pWrite;
     int   bufLen;
 };
 
-static const char * streamout_ori = "/sdcard/mtklog/audio_dump/streamoutori_dump.pcm";
-static const char * streamout_ori_propty = "streamout_ori.pcm.dump";
-static const char * streamout_dcr = "/sdcard/mtklog/audio_dump/streamoutdcr_dump.pcm";
-static const char * streamout_dcr_propty = "streamout_dcr.pcm.dump";
+static const char *streamout_ori = "/sdcard/mtklog/audio_dump/streamoutori_dump.pcm";
+static const char *streamout_ori_propty = "streamout_ori.pcm.dump";
+static const char *streamout_dcr = "/sdcard/mtklog/audio_dump/streamoutdcr_dump.pcm";
+static const char *streamout_dcr_propty = "streamout_dcr.pcm.dump";
 
-static const char * streamout_s2m = "/sdcard/mtklog/audio_dump/streamouts2m_dump.pcm";
-static const char * streamout_s2m_propty = "streamout_s2m.pcm.dump";
-static const char * streamout_acf = "/sdcard/mtklog/audio_dump/streamoutacf_dump.pcm";
-static const char * streamout_acf_propty = "streamout_acf.pcm.dump";
-static const char * streamout_hcf = "/sdcard/mtklog/audio_dump/streamouthcf_dump.pcm";
-static const char * streamout_hcf_propty = "streamout_hcf.pcm.dump";
+static const char *streamout_s2m = "/sdcard/mtklog/audio_dump/streamouts2m_dump.pcm";
+static const char *streamout_s2m_propty = "streamout_s2m.pcm.dump";
+static const char *streamout_acf = "/sdcard/mtklog/audio_dump/streamoutacf_dump.pcm";
+static const char *streamout_acf_propty = "streamout_acf.pcm.dump";
+static const char *streamout_hcf = "/sdcard/mtklog/audio_dump/streamouthcf_dump.pcm";
+static const char *streamout_hcf_propty = "streamout_hcf.pcm.dump";
 
-static const char * streamout = "/sdcard/mtklog/audio_dump/streamout.pcm";
-static const char * streamoutfinal = "/sdcard/mtklog/audio_dump/streamoutfinal.pcm";
-static const char * streamout_propty = "streamout.pcm.dump";
-static const char * aud_dumpftrace_dbg_propty = "dumpftrace_dbg";
+static const char *streamout = "/sdcard/mtklog/audio_dump/streamout.pcm";
+static const char *streamoutfinal = "/sdcard/mtklog/audio_dump/streamoutfinal.pcm";
+static const char *streamout_propty = "streamout.pcm.dump";
+static const char *aud_dumpftrace_dbg_propty = "dumpftrace_dbg";
+//#if defined(MTK_VIBSPK_SUPPORT)     
+static const char *streamout_vibsignal = "/sdcard/mtklog/audio_dump/streamoutvib.pcm";
+static const char *streamout_notch = "/sdcard/mtklog/audio_dump/streamoutnotch.pcm";
+//#endif
 
-static const char * streaminmanager = "/sdcard/mtklog/audio_dump/StreamInManager_Dump.pcm";   // ADC
-static const char * streamin = "/sdcard/mtklog/audio_dump/StreamIn_Dump.pcm";   // ADC
-static const char * streaminOri = "/sdcard/mtklog/audio_dump/StreamInOri_Dump.pcm";   // ADC
-static const char * streaminI2S = "/sdcard/mtklog/audio_dump/StreamInI2S_Dump.pcm"; // I2S
-static const char * streaminDAIBT = "/sdcard/mtklog/audio_dump/StreamInDAIBT_Dump.pcm";   // DAIBT
-static const char * streamin_propty = "streamin.pcm.dump";
+static const char *streaminmanager = "/sdcard/mtklog/audio_dump/StreamInManager_Dump.pcm";    // ADC
+static const char *streamin = "/sdcard/mtklog/audio_dump/StreamIn_Dump.pcm";    // ADC
+static const char *streaminOri = "/sdcard/mtklog/audio_dump/StreamInOri_Dump.pcm";    // ADC
+static const char *streaminI2S = "/sdcard/mtklog/audio_dump/StreamInI2S_Dump.pcm";  // I2S
+static const char *streaminDAIBT = "/sdcard/mtklog/audio_dump/StreamInDAIBT_Dump.pcm";    // DAIBT
+static const char *streamin_propty = "streamin.pcm.dump";
+
+static const char *allow_low_latency_propty = "streamout.lowlatency.allow";
 
 
-int AudiocheckAndCreateDirectory(const char * pC);
-FILE* AudioOpendumpPCMFile(const char * filepath,const char * propty);
+int AudiocheckAndCreateDirectory(const char *pC);
+FILE *AudioOpendumpPCMFile(const char *filepath, const char *propty);
 void AudioCloseDumpPCMFile(FILE  *file);
 void AudioDumpPCMData(void *buffer , uint32_t bytes, FILE  *file);
 
@@ -126,6 +123,15 @@ void RingBuf_writeDataValue(RingBuf *RingBuf1, const int value, const int count)
 void RingBuf_copyFromLinearSRC(void *pSrcHdl, RingBuf *RingBuft, char *buf, int num, int srt, int srs);
 void RingBuf_copyEmptySRC(void *pSrcHdl, RingBuf *RingBuft, const RingBuf *RingBufs, int srt, int srs);
 
+void CVSDLoopbackGetWriteBuffer(uint8_t **buffer, uint32_t *buf_len);
+void CVSDLoopbackGetReadBuffer(uint8_t **buffer, uint32_t *buf_len);
+void CVSDLoopbackReadDataDone(uint32_t len);
+void CVSDLoopbackWriteDataDone(uint32_t len);
+void CVSDLoopbackResetBuffer(void);
+int32_t CVSDLoopbackGetFreeSpace(void);
+int32_t CVSDLoopbackGetDataCount(void);
+
+bool IsAudioSupportFeature(int dFeatureOption);
 
 }
 

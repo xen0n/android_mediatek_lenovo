@@ -1,0 +1,29 @@
+void CreateScaleImagesFromVGA_Y(kal_uint8* image_buffer_vga, kal_uint8* image_buffer, kal_uint32* ImageWidthArray, kal_uint32* ImageHeightArray)
+{
+    kal_int32 current_scale;
+    UTL_BILINEAR_Y_RESIZER_STRUCT UtlRisizerInfo;
+    kal_uint8 *dst_ptr = image_buffer;
+    
+	//	for scale 0
+	UtlRisizerInfo.srcAddr = image_buffer_vga;
+	UtlRisizerInfo.srcWidth= image_input_width_vga;
+	UtlRisizerInfo.srcHeight= image_input_height_vga;
+	UtlRisizerInfo.dstAddr = dst_ptr;
+	UtlRisizerInfo.dstWidth = ImageWidthArray[0];
+	UtlRisizerInfo.dstHeight = ImageHeightArray[0];
+	UtilswBilinearResizer(&UtlRisizerInfo);
+
+	//	for other scale
+	for ( current_scale = 1 ; current_scale < GD_SCALE_NUM ; current_scale ++ )
+	{
+		UtlRisizerInfo.srcAddr = dst_ptr;
+		UtlRisizerInfo.srcWidth= ImageWidthArray[current_scale - 1];
+		UtlRisizerInfo.srcHeight= ImageHeightArray[current_scale - 1];
+		
+		dst_ptr += ImageWidthArray[current_scale - 1]*ImageHeightArray[current_scale - 1];
+		UtlRisizerInfo.dstAddr = dst_ptr;
+		UtlRisizerInfo.dstWidth = ImageWidthArray[current_scale];
+		UtlRisizerInfo.dstHeight = ImageHeightArray[current_scale];
+		UtilswBilinearResizer(&UtlRisizerInfo);
+	}
+}    

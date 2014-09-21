@@ -15,7 +15,6 @@
 #include <utils/KeyedVector.h>
 #include <utils/Vector.h>
 
-#include "AudioType.h"
 #include "AudioVIBSPKCoeff.h"
 #include "audio_custom_exp.h"
 
@@ -52,10 +51,10 @@ private:
    int16_t  mCenter_Freq;
    int16_t  mDelta_Freq;
    int16_t  mMod_Freq;
-   int16_t  mCenter_Phase;
+   int32_t  mCenter_Phase;
    int16_t  mCenter_PhaseInc;
    int16_t  mCenter_PhaseStat;
-   int16_t  mMod_Phase;
+   int32_t  mMod_Phase;
    int16_t  mMod_PhaseInc;
    int16_t  mMod_PhaseStat;
    uint16_t mMod_Idx;
@@ -76,7 +75,7 @@ public:
    void VibSpkProcess(uint32_t size, void *buffer, uint32_t channels);
    void VibSpkRampControl(uint8_t rampcontrol);
    void setVibSpkGain(int32_t MaxVolume, int32_t MinVolume, int32_t VolumeRange);
-
+   int16_t getVibSpkGain(void);
 private:
    AudioVIBSPKControl();
    ~AudioVIBSPKControl();

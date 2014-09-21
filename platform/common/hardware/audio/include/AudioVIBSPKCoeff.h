@@ -1,4 +1,7 @@
-#if defined(MTK_VIBSPK_SUPPORT)
+//#ifndef _AUDIO_VIBSPK_CONTROL_H_
+//#define _AUDIO_VIBSPK_CONTROL_H_
+
+//#if defined(MTK_VIBSPK_SUPPORT)
 
 #define DEFAULT_AUD_VIBR_LOUDNESS_FILTER_COEF_141    \
 {                                                    \
@@ -1547,4 +1550,6 @@
 -8061, 16208, 8190, -16240, 8190                                    \
 }
 
-#endif
+//#endif
+
+//#endif // _AUDIO_VIBSPK_CONTROL_H_

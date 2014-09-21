@@ -122,7 +122,8 @@ AudioMTKHeadSetMessager *AudioMTKHeadSetMessager::UniqueHeadsetInstance = 0;
 */
 AudioMTKHeadSetMessager *AudioMTKHeadSetMessager::getInstance()
 {
-    if (UniqueHeadsetInstance == 0) {
+    if (UniqueHeadsetInstance == 0)
+    {
         ALOGD("+UniqueDigitalInstance\n");
         UniqueHeadsetInstance = new AudioMTKHeadSetMessager();
         ALOGD("-UniqueDigitalInstance\n");
@@ -134,10 +135,12 @@ bool AudioMTKHeadSetMessager::SetHeadInit()
 {
     LOG_AudioHeadSetMessager("SetHeadInit");
     int ret = 0;
-    if (HeadsetFd <= 0) {
+    if (HeadsetFd <= 0)
+    {
         // open headset device
         HeadsetFd = open(HEADSET_PATH, O_RDONLY);
-        if (HeadsetFd < 0) {
+        if (HeadsetFd < 0)
+        {
             ALOGE("open %s error fd = %d", HEADSET_PATH, HeadsetFd);
             return false;
         }
@@ -156,10 +159,12 @@ void AudioMTKHeadSetMessager::SetHeadSetState(int state)
 {
     LOG_AudioHeadSetMessager("SetHeadSetState state = %d");
     int ret = 0;
-    if (HeadsetFd <= 0) {
+    if (HeadsetFd <= 0)
+    {
         // open headset device
         HeadsetFd = open(HEADSET_PATH, O_RDONLY);
-        if (HeadsetFd < 0) {
+        if (HeadsetFd < 0)
+        {
             ALOGE("open %s error fd = %d", HEADSET_PATH, HeadsetFd);
             return;
         }
@@ -172,29 +177,34 @@ bool AudioMTKHeadSetMessager::Get_headset_info(void)
     headstatusFd = -1;
     headstatusFd = open(YUSUHEADSET_STAUTS_PATH, O_RDONLY, 0);
 
-    if (headstatusFd < 0) {
+    if (headstatusFd < 0)
+    {
         ALOGE("open %s error fd = %d", YUSUHEADSET_STAUTS_PATH, headstatusFd);
         return false;
     }
 
-    if (read(headstatusFd, rbuf, BUF_LEN) == -1) {
+    if (read(headstatusFd, rbuf, BUF_LEN) == -1)
+    {
         ALOGD("Get_headset_info Can't read headset");
         close(headstatusFd);
         return false;
     }
 
-    if (!strncmp(wbuf, rbuf, BUF_LEN)) {
+    if (!strncmp(wbuf, rbuf, BUF_LEN))
+    {
         ALOGD("Get_headset_info Get_headset_info state  == 1");
         close(headstatusFd);
         return  true;
     }
 
-    if (!strncmp(wbuf, rbuf, BUF_LEN)) {
+    if (!strncmp(wbuf, rbuf, BUF_LEN))
+    {
         ALOGD("Get_headset_info state  == 2");
         close(headstatusFd);
         return true;
     }
-    else {
+    else
+    {
         ALOGD("Get_headset_info return  false");
         close(headstatusFd);
         return  false;
