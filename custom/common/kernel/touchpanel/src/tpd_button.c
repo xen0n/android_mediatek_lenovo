@@ -2,6 +2,11 @@
 
 extern struct tpd_device *tpd;
 
+#ifdef LENOVO_GESTURE_WAKEUP
+extern int get_array_flag(void);
+static tpd_suspend_status_flag = 0;
+#endif
+
 //#ifdef TPD_HAVE_BUTTON
 //static int tpd_keys[TPD_KEY_COUNT] = TPD_KEYS;
 //static int tpd_keys_dim[TPD_KEY_COUNT][4] = TPD_KEYS_DIM;
@@ -28,8 +33,86 @@ static struct kobj_attribute mtk_virtual_keys_attr = {
     .show = &mtk_virtual_keys_show,
 };
 
+/*lenovo-sw xuwen1 add 20140316 for gesture begin*/
+#ifdef LENOVO_GESTURE_WAKEUP
+void set_tpd_suspend_status(int mode)
+{
+	tpd_suspend_status_flag = mode;
+}
+EXPORT_SYMBOL(set_tpd_suspend_status);
+
+int get_tpd_suspend_status(void)
+{
+	return tpd_suspend_status_flag;
+}
+EXPORT_SYMBOL(get_tpd_suspend_status);
+
+static ssize_t lenovo_tpd_suspend_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf,"%d.\n", get_tpd_suspend_status());
+}
+
+static ssize_t lenovo_tpd_suspend_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t size)
+{
+	int mode;
+	int res = sscanf(buf, "%d", &mode);
+	if (res != 1)
+	{
+		printk("%s: [wj]expect 1 numbers\n", __FUNCTION__);
+	}
+	else
+	{
+		set_tpd_suspend_status(mode);
+	}
+}
+
+static struct kobj_attribute lenovo_tpd_suspend_attr = {
+    .attr = {
+        .name = "tpd_suspend_status",
+        .mode = S_IRUGO | S_IWUSR,
+    },
+    .show = &lenovo_tpd_suspend_show,
+	.store = &lenovo_tpd_suspend_store,
+};
+static ssize_t lenovo_flag_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{	
+    return sprintf(buf,"%d\n", get_array_flag());
+}
+
+static struct kobj_attribute lenovo_tpd_flag_attr = {
+    .attr = {
+        .name = "lenovo_flag",
+        .mode = S_IRUGO,
+    },
+    .show = &lenovo_flag_show,
+};
+#endif
+/*lenovo-sw xuwen1 add 20140316 for gesture end*/
+/*lenovo-sw xuwen1 add 20140316 for read info begin*/	
+static ssize_t lenovo_tpd_info_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+
+    if(!have_correct_setting)	
+        return sprintf(buf,"[wj]Have not right setting.\n");	
+    else	
+        return sprintf(buf,"name=%s;types=%d;fw_num=0x%08x;\n",tpd_info_t->name,tpd_info_t->types,tpd_info_t->fw_num);
+}
+
+static struct kobj_attribute lenovo_tpd_info_attr = {
+    .attr = {
+        .name = "lenovo_tpd_info",	
+        .mode = S_IRUGO,
+    },
+    .show = &lenovo_tpd_info_show,
+};
+/*lenovo-sw xuwen1 add 20140316 for read info end*/
 static struct attribute *mtk_properties_attrs[] = {
     &mtk_virtual_keys_attr.attr,
+   &lenovo_tpd_info_attr,
+#ifdef LENOVO_GESTURE_WAKEUP
+    &lenovo_tpd_suspend_attr,
+    &lenovo_tpd_flag_attr,
+#endif
     NULL
 };
 

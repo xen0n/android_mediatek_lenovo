@@ -600,6 +600,16 @@
 
 #define dgi1_mon 0x724
   #define dgi1_mon_value                       (0xffffffff<<0)
+
+#define dgi1_yuv2rgb_ctr  0x728
+  #define fifo_write_en (1<<31)
+  #define vsync_pu_sel  (1<<30)
+  #define inbuf_del_sel  (1<<29)
+  #define rg_full_range_out  (1<<4)
+  #define rg_uv_swap    (1<<3)
+  #define rg_full_renge_input  (1<<2)
+  #define rg_yuv709_rgb  (1<<1)
+  #define rg_yuv2rgb_en  (1<<0)
 //////////////////////////////////////////////////////////////
 #define IO_PAD_PD 0x58
 #define IO_PAD_HOT_PLUG_PD (1<<21)
@@ -677,6 +687,9 @@ extern u8 bCheckPordHotPlug(u8 bMode);
 extern void vSetHDMITxPLLTrigger(void);
 extern void vResetHDMIPLL(void);
 extern void vHotPlugPinInit(void);
-
+extern void vBlackHDMIOnly(void);
+extern void vUnBlackHDMIOnly(void);
+extern void UnMuteHDMIAudio(void);
+extern void MuteHDMIAudio(void);
 #endif
 #endif

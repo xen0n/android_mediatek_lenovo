@@ -1,4 +1,3 @@
-
 #include <ssw.h>
 
 /*--------------Feature option---------------*/
@@ -18,6 +17,13 @@
 
 /*--------------Global varible---------------*/
 unsigned int sim_mode_curr = SINGLE_TALK_MDSYS;
+
+unsigned int get_sim_switch_type(void)
+{
+	printk("[ccci/ssw]SSW_GENERIC\n");
+	return SSW_INTERN;
+}
+EXPORT_SYMBOL(get_sim_switch_type);
 
 struct mutex sim_switch_mutex;
 
@@ -156,12 +162,14 @@ static int set_sim_gpio(unsigned int mode)
 	switch(mode)
 	{
 		case SINGLE_TALK_MDSYS:
-			mt_set_gpio_mode(GPIO0, 1); 	//SIM2_SCLK
-			mt_set_gpio_mode(GPIO1, 1); 	//SIM2_SIO
-			mt_set_gpio_mode(GPIO2, 1);		//SIM1_SCLK	
-			mt_set_gpio_mode(GPIO3, 1); 	//SIM1_SIO
-			//mt_set_gpio_mode(GPIO89, 4);	//SIM1_SRST, 6572 not use reset pin
-			//mt_set_gpio_mode(GPIO90, 4);	//SIM2_SRST, 6572 not use reset pin
+			#if defined(GPIO_SIM1_SCLK) && defined(GPIO_SIM1_SIO) && defined(GPIO_SIM2_SCLK) && defined(GPIO_SIM2_SIO)
+			mt_set_gpio_mode(GPIO_SIM1_SCLK, 1);	//SIM1_SCLK	
+			mt_set_gpio_mode(GPIO_SIM1_SIO, 1); 	//SIM1_SIO
+			mt_set_gpio_mode(GPIO_SIM2_SCLK, 1); 	//SIM2_SCLK
+			mt_set_gpio_mode(GPIO_SIM2_SIO, 1); 	//SIM2_SIO
+			//mt_set_gpio_mode(GPIO_SIM1_SRST, 4);	//SIM1_SRST, 6582 not use reset pin
+			//mt_set_gpio_mode(GPIO_SIM2_SRST, 4);	//SIM2_SRST, 6582 not use reset pin
+			#endif
 			break;
 		
 		default:
@@ -175,9 +183,11 @@ static int set_sim_gpio(unsigned int mode)
 			  mt_get_gpio_mode(GPIO2), mt_get_gpio_dir(GPIO2), mt_get_gpio_mode(GPIO3), mt_get_gpio_dir(GPIO3), \
 			  mt_get_gpio_mode(GPIO89), mt_get_gpio_dir(GPIO89), mt_get_gpio_mode(GPIO90), mt_get_gpio_dir(GPIO90));
 #else
-	SSW_DBG("Current sim mode(%d), GPIO0_MODE(%d, %d), GPIO1_MODE(%d, %d), GPIO2_MODE(%d, %d), GPIO3_MODE(%d, %d)\n", \
-		mode, mt_get_gpio_mode(GPIO0), mt_get_gpio_dir(GPIO0), mt_get_gpio_mode(GPIO1), mt_get_gpio_dir(GPIO1), \
-			  mt_get_gpio_mode(GPIO2), mt_get_gpio_dir(GPIO2), mt_get_gpio_mode(GPIO3), mt_get_gpio_dir(GPIO3));
+	#if defined(GPIO_SIM1_SCLK) && defined(GPIO_SIM1_SIO) && defined(GPIO_SIM2_SCLK) && defined(GPIO_SIM2_SIO)
+	SSW_DBG("Current sim mode(%d), GPIO_SIM1_SCLK_MODE(%d, %d), GPIO_SIM1_SIO_MODE(%d, %d), GPIO_SIM2_SCLK_MODE(%d, %d), GPIO_SIM2_SIO_MODE(%d, %d)\n", \
+		mode, mt_get_gpio_mode(GPIO_SIM1_SCLK), mt_get_gpio_dir(GPIO_SIM1_SCLK), mt_get_gpio_mode(GPIO_SIM1_SIO), mt_get_gpio_dir(GPIO_SIM1_SIO), \
+			  mt_get_gpio_mode(GPIO_SIM2_SCLK), mt_get_gpio_dir(GPIO_SIM2_SCLK), mt_get_gpio_mode(GPIO_SIM2_SIO), mt_get_gpio_dir(GPIO_SIM2_SIO));
+	#endif
 #endif
 	
 	return SSW_SUCCESS;
@@ -210,15 +220,18 @@ EXPORT_SYMBOL(switch_sim_mode);
 static int get_sim_mode_init(void)
 {
 	unsigned int sim_mode = 0;
+	unsigned int md1_enable, md2_enable = 0;
 	
-#ifdef MTK_ENABLE_MD1
-	sim_mode = SINGLE_TALK_MDSYS;
-#ifdef MTK_ENABLE_MD2
-	sim_mode = DUAL_TALK;
-#endif
-#elif defined MTK_ENABLE_MD2
-	sim_mode = SINGLE_TALK_MDSYS_LITE;
-#endif
+	md1_enable = get_modem_is_enabled(MD_SYS1);
+	md2_enable = get_modem_is_enabled(MD_SYS2);
+	
+	if (md1_enable){
+		sim_mode = SINGLE_TALK_MDSYS;
+		if (md2_enable)
+			sim_mode = DUAL_TALK;
+	}
+	else if (md2_enable)
+		sim_mode = SINGLE_TALK_MDSYS_LITE;
 	
 	return sim_mode;
 }
@@ -229,10 +242,13 @@ static int sim_switch_init(void)
 	SSW_DBG("sim_switch_init\n");
 	
 	//better to set pull_en and pull_sel first, then mode
-	mt_set_gpio_dir(GPIO0, GPIO_DIR_OUT); 	//GPIO0->SIM2_CLK, out
-	mt_set_gpio_dir(GPIO1, GPIO_DIR_IN);  	//GPIO1->SIM2_SIO, in
-	mt_set_gpio_dir(GPIO2, GPIO_DIR_OUT); 	//GPIO2->SIM1_CLK, out
-	mt_set_gpio_dir(GPIO3, GPIO_DIR_IN); 	//GPIO3->SIM1_SIO, in
+	//if GPIO in sim mode, no need to set direction, because hw has done this when setting mode
+	/*
+	mt_set_gpio_dir(GPIO_SIM1_SCLK, GPIO_DIR_OUT); 	//GPIO0->SIM2_CLK, out
+	mt_set_gpio_dir(GPIO_SIM1_SIO, GPIO_DIR_IN);  	//GPIO1->SIM2_SIO, in
+	mt_set_gpio_dir(GPIO_SIM2_SCLK, GPIO_DIR_OUT); 	//GPIO2->SIM1_CLK, out
+	mt_set_gpio_dir(GPIO_SIM2_SIO, GPIO_DIR_IN); 	//GPIO3->SIM1_SIO, in
+	*/
 	//mt_set_gpio_dir(GPIO89, GPIO_DIR_OUT);	//GPIO89->SIM1_SRST, out, 6572 not use reset pin
 	//mt_set_gpio_dir(GPIO90, GPIO_DIR_OUT);	//GPIO90->SIM2_SRST, out, 6572 not use reset pin	
 	

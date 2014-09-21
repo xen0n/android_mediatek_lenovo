@@ -21,7 +21,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 #if 0
-#include <linux/autoconf.h>
+#include <generated/autoconf.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -60,13 +60,6 @@
 #else
 #include "matv.h"
 #endif
-
-//#define MTK_MT6572V1_PHONE_POWER_REWORK
-#ifdef MTK_MT6572V1_PHONE_POWER_REWORK
-//mediatek\platform\mt6572\kernel\core\include\mach\mt_pm_ldo.h
-#include "mach/mt_pm_ldo.h"
-#endif
-
 
 /*****************************************************************************
  * Definition
@@ -467,8 +460,8 @@ void matv_driver_init(void)
 
 }
 
-//#define GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN GPIO108 //
-//#define GPIO_CAMERA_SERIAL_CLK_PIN GPIO61 //
+#define GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN GPIO108 //
+#define GPIO_CAMERA_SERIAL_CLK_PIN GPIO61 //
 
 static long matv_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -561,42 +554,41 @@ static long matv_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             {
                mt_set_gpio_out(GPIO_MATV_PWR_ENABLE, GPIO_OUT_ONE);
 
-//			   mt_set_gpio_mode(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,0);
-//			   mt_set_gpio_dir(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,GPIO_DIR_OUT);
-//			   mt_set_gpio_out(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,1);	
-
+#if 0
+			   mt_set_gpio_mode(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,0);
+			   mt_set_gpio_dir(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,GPIO_DIR_OUT);
+			   mt_set_gpio_out(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,1);	
+#endif
 			   
                #ifdef GPIO_ANT_SW_PIN
-               #ifdef MTK_MT6572V1_PHONE_POWER_REWORK			   
-               hwPowerOn(MT6323_POWER_LDO_VGP2,VOL_2800,"matv");
-               #endif			   
 			   mt_set_gpio_mode(GPIO_ANT_SW_PIN,GPIO_ANT_SW_PIN_M_GPIO);
 			   mt_set_gpio_dir(GPIO_ANT_SW_PIN,GPIO_DIR_OUT);
 			   mt_set_gpio_out(GPIO_ANT_SW_PIN,GPIO_OUT_ONE);
 			   printk("GPIO_ANT_SW_PIN switch to 1 \n");
                #endif
-			
-//               mt_set_gpio_mode(GPIO_CAMERA_SERIAL_CLK_PIN,GPIO_MODE_02);	
+#if 0			
+               mt_set_gpio_mode(GPIO_CAMERA_SERIAL_CLK_PIN,GPIO_MODE_02);	
+#endif               
             }
             else
             {
                mt_set_gpio_out(GPIO_MATV_PWR_ENABLE, GPIO_OUT_ZERO);
 
-//			   mt_set_gpio_mode(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,0);
-//			   mt_set_gpio_dir(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,GPIO_DIR_OUT);
-//			   mt_set_gpio_out(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,0);
-
+#if 0
+			   mt_set_gpio_mode(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,0);
+			   mt_set_gpio_dir(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,GPIO_DIR_OUT);
+			   mt_set_gpio_out(GPIO_MAIN_CAMERA_12V_POWER_CTRL_PIN,0);
+#endif
 			   
-               #ifdef GPIO_ANT_SW_PIN			   
+               #ifdef GPIO_ANT_SW_PIN
                mt_set_gpio_mode(GPIO_ANT_SW_PIN,GPIO_ANT_SW_PIN_M_GPIO);
                mt_set_gpio_dir(GPIO_ANT_SW_PIN,GPIO_DIR_OUT);
                mt_set_gpio_out(GPIO_ANT_SW_PIN,GPIO_OUT_ZERO);
-               #ifdef MTK_MT6572V1_PHONE_POWER_REWORK
-               hwPowerDown(MT6323_POWER_LDO_VGP2,"matv");
-               #endif
                #endif
 						   
-//               mt_set_gpio_mode(GPIO_CAMERA_SERIAL_CLK_PIN,GPIO_MODE_01);								
+#if 0						   
+               mt_set_gpio_mode(GPIO_CAMERA_SERIAL_CLK_PIN,GPIO_MODE_01);								
+#endif               
 			}
 #endif            
             break;
@@ -617,7 +609,6 @@ static long matv_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = copy_from_user(matv_in_data, user_data_addr, sizeof(int));
 #ifdef GPIO_MATV_I2S_DAT_PIN            
             if(matv_in_data[0]==0){
-				
                //Enable I2D Data pin and pull low
                mt_set_gpio_mode(GPIO_MATV_I2S_DAT_PIN,GPIO_MODE_00);
                mt_set_gpio_dir(GPIO_MATV_I2S_DAT_PIN, GPIO_DIR_OUT);
@@ -641,6 +632,10 @@ static long matv_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
                #ifdef GPIO_MATV_I2S_DAT_PIN_M_I2S_IN_DAT
                mt_set_gpio_mode(GPIO_MATV_I2S_DAT_PIN,GPIO_MATV_I2S_DAT_PIN_M_I2S_IN_DAT);
+               #endif
+
+               #ifdef GPIO_MATV_I2S_DAT_PIN_M_I2SIN1_DATA_IN
+               mt_set_gpio_mode(GPIO_MATV_I2S_DAT_PIN,GPIO_MATV_I2S_DAT_PIN_M_I2SIN1_DATA_IN);
                #endif
 			   
                mt_set_gpio_pull_enable(GPIO_MATV_I2S_DAT_PIN,false);

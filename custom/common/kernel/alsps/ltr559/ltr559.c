@@ -27,12 +27,17 @@
 #include <linux/platform_device.h>
 #include <asm/atomic.h>
 
-
-
 #include <mach/mt_typedefs.h>
 #include <mach/mt_gpio.h>
 #include <mach/mt_pm_ldo.h>
-#include <mach/eint.h>
+#include <linux/hwmsensor.h>
+#include <linux/hwmsen_dev.h>
+#include <linux/sensors_io.h>
+#include <asm/io.h>
+#include <cust_eint.h>
+#include <cust_alsps.h>
+#include <linux/hwmsen_helper.h>
+#include "ltr559.h"
 
 
 
@@ -40,14 +45,6 @@
 #define POWER_NONE_MACRO MT65XX_POWER_NONE
 
 
-
-#include <linux/hwmsensor.h>
-#include <linux/hwmsen_dev.h>
-#include <linux/sensors_io.h>
-#include <asm/io.h>
-#include <cust_eint.h>
-#include <cust_alsps.h>
-#include "ltr559.h"
 /******************************************************************************
  * configuration
 *******************************************************************************/
@@ -64,8 +61,7 @@
 /******************************************************************************
  * extern functions
 *******************************************************************************/
-#ifdef MT6573
-	extern void mt65xx_eint_unmask(unsigned int line);
+extern void mt65xx_eint_unmask(unsigned int line);
 	extern void mt65xx_eint_mask(unsigned int line);
 	extern void mt65xx_eint_set_polarity(kal_uint8 eintno, kal_bool ACT_Polarity);
 	extern void mt65xx_eint_set_hw_debounce(kal_uint8 eintno, kal_uint32 ms);
@@ -73,40 +69,6 @@
 	extern void mt65xx_eint_registration(kal_uint8 eintno, kal_bool Dbounce_En,
 										 kal_bool ACT_Polarity, void (EINT_FUNC_PTR)(void),
 										 kal_bool auto_umask);
-	
-#endif
-	
-#ifdef MT6575
-	extern void mt65xx_eint_unmask(unsigned int line);
-	extern void mt65xx_eint_mask(unsigned int line);
-	extern void mt65xx_eint_set_polarity(kal_uint8 eintno, kal_bool ACT_Polarity);
-	extern void mt65xx_eint_set_hw_debounce(kal_uint8 eintno, kal_uint32 ms);
-	extern kal_uint32 mt65xx_eint_set_sens(kal_uint8 eintno, kal_bool sens);
-	extern void mt65xx_eint_registration(kal_uint8 eintno, kal_bool Dbounce_En,
-										 kal_bool ACT_Polarity, void (EINT_FUNC_PTR)(void),
-										 kal_bool auto_umask);
-	
-#endif
-	
-#ifdef MT6577
-		extern void mt65xx_eint_unmask(unsigned int line);
-		extern void mt65xx_eint_mask(unsigned int line);
-		extern void mt65xx_eint_set_polarity(unsigned int eint_num, unsigned int pol);
-		extern void mt65xx_eint_set_hw_debounce(unsigned int eint_num, unsigned int ms);
-		extern unsigned int mt65xx_eint_set_sens(unsigned int eint_num, unsigned int sens);
-		extern void mt65xx_eint_registration(unsigned int eint_num, unsigned int is_deb_en, unsigned int pol, void (EINT_FUNC_PTR)(void), unsigned int is_auto_umask);
-#endif
-#ifdef MT6516
-extern void MT6516_EINTIRQUnmask(unsigned int line);
-extern void MT6516_EINTIRQMask(unsigned int line);
-extern void MT6516_EINT_Set_Polarity(kal_uint8 eintno, kal_bool ACT_Polarity);
-extern void MT6516_EINT_Set_HW_Debounce(kal_uint8 eintno, kal_uint32 ms);
-extern kal_uint32 MT6516_EINT_Set_Sensitivity(kal_uint8 eintno, kal_bool sens);
-extern void MT6516_EINT_Registration(kal_uint8 eintno, kal_bool Dbounce_En,
-                                     kal_bool ACT_Polarity, void (EINT_FUNC_PTR)(void),
-                                     kal_bool auto_umask);
-#endif
-
 
 /*----------------------------------------------------------------------------*/
 

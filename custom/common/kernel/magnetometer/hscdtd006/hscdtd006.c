@@ -1011,7 +1011,7 @@ static long hscdtd006_unlocked_ioctl(struct file *file, unsigned int cmd,
 			osensor_data->values[0] = hscdtd006mid_data.yaw;
 			osensor_data->values[1] = hscdtd006mid_data.pitch;
 			osensor_data->values[2] = hscdtd006mid_data.roll;
-			status = hscdtd006mid_data.ori_status;
+			osensor_data->status = hscdtd006mid_data.ori_status;
 			read_unlock(&hscdtd006mid_data.datalock); 
 						
 			osensor_data->value_divide = ORIENTATION_ACCURACY_RATE;	
@@ -1233,13 +1233,13 @@ int hscdtd006_operate(void* self, uint32_t command, void* buff_in, int size_in,
 				msensor_data->values[0] = hscdtd006mid_data.nmx;
 				msensor_data->values[1] = hscdtd006mid_data.nmy;
 				msensor_data->values[2] = hscdtd006mid_data.nmz;
-				status = hscdtd006mid_data.mag_status;
+				msensor_data->status = hscdtd006mid_data.mag_status;
 				read_unlock(&hscdtd006mid_data.datalock); 
 				
 				msensor_data->values[0] = msensor_data->values[0] * CONVERT_M;
 				msensor_data->values[1] = msensor_data->values[1] * CONVERT_M;
 				msensor_data->values[2] = msensor_data->values[2] * CONVERT_M;
-				msensor_data->value_divide = 1000;
+				msensor_data->value_divide = 1;//1000
 				/*
 				switch (status)
 		        {
@@ -1349,7 +1349,7 @@ int hscdtd006_orientation_operate(void* self, uint32_t command, void* buff_in, i
 				osensor_data->values[0] = hscdtd006mid_data.yaw;
 				osensor_data->values[1] = hscdtd006mid_data.pitch;
 				osensor_data->values[2] = hscdtd006mid_data.roll;
-				status = hscdtd006mid_data.ori_status;
+				osensor_data->status = hscdtd006mid_data.ori_status;
 				read_unlock(&hscdtd006mid_data.datalock); 
 				
 				

@@ -58,7 +58,8 @@ static DEFINE_SPINLOCK(a5142mipiraw_drv_lock);
 
 #define AUTO_FLICKER_NO 10
 kal_uint16 A5142_Frame_Length_preview = 0;
-
+kal_bool A5142DuringTestPattern = KAL_FALSE;
+#define A5142MIPI_TEST_PATTERN_CHECKSUM (0xc9e24698)
 
 struct A5142MIPI_SENSOR_STRUCT A5142MIPI_sensor= 
 {
@@ -140,6 +141,7 @@ void A5142MIPI_write_cmos_sensor_8(kal_uint32 addr, kal_uint32 para)
 /*******************************************************************************
 * 
 ********************************************************************************/
+/*
 static kal_uint16 A5142reg2gain(kal_uint16 reg_gain)
 {
     kal_uint16 gain;
@@ -180,11 +182,12 @@ static kal_uint16 A5142reg2gain(kal_uint16 reg_gain)
 
     return gain;
 }
-
+*/
 
 /*******************************************************************************
 * 
 ********************************************************************************/
+/*
 static kal_uint16 A5142gain2reg(kal_uint16 gain)
 {
     kal_uint16 reg_gain;
@@ -232,8 +235,7 @@ static kal_uint16 A5142gain2reg(kal_uint16 gain)
 
     return reg_gain;
 }
-
-
+*/
 /*************************************************************************
 * FUNCTION
 *    read_A5142MIPI_gain
@@ -345,7 +347,7 @@ void write_A5142MIPI_gain(kal_uint16 gain)
 * GLOBALS AFFECTED
 *
 *************************************************************************/
-kal_uint16 A5142MIPI_Set_gain(kal_uint16 gain)
+void A5142MIPI_Set_gain(kal_uint16 gain)
 {
     write_A5142MIPI_gain(gain);
 }
@@ -374,10 +376,10 @@ void A5142MIPI_SetShutter(kal_uint16 iShutter)
     SENSORDB("iShutter: %u", iShutter);
 
     spin_lock_irqsave(&a5142mipiraw_drv_lock, flags);
-    if(A5142MIPI_exposure_lines == iShutter){
-        spin_unlock_irqrestore(&a5142mipiraw_drv_lock, flags);
-        return;
-    }
+    //if(A5142MIPI_exposure_lines == iShutter){
+    //    spin_unlock_irqrestore(&a5142mipiraw_drv_lock, flags);
+    //    return;
+    //}
     A5142MIPI_exposure_lines=iShutter;
     spin_unlock_irqrestore(&a5142mipiraw_drv_lock, flags);
     
@@ -819,10 +821,10 @@ kal_bool A5142MIPI_set_sensor_item_info(kal_uint16 group_idx, kal_uint16 item_id
 ********************************************************************************/
 static void A5142MIPI_Init_setting(void)
 {
-    kal_uint16 status = 0;
+    //kal_uint16 status = 0;
     
     SENSORDB( "Enter!");
-    
+
     A5142MIPI_write_cmos_sensor_8(0x0103, 0x01);    //SOFTWARE_RESET (clears itself)
     mDELAY(5);      //Initialization Time
     
@@ -1095,7 +1097,7 @@ UINT32 A5142MIPIOpen(void)
 {
     kal_uint16 sensor_id = 0;
 
-    A5142MIPIGetSensorID(&sensor_id);
+    A5142MIPIGetSensorID((UINT32 *)(&sensor_id));
     
     SENSORDB("sensor_id is %x ", sensor_id);
     
@@ -1106,6 +1108,7 @@ UINT32 A5142MIPIOpen(void)
     A5142MIPI_Init_setting();
 
     spin_lock(&a5142mipiraw_drv_lock);
+    A5142DuringTestPattern = KAL_FALSE;
     A5142MIPI_sensor_gain_base = read_A5142MIPI_gain();
     g_iA5142MIPI_Mode = A5142MIPI_MODE_INIT;
     spin_unlock(&a5142mipiraw_drv_lock);
@@ -1225,6 +1228,8 @@ static void A5142MIPI_preview_setting(void)
         A5142MIPI_write_cmos_sensor(0x0308, 0x08);  //op_pix_clk_div =  8
         A5142MIPI_write_cmos_sensor(0x030A, 0x01);  //op_sys_clk_div = 1
     #endif
+
+    mDELAY(10);
     
     A5142MIPI_write_cmos_sensor(0x0344, 0x0008);    // X_ADDR_START   =  8
     A5142MIPI_write_cmos_sensor(0x0346, 0x0008);    // Y_ADDR_START   =  8
@@ -1237,8 +1242,8 @@ static void A5142MIPI_preview_setting(void)
     A5142MIPI_write_cmos_sensor(0x034C, 0x0510);    // X_OUTPUT_SIZE    = 1296
     A5142MIPI_write_cmos_sensor(0x034E, 0x03CC);    // Y_OUTPUT_SIZE    =  972
 
-    A5142MIPI_write_cmos_sensor(0x300C, 0x0C4C);    // LINE_LENGTH  3151
-    A5142MIPI_write_cmos_sensor(0x300A, 0x0415);    // FRAME_LINEs  1100
+    A5142MIPI_write_cmos_sensor(0x300C, 0x0C4F);    // LINE_LENGTH  3151
+    A5142MIPI_write_cmos_sensor(0x300A, 0x044C);    // FRAME_LINEs  1100
     
     //A5142MIPI_write_cmos_sensor(0x3012, 0x0414);    // coarse_integration_time
     A5142MIPI_write_cmos_sensor(0x3014, 0x0908);    // fine_integration_time
@@ -1257,7 +1262,7 @@ static void A5142MIPI_preview_setting(void)
     #endif
     spin_unlock(&a5142mipiraw_drv_lock);
 
-    mDELAY(50); 
+    mDELAY(100); 
 }
 
 static void A5142MIPI_capture_setting(void)
@@ -1304,6 +1309,8 @@ static void A5142MIPI_capture_setting(void)
         A5142MIPI_write_cmos_sensor(0x030A, 0x01);  //op_sys_clk_div = 1
     #endif
 
+    mDELAY(10);
+
     A5142MIPI_write_cmos_sensor(0x0344, 0x0008);    //X_ADDR_START   = 8
     A5142MIPI_write_cmos_sensor(0x0346, 0x0008);    //Y_ADDR_START    = 8
     A5142MIPI_write_cmos_sensor(0x0348, 0x0A27);    //X_ADDR_END =  2599
@@ -1335,7 +1342,7 @@ static void A5142MIPI_capture_setting(void)
     #endif
     spin_unlock(&a5142mipiraw_drv_lock);
 
-    mDELAY(10);
+    mDELAY(100);
 }
 
 
@@ -1411,7 +1418,7 @@ UINT32 A5142MIPIPreview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 
     A5142MIPI_preview_setting();
     
-    A5142MIPI_Set_Mirror_Flip(sensor_config_data->SensorImageMirror);
+    //A5142MIPI_Set_Mirror_Flip(sensor_config_data->SensorImageMirror);
 
     spin_lock(&a5142mipiraw_drv_lock);
     g_iA5142MIPI_Mode = A5142MIPI_MODE_PREVIEW;
@@ -1422,8 +1429,8 @@ UINT32 A5142MIPIPreview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
     spin_lock(&a5142mipiraw_drv_lock);
     A5142MIPI_PV_dummy_pixels = 0;
     A5142MIPI_PV_dummy_lines  = 0;
+    A5142_Frame_Length_preview = A5142MIPI_PV_PERIOD_LINE_NUMS;
     spin_unlock(&a5142mipiraw_drv_lock);
-    A5142MIPI_SetDummy(KAL_TRUE, A5142MIPI_PV_dummy_pixels, A5142MIPI_PV_dummy_lines);
 
     #if 0
     A5142MIPI_write_cmos_sensor_8(0x0104, 0x01);    // GROUPED_PARAMETER_HOLD
@@ -1449,7 +1456,7 @@ UINT32 A5142MIPICapture(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 
     A5142MIPI_capture_setting();
 
-    A5142MIPI_Set_Mirror_Flip(sensor_config_data->SensorImageMirror);
+    //A5142MIPI_Set_Mirror_Flip(sensor_config_data->SensorImageMirror);
 
     spin_lock(&a5142mipiraw_drv_lock);
     g_iA5142MIPI_Mode = A5142MIPI_MODE_CAPTURE; 
@@ -1459,9 +1466,9 @@ UINT32 A5142MIPICapture(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
     spin_lock(&a5142mipiraw_drv_lock);
     A5142MIPI_dummy_pixels = 0;
     A5142MIPI_dummy_lines  = 0;
+    A5142_Frame_Length_preview = A5142MIPI_FULL_PERIOD_LINE_NUMS;
     spin_unlock(&a5142mipiraw_drv_lock);
-    A5142MIPI_SetDummy(KAL_FALSE, A5142MIPI_dummy_pixels, A5142MIPI_dummy_lines);
-
+    
     #if 0
     SENSORDB("preview shutter =%d ",shutter);
 
@@ -1554,12 +1561,12 @@ UINT32 A5142MIPIGetInfo(MSDK_SCENARIO_ID_ENUM ScenarioId,
             pSensorInfo->SensorPixelClockCount= 3; /* not use */
             pSensorInfo->SensorDataLatchCount= 2; /* not use */
             pSensorInfo->SensorGrabStartX = A5142MIPI_FULL_START_X; 
-            pSensorInfo->SensorGrabStartY = A5142MIPI_FULL_START_X;   
+            pSensorInfo->SensorGrabStartY = A5142MIPI_FULL_START_Y;   
             
             #ifdef MIPI_INTERFACE
                 pSensorInfo->SensorMIPILaneNumber = SENSOR_MIPI_2_LANE;         
                 pSensorInfo->MIPIDataLowPwr2HighSpeedTermDelayCount = 0; 
-                pSensorInfo->MIPIDataLowPwr2HighSpeedSettleDelayCount = 14; 
+                pSensorInfo->MIPIDataLowPwr2HighSpeedSettleDelayCount = 0x20; 
                 pSensorInfo->MIPICLKLowPwr2HighSpeedTermDelayCount = 0; 
                 pSensorInfo->SensorWidthSampling = 0;
                 pSensorInfo->SensorHightSampling = 0;
@@ -1579,7 +1586,7 @@ UINT32 A5142MIPIGetInfo(MSDK_SCENARIO_ID_ENUM ScenarioId,
             #ifdef MIPI_INTERFACE
                 pSensorInfo->SensorMIPILaneNumber = SENSOR_MIPI_2_LANE;         
                 pSensorInfo->MIPIDataLowPwr2HighSpeedTermDelayCount = 0; 
-                pSensorInfo->MIPIDataLowPwr2HighSpeedSettleDelayCount = 14; 
+                pSensorInfo->MIPIDataLowPwr2HighSpeedSettleDelayCount = 0x20; 
                 pSensorInfo->MIPICLKLowPwr2HighSpeedTermDelayCount = 0;
                 pSensorInfo->SensorWidthSampling = 0;
                 pSensorInfo->SensorHightSampling = 0;
@@ -1654,12 +1661,16 @@ UINT32 A5142MIPISetVideoMode(UINT16 u2FrameRate)
         A5142MIPI_SetDummy(KAL_FALSE, A5142MIPI_dummy_pixels, A5142MIPI_dummy_lines);
     }
 
-    return KAL_TRUE;
+    return ERROR_NONE;
 }
 
 UINT32 A5142MIPISetAutoFlickerMode(kal_bool bEnable, UINT16 u2FrameRate)
 {
     SENSORDB("frame rate(10base) = %d %d", bEnable, u2FrameRate);
+
+    // when enable Test Pattern output, it can not set frame length 
+    // register, and Test Pattern do not need auto flicker function, so return
+    if (KAL_TRUE == A5142DuringTestPattern) return ERROR_NONE;
 
     if(bEnable) 
     {   
@@ -1674,8 +1685,106 @@ UINT32 A5142MIPISetAutoFlickerMode(kal_bool bEnable, UINT16 u2FrameRate)
         A5142MIPI_write_cmos_sensor(0x0340, A5142_Frame_Length_preview);
         A5142MIPI_write_cmos_sensor_8(0x0104, 0);               
     }
-    return KAL_TRUE;
+
+    return ERROR_NONE;
 }
+
+
+UINT32 A5142MIPI_SetTestPatternMode(kal_bool bEnable)
+{
+    kal_uint16 temp;
+
+    SENSORDB("[A5142MIPI_SetTestPatternMode] Test pattern enable:%d\n", bEnable);
+
+	if(bEnable) 
+	{
+	    spin_lock(&a5142mipiraw_drv_lock);
+        A5142DuringTestPattern = KAL_TRUE;
+        spin_unlock(&a5142mipiraw_drv_lock);
+        
+        // 0x3044[10] = 0
+        // A5142MIPI_write_cmos_sensor(0x3044, 0x0100);    // DARK_CONTROL
+        temp = A5142MIPI_read_cmos_sensor(0x3044);
+        //SENSORDB("0x3044 = %d\n", temp);
+        temp = temp & 0xFDFF;
+        A5142MIPI_write_cmos_sensor(0x3044, temp);        
+
+        // 0x30C0[0] = 1
+        // A5142MIPI_write_cmos_sensor(0x30C0, 0x0221);    // CALIB_CONTROL 1220
+        temp = A5142MIPI_read_cmos_sensor(0x30C0);
+        //SENSORDB("0x30C0 = %d\n", temp);
+        temp = temp & 0xFFFE;
+        temp = temp | 0x0001;
+        A5142MIPI_write_cmos_sensor(0x30C0, temp);
+
+        // 0x30D4[0] = 0
+        // A5142MIPI_write_cmos_sensor(0x30D4, 0x1200);    // COLUMN_CORRECTION 9200
+        temp = A5142MIPI_read_cmos_sensor(0x30D4);
+        //SENSORDB("0x30D4 = %d\n", temp);
+        temp = temp & 0x7FFF;
+        A5142MIPI_write_cmos_sensor(0x30D4, temp);
+
+
+        // 0x31E0[0] = 0
+        // A5142MIPI_write_cmos_sensor(0x31E0, 0x1F00);    // PIX_DEF_ID
+        temp = A5142MIPI_read_cmos_sensor(0x31E0);
+        //SENSORDB("0x31E0 = %d\n", temp);
+        temp = temp & 0xFFFE;
+        A5142MIPI_write_cmos_sensor(0x31E0, temp);
+
+
+        // 0x3180[15] = 0
+        // A5142MIPI_write_cmos_sensor(0x3180, 0x30FF);    // FINE_DIG_CORRECTION_CONTROL
+        temp = A5142MIPI_read_cmos_sensor(0x3180);
+        //SENSORDB("0x3180 = %d\n", temp);
+        temp = temp & 0x7FFF;
+        A5142MIPI_write_cmos_sensor(0x3180, temp);
+
+        // 0x301A[3] = 0
+        // A5142MIPI_write_cmos_sensor(0x301A, 0x0210);
+        temp = A5142MIPI_read_cmos_sensor(0x301A);
+        //SENSORDB("0x301A = %d\n", temp);
+        temp = temp & 0xFFF7;
+        A5142MIPI_write_cmos_sensor(0x301A, temp);
+
+        // 0x301E = 0x0000
+        temp = A5142MIPI_read_cmos_sensor(0x301E);
+        //SENSORDB("0x301E = %d\n", temp);
+        A5142MIPI_write_cmos_sensor(0x301E, 0x0000);    // DATA_PEDESTAL_
+
+        // Test Pattern Mode Selection
+
+        // Solid Color Test Pattern
+		A5142MIPI_write_cmos_sensor(0x3070, 0x0001);               
+		A5142MIPI_write_cmos_sensor(0x3072, 0x0100);               
+		A5142MIPI_write_cmos_sensor(0x3074, 0x0100);               
+		A5142MIPI_write_cmos_sensor(0x3076, 0x0100);               
+		A5142MIPI_write_cmos_sensor(0x3078, 0x0100);
+
+        // Color Bars Test Pattern
+		//A5142MIPI_write_cmos_sensor(0x3070, 0x0002);               
+	}
+	else        
+	{
+	    spin_lock(&a5142mipiraw_drv_lock);
+        A5142DuringTestPattern = KAL_FALSE;
+        spin_unlock(&a5142mipiraw_drv_lock);
+        
+        //A5142MIPI_write_cmos_sensor(0x3044, 0x0500);    // DARK_CONTROL
+        //A5142MIPI_write_cmos_sensor(0x30C0, 0x0220);    // CALIB_CONTROL 1220
+        //A5142MIPI_write_cmos_sensor(0x30D4, 0x9200);    // COLUMN_CORRECTION 9200
+        //A5142MIPI_write_cmos_sensor(0x31E0, 0x1F01);    // PIX_DEF_ID
+        //A5142MIPI_write_cmos_sensor(0x3180, 0xB0FF);    // FINE_DIG_CORRECTION_CONTROL
+        //A5142MIPI_write_cmos_sensor(0x301A, 0x021C);
+        //A5142MIPI_write_cmos_sensor(0x301E, 0x002A);    // DATA_PEDESTAL_
+
+		A5142MIPI_write_cmos_sensor(0x3070,0x0000);
+	}
+    
+    return ERROR_NONE;
+}
+
+
 
 
 UINT32 A5142MIPIFeatureControl(MSDK_SENSOR_FEATURE_ENUM FeatureId,
@@ -1867,6 +1976,14 @@ UINT32 A5142MIPIFeatureControl(MSDK_SENSOR_FEATURE_ENUM FeatureId,
         case SENSOR_FEATURE_GET_DEFAULT_FRAME_RATE_BY_SCENARIO:
             A5142MIPIGetDefaultFramerateByScenario((MSDK_SCENARIO_ID_ENUM)*pFeatureData32, (MUINT32 *)(*(pFeatureData32+1)));
             break;      
+
+        case SENSOR_FEATURE_SET_TEST_PATTERN:
+            A5142MIPI_SetTestPatternMode((BOOL)*pFeatureData16);
+             break;
+        case SENSOR_FEATURE_GET_TEST_PATTERN_CHECKSUM_VALUE://for factory mode auto testing             
+            *pFeatureReturnPara32= A5142MIPI_TEST_PATTERN_CHECKSUM;
+            *pFeatureParaLen=4;                             
+             break;  
         default:
             break;
     }

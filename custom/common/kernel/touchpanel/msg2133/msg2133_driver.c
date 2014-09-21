@@ -14,18 +14,52 @@
 #include <mach/mt_pm_ldo.h>
 #include <mach/mt_typedefs.h>
 #include <mach/mt_boot.h>
+#include <mach/mt_gpio.h>
 
 #include "cust_gpio_usage.h"
+
+//for dma mode
+#include <linux/dma-mapping.h>
+#include <linux/mm_types.h>
+#include <linux/mm.h>
+#include <asm/uaccess.h>
+#include <asm/page.h>
+#include <linux/vmalloc.h>
+
+
+
 #define __TPD_DEBUG__ 
 
 /*Ctp Power Off In Sleep ? */
 //#define TPD_CLOSE_POWER_IN_SLEEP
 
+/*************************************************************
+**msz xb.pang
+**
+**msg2133,msg2133a,msg2138a Firmware update data transfer select
+**
+**
+** if BB Chip == MT6575,MT7577 , please undef __MSG_DMA_MODE__
+**
+**
+** if BB Chip == MT6589,MT6572 , please define __MSG_DMA_MODE__
+**
+**
+**
+**
+*************************************************************/
+#define __MSG_DMA_MODE__
+
+#ifdef __MSG_DMA_MODE__
+	u8 *g_dma_buff_va = NULL;
+	u8 *g_dma_buff_pa = NULL;
+#endif
+
  
 extern struct tpd_device *tpd;
 
 /*Use For Get CTP Data By I2C*/ 
-struct i2c_client *i2c_client = NULL;
+struct i2c_client *msg_i2c_client = NULL;
 
 /*Use For Firmware Update By I2C*/
 //static struct i2c_client     *msg21xx_i2c_client = NULL;
@@ -59,21 +93,12 @@ static int tpd_keys_local[TPD_KEY_COUNT] = TPD_KEYS;
 static int tpd_keys_dim_local[TPD_KEY_COUNT][4] = TPD_KEYS_DIM;
 #endif
 
-#ifdef MT6575 
- extern void mt65xx_eint_unmask(unsigned int line);
- extern void mt65xx_eint_mask(unsigned int line);
- extern void mt65xx_eint_set_hw_debounce(kal_uint8 eintno, kal_uint32 ms);
- extern kal_uint32 mt65xx_eint_set_sens(kal_uint8 eintno, kal_bool sens);
- extern void mt65xx_eint_registration(kal_uint8 eintno, kal_bool Dbounce_En,
-									  kal_bool ACT_Polarity, void (EINT_FUNC_PTR)(void),
-									  kal_bool auto_umask);
-#else
-
-	extern void mt65xx_eint_unmask(unsigned int line);
-	extern void mt65xx_eint_mask(unsigned int line);
-	extern void mt65xx_eint_set_hw_debounce(unsigned int eint_num, unsigned int ms);
-	extern unsigned int mt65xx_eint_set_sens(unsigned int eint_num, unsigned int sens);
-	extern void mt65xx_eint_registration(unsigned int eint_num, unsigned int is_deb_en, unsigned int pol, void (EINT_FUNC_PTR)(void), unsigned int is_auto_umask);
+#if 0
+extern void mt65xx_eint_unmask(unsigned int line);
+extern void mt65xx_eint_mask(unsigned int line);
+extern void mt65xx_eint_set_hw_debounce(unsigned int eint_num, unsigned int ms);
+extern unsigned int mt65xx_eint_set_sens(unsigned int eint_num, unsigned int sens);
+extern void mt65xx_eint_registration(unsigned int eint_num, unsigned int is_deb_en, unsigned int pol, void (EINT_FUNC_PTR)(void), unsigned int is_auto_umask);
 #endif
 
  
@@ -128,6 +153,28 @@ static int FwDataCnt;
 static  char *fw_version;
 static unsigned char temp[94][1024];
 static u8 g_dwiic_info_data[1024];   // Buffer for info data
+
+#ifdef __MSG_DMA_MODE__
+static void msg_dma_alloct()
+{
+	g_dma_buff_va = (u8 *)dma_alloc_coherent(NULL, 4096, &g_dma_buff_pa, GFP_KERNEL);
+    if(!g_dma_buff_va)
+	{
+        TPD_DMESG("[DMA][Error] Allocate DMA I2C Buffer failed!\n");
+    }
+}
+
+static void msg_dma_release()
+{
+	if(g_dma_buff_va)
+	{
+     	dma_free_coherent(NULL, 4096, g_dma_buff_va, g_dma_buff_pa);
+        g_dma_buff_va = NULL;
+        g_dma_buff_pa = NULL;
+		TPD_DMESG("[DMA][release] Allocate DMA I2C Buffer release!\n");
+    }
+}
+#endif
 
 
 static void msg2133_device_power_on()
@@ -191,14 +238,23 @@ static void HalTscrCReadI2CSeq(u8 addr, u8* read_data, u16 size)
 {
    //according to your platform.
    	int rc;
-
+	#ifdef __MSG_DMA_MODE__
+	if (g_dma_buff_va == NULL)
+		return;
+	#endif
 	struct i2c_msg msgs[] =
     {
 		{
-			.addr = addr,
+			
 			.flags = I2C_M_RD,
 			.len = size,
+			#ifdef __MSG_DMA_MODE__
+			.addr = addr & I2C_MASK_FLAG | I2C_DMA_FLAG,
+			.buf = g_dma_buff_pa,
+			#else
+			.addr = addr,
 			.buf = read_data,
+			#endif
 		},
 	};
 
@@ -207,19 +263,38 @@ static void HalTscrCReadI2CSeq(u8 addr, u8* read_data, u16 size)
     {
 		printk("HalTscrCReadI2CSeq error %d\n", rc);
 	}
+	#ifdef __MSG_DMA_MODE__
+	else
+	{
+		memcpy(read_data, g_dma_buff_va, size);
+	}
+	#endif
+	
 }
 
 static void HalTscrCDevWriteI2CSeq(u8 addr, u8* data, u16 size)
 {
     //according to your platform.
    	int rc;
+	#ifdef __MSG_DMA_MODE__
+	if (g_dma_buff_va == NULL)
+		return;
+	memcpy(g_dma_buff_va, data, size);
+	#endif
+	
 	struct i2c_msg msgs[] =
     {
 		{
-			.addr = addr,
+			
 			.flags = 0,
 			.len = size,
+			#ifdef __MSG_DMA_MODE__
+			.addr = addr & I2C_MASK_FLAG | I2C_DMA_FLAG,
+			.buf = g_dma_buff_pa,
+			#else
+			.addr = addr,
 			.buf = data,
+			#endif
 		},
 	};
 	rc = i2c_transfer(this_client->adapter, msgs, 1);
@@ -265,13 +340,22 @@ static void i2c_read_msg2133(unsigned char *pbt_buf, int dw_lenth)
 	//i2c_master_recv(this_client, pbt_buf, dw_lenth);	//0xC5_8bit
 	//this_client->addr = MSG2133_TS_ADDR;
 	   	int rc;
+	#ifdef __MSG_DMA_MODE__
+	if (g_dma_buff_va == NULL)
+		return;
+	#endif
 	struct i2c_msg msgs[] =
     {
 		{
-			.addr = MSG2133_FW_ADDR,
 			.flags = I2C_M_RD,
 			.len = dw_lenth,
+		#ifdef __MSG_DMA_MODE__
+			.addr = MSG2133_FW_ADDR & I2C_MASK_FLAG | I2C_DMA_FLAG,
+			.buf = g_dma_buff_pa,
+		#else
+			.addr = MSG2133_FW_ADDR,
 			.buf = pbt_buf,
+		#endif
 		},
 	};
 	rc = i2c_transfer(this_client->adapter, msgs, 1);
@@ -279,6 +363,12 @@ static void i2c_read_msg2133(unsigned char *pbt_buf, int dw_lenth)
     {
 		printk("i2c_read_msg2133 error %d,addr = %d\n", rc,MSG2133_FW_ADDR);
 	}
+	#ifdef __MSG_DMA_MODE__
+	else
+	{
+		memcpy(pbt_buf, g_dma_buff_va, dw_lenth);
+	}
+	#endif
 	
 }
 
@@ -288,14 +378,25 @@ static void i2c_write_msg2133(unsigned char *pbt_buf, int dw_lenth)
 	//this_client->addr = MSG2133_FW_ADDR;
 	//i2c_master_send(this_client, pbt_buf, dw_lenth);		//0xC4_8bit
 	//this_client->addr = MSG2133_TS_ADDR;
-		   	int rc;
+	int rc;
+	#ifdef __MSG_DMA_MODE__
+	if (g_dma_buff_va == NULL)
+		return;
+	memcpy(g_dma_buff_va, pbt_buf, dw_lenth);
+	#endif
 	struct i2c_msg msgs[] =
     {
 		{
-			.addr = MSG2133_FW_ADDR,
+			
 			.flags = 0,
 			.len = dw_lenth,
+			#ifdef __MSG_DMA_MODE__
+			.addr = MSG2133_FW_ADDR & I2C_MASK_FLAG | I2C_DMA_FLAG,
+			.buf = g_dma_buff_pa,
+			#else
+			.addr = MSG2133_FW_ADDR,
 			.buf = pbt_buf,
+			#endif
 		},
 	};
 	rc = i2c_transfer(this_client->adapter, msgs, 1);
@@ -311,14 +412,24 @@ static void i2c_read_update_msg2133(unsigned char *pbt_buf, int dw_lenth)
 	//this_client->addr = MSG2133_FW_UPDATE_ADDR;
 	//i2c_master_recv(this_client, pbt_buf, dw_lenth);	//0x93_8bit
 	//this_client->addr = MSG2133_TS_ADDR;
-		   	int rc;
+	int rc;
+	#ifdef __MSG_DMA_MODE__
+	if (g_dma_buff_va == NULL)
+		return;
+	#endif
 	struct i2c_msg msgs[] =
     {
 		{
-			.addr = MSG2133_FW_UPDATE_ADDR,
+			
 			.flags = I2C_M_RD,
 			.len = dw_lenth,
+			#ifdef __MSG_DMA_MODE__
+			.addr = MSG2133_FW_UPDATE_ADDR & I2C_MASK_FLAG | I2C_DMA_FLAG,
+			.buf = g_dma_buff_pa,
+			#else
+			.addr = MSG2133_FW_UPDATE_ADDR,
 			.buf = pbt_buf,
+			#endif
 		},
 	};
 	rc = i2c_transfer(this_client->adapter, msgs, 1);
@@ -326,6 +437,12 @@ static void i2c_read_update_msg2133(unsigned char *pbt_buf, int dw_lenth)
     {
 		printk("i2c_read_update_msg2133 error %d,addr = %d\n", rc,MSG2133_FW_ADDR);
 	}
+	#ifdef __MSG_DMA_MODE__
+	else
+	{
+		memcpy(pbt_buf, g_dma_buff_va, dw_lenth);
+	}
+	#endif
 }
 
 static void i2c_write_update_msg2133(unsigned char *pbt_buf, int dw_lenth)
@@ -334,14 +451,26 @@ static void i2c_write_update_msg2133(unsigned char *pbt_buf, int dw_lenth)
 	//i2c_master_send(this_client, pbt_buf, dw_lenth);	//0x92_8bit
 	//this_client->addr = MSG2133_TS_ADDR;
 		//this_client->addr = MSG2133_TS_ADDR;
-		   	int rc;
+	int rc;
+  	#ifdef __MSG_DMA_MODE__
+	if (g_dma_buff_va == NULL)
+		return;
+	memcpy(g_dma_buff_va, pbt_buf, dw_lenth);
+	#endif
 	struct i2c_msg msgs[] =
     {
 		{
-			.addr = MSG2133_FW_UPDATE_ADDR,
+			
 			.flags = 0,
 			.len = dw_lenth,
+			#ifdef __MSG_DMA_MODE__
+			.addr = MSG2133_FW_UPDATE_ADDR & I2C_MASK_FLAG | I2C_DMA_FLAG,
+			.buf = g_dma_buff_pa,
+			#else
+			.addr = MSG2133_FW_UPDATE_ADDR,
 			.buf = pbt_buf,
+			#endif
+			
 		},
 	};
 	rc = i2c_transfer(this_client->adapter, msgs, 1);
@@ -610,6 +739,9 @@ static ssize_t firmware_version_show(struct device *dev,
 static ssize_t firmware_version_store(struct device *dev,
                                       struct device_attribute *attr, const char *buf, size_t size)
 {
+	#ifdef __MSG_DMA_MODE__
+	msg_dma_alloct();
+	#endif
     unsigned char dbbus_tx_data[3];
     unsigned char dbbus_rx_data[4] ;
     unsigned short major = 0, minor = 0;
@@ -636,6 +768,11 @@ static ssize_t firmware_version_store(struct device *dev,
     TPD_DMESG("***minor = %d ***\n", minor);
     sprintf(fw_version, "%03d%03d", major, minor);
     TPD_DMESG("***fw_version = %s ***\n", fw_version);
+	
+	#ifdef __MSG_DMA_MODE__
+	msg_dma_release();
+	#endif
+	
     return size;
 }
 
@@ -654,6 +791,7 @@ static ssize_t firmware_update_show(struct device *dev,
 #define DBUG	printk//(x) //x
 
 #ifdef _FW_UPDATE_C3_
+
 u8  Fmr_Loader[1024];
     u32 crc_tab[256];
 
@@ -1495,7 +1633,9 @@ static ssize_t firmware_update_store ( struct device *dev,
     u8 dbbus_tx_data[4];
     unsigned char dbbus_rx_data[2] = {0};
 	//disable_irq(this_client->irq);
-
+#ifdef __MSG_DMA_MODE__
+	msg_dma_alloct();
+#endif
     _HalTscrHWReset();
 
     // Erase TP Flash first
@@ -1544,145 +1684,26 @@ static ssize_t firmware_update_store ( struct device *dev,
 
         if ( dbbus_rx_data[0] == 3 )//update for 21XXA u03
 		{
-            return firmware_update_c33 ( dev, attr, buf, size, EMEM_MAIN );
+             firmware_update_c33 ( dev, attr, buf, size, EMEM_MAIN );
 		}
         else//update for 21XXA U02
 		{
-            return firmware_update_c32 ( dev, attr, buf, size, EMEM_ALL );
+             firmware_update_c32 ( dev, attr, buf, size, EMEM_ALL );
         }
     }
     else//update for 21XX
     {
-        return firmware_update_c2 ( dev, attr, buf, size );
+         firmware_update_c2 ( dev, attr, buf, size );
     } 
+
+	#ifdef __MSG_DMA_MODE__
+	msg_dma_release();
+	#endif
+
+	return 1;
 }
-#else
+#endif //endif _FW_UPDATE_C3_
 
-static ssize_t firmware_update_store(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
-{
-    unsigned char i;
-    unsigned char dbbus_tx_data[4];
-    unsigned char dbbus_rx_data[2] = {0};
-    update_switch = 1;
-    //drvISP_EntryIspMode();
-    //drvISP_BlockErase(0x00000);
-    //M by cheehwa _HalTscrHWReset();
-
-    //
-    //disable_irq_nosync(this_client->irq);
-	
-	msg2133_reset();
-    //msctpc_LoopDelay ( 100 );        // delay about 100ms*****
-    // Enable slave's ISP ECO mode
-    dbbusDWIICEnterSerialDebugMode();
-    dbbusDWIICStopMCU();
-    dbbusDWIICIICUseBus();
-    dbbusDWIICIICReshape();
-    //pr_ch("dbbusDWIICIICReshape\n");
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x08;
-    dbbus_tx_data[2] = 0x0c;
-    dbbus_tx_data[3] = 0x08;
-    // Disable the Watchdog
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    //Get_Chip_Version();
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x11;
-    dbbus_tx_data[2] = 0xE2;
-    dbbus_tx_data[3] = 0x00;
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x3C;
-    dbbus_tx_data[2] = 0x60;
-    dbbus_tx_data[3] = 0x55;
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    //pr_ch("update\n");
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x3C;
-    dbbus_tx_data[2] = 0x61;
-    dbbus_tx_data[3] = 0xAA;
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    //Stop MCU
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x0F;
-    dbbus_tx_data[2] = 0xE6;
-    dbbus_tx_data[3] = 0x01;
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    //Enable SPI Pad
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x1E;
-    dbbus_tx_data[2] = 0x02;
-    i2c_write_msg2133(dbbus_tx_data, 3);
-    i2c_read_msg2133(&dbbus_rx_data[0], 2);
-    //pr_tp("dbbus_rx_data[0]=0x%x", dbbus_rx_data[0]);
-    dbbus_tx_data[3] = (dbbus_rx_data[0] | 0x20);  //Set Bit 5
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x1E;
-    dbbus_tx_data[2] = 0x25;
-    i2c_write_msg2133(dbbus_tx_data, 3);
-    dbbus_rx_data[0] = 0;
-    dbbus_rx_data[1] = 0;
-    i2c_read_msg2133(&dbbus_rx_data[0], 2);
-    //pr_tp("dbbus_rx_data[0]=0x%x", dbbus_rx_data[0]);
-    dbbus_tx_data[3] = dbbus_rx_data[0] & 0xFC;  //Clear Bit 1,0
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    /*
-    //------------
-    // ISP Speed Change to 400K
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x11;
-    dbbus_tx_data[2] = 0xE2;
-    i2c_write_msg2133( dbbus_tx_data, 3);
-    i2c_read_msg2133( &dbbus_rx_data[3], 1);
-    //pr_tp("dbbus_rx_data[0]=0x%x", dbbus_rx_data[0]);
-    dbbus_tx_data[3] = dbbus_tx_data[3]&0xf7;  //Clear Bit3
-    i2c_write_msg2133( dbbus_tx_data, 4);
-    */
-    //WP overwrite
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x1E;
-    dbbus_tx_data[2] = 0x0E;
-    dbbus_tx_data[3] = 0x02;
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    //set pin high
-    dbbus_tx_data[0] = 0x10;
-    dbbus_tx_data[1] = 0x1E;
-    dbbus_tx_data[2] = 0x10;
-    dbbus_tx_data[3] = 0x08;
-    i2c_write_msg2133(dbbus_tx_data, 4);
-    dbbusDWIICIICNotUseBus();
-    dbbusDWIICNotStopMCU();
-    dbbusDWIICExitSerialDebugMode();
-    ///////////////////////////////////////
-    // Start to load firmware
-    ///////////////////////////////////////
-    drvISP_EntryIspMode();
-    TPD_DMESG("entryisp\n");
-    drvISP_BlockErase(0x00000);
-    //msleep(1000);
-    TPD_DMESG("FwVersion=2");
-
-    for(i = 0; i < 94; i++)    // total  94 KB : 1 byte per R/W
-    {
-        //msleep(1);//delay_100us
-        TPD_DMESG("drvISP_Program\n");
-        drvISP_Program(i, temp[i]);    // program to slave's flash
-        //pr_ch("drvISP_Verify\n");
-        //drvISP_Verify ( i, temp[i] ); //verify data
-    }
-
-    //MSG2133_DBG("update OK\n");
-    drvISP_ExitIspMode();
-    FwDataCnt = 0;
-    msg2133_reset();
-    TPD_DMESG("update OK\n");
-    update_switch = 0;
-    //
-    //enable_irq(this_client->irq);
-    return size;
-}
-#endif
 static ssize_t firmware_data_show(struct device *dev,
                                   struct device_attribute *attr, char *buf)
 {
@@ -1718,6 +1739,9 @@ static ssize_t firmware_clear_show(struct device *dev,
     unsigned int addr = 0;
     TPD_DMESG("\n");
 	TPD_DMESG("tyd-tp: firmware_clear_show\n");
+	#ifdef __MSG_DMA_MODE__
+	msg_dma_alloct();
+	#endif
     for(k = 0; k < 94; i++)    // total  94 KB : 1 byte per R/W
     {
         addr = k * 1024;
@@ -1744,6 +1768,9 @@ static ssize_t firmware_clear_show(struct device *dev,
             }
      }
     TPD_DMESG("read finish\n");
+	#ifdef __MSG_DMA_MODE__
+	msg_dma_release();
+	#endif
     return sprintf(buf, "%s\n", fw_version);
 }
 
@@ -1759,6 +1786,9 @@ static ssize_t firmware_clear_store(struct device *dev,
     dbbusDWIICStopMCU();
     dbbusDWIICIICUseBus();
     dbbusDWIICIICReshape();*/
+    #ifdef __MSG_DMA_MODE__
+	msg_dma_alloct();
+	#endif
     TPD_DMESG("\n");
 	TPD_DMESG("tyd-tp: firmware_clear_store\n");
     dbbus_tx_data[0] = 0x10;
@@ -1835,6 +1865,9 @@ static ssize_t firmware_clear_store(struct device *dev,
     drvISP_BlockErase(0x00000);
     TPD_DMESG("chip erase-\n");
     drvISP_ExitIspMode();
+	#ifdef __MSG_DMA_MODE__
+	msg_dma_release();
+	#endif
     return size;
 }
 
@@ -1910,7 +1943,7 @@ void msg2133_init_class()
 #endif
 
     /*Get Touch Raw Data*/
-    i2c_master_recv( i2c_client, &val[0], REPORT_PACKET_LENGTH );
+    i2c_master_recv( msg_i2c_client, &val[0], REPORT_PACKET_LENGTH );
     TPD_DEBUG(KERN_ERR"[tpd_touchinfo]--val[0]:%x, REPORT_PACKET_LENGTH:%x \n",val[0], REPORT_PACKET_LENGTH);
     Checksum = Calculate_8BitsChecksum( &val[0], 7 ); //calculate checksum
     TPD_DEBUG(KERN_ERR"[tpd_touchinfo]--Checksum:%x, val[7]:%x, val[0]:%x \n",Checksum, val[7], val[0]);
@@ -2127,7 +2160,7 @@ void msg2133_init_class()
 	 
 			if( ( touchData.nFingerNum ) == 0 ) //touch end
 			{
-				TPD_DEBUG("------DOWN------ \n");
+				TPD_DEBUG("------UP------ \n");
 				TPD_DEBUG(KERN_ERR "[msg2133]---X:%d, Y:%d; \n", touchData.Point[0].X, touchData.Point[0].Y);
 				tpd_up(touchData.Point[0].X, touchData.Point[0].Y, 0);
 				input_sync( tpd->dev );
@@ -2148,7 +2181,7 @@ void msg2133_init_class()
 	 
 			}
 
-     mt65xx_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM); 
+     mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM); 
 	 return 0;
  }
  
@@ -2160,7 +2193,7 @@ void msg2133_init_class()
  
  static void tpd_eint_interrupt_handler(void)
  {
-	 mt65xx_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
+	 mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
 	 schedule_work( &msg21xx_wq );
  }
 
@@ -2173,7 +2206,7 @@ void msg2133_init_class()
 	int err=0;
 	int reset_count = 0;
 
-	i2c_client = client;
+	msg_i2c_client = client;
 	//msg21xx_i2c_client = client;
 	this_client = client;
 	/*reset I2C clock*/
@@ -2222,11 +2255,11 @@ void msg2133_init_class()
 
     msleep(10);
 
-	mt65xx_eint_set_sens(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_SENSITIVE);
-	mt65xx_eint_set_hw_debounce(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_DEBOUNCE_CN);
-	mt65xx_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_DEBOUNCE_EN, CUST_EINT_TOUCH_PANEL_POLARITY, tpd_eint_interrupt_handler, 1); 
+	//mt65xx_eint_set_sens(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_SENSITIVE);
+	//mt65xx_eint_set_hw_debounce(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_DEBOUNCE_CN);
+	mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_TYPE, tpd_eint_interrupt_handler, 1);
 	msleep(50);
-	mt65xx_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
+	mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
 	msleep(200);
 /*
 	 char dbbus_tx_data[3];
@@ -2252,7 +2285,7 @@ void msg2133_init_class()
 	 }
 
 	*/
-    if((i2c_smbus_read_i2c_block_data(i2c_client, 0x00, 1, &data))< 0)
+    if((i2c_smbus_read_i2c_block_data(msg_i2c_client, 0x00, 1, &data))< 0)
 	{
 		TPD_DMESG("I2C transfer error, line: %d\n", __LINE__);
 		return -1; 
@@ -2356,7 +2389,7 @@ void msg2133_init_class()
     mt_set_gpio_dir(GPIO_CTP_RST_PIN, GPIO_DIR_OUT);
     mt_set_gpio_out(GPIO_CTP_RST_PIN, GPIO_OUT_ONE);
 	msleep(200);
-	mt65xx_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
+	mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
 	TPD_DMESG("TPD wake up done\n");
 	
  }
@@ -2365,7 +2398,7 @@ void msg2133_init_class()
  {
  	
 	TPD_DMESG("TPD enter sleep\n");
-	mt65xx_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
+	mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
 	
 	mt_set_gpio_mode(GPIO_CTP_RST_PIN, GPIO_CTP_RST_PIN_M_GPIO);
     mt_set_gpio_dir(GPIO_CTP_RST_PIN, GPIO_DIR_OUT);

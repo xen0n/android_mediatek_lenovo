@@ -110,6 +110,7 @@ kal_uint8 S5K4ECGX_MIPI_sensor_socket = DUAL_CAMERA_NONE_SENSOR;
 struct S5K4ECGX_MIPI_sensor_struct S5K4ECGX_Driver;
 unsigned int S5K4ECGX_Preview_enabled = 0;
 unsigned int s5k4ec_cap_enable = 0;
+UINT32 S5K4ECGX_MIPI_GetSensorID(UINT32 *sensorID);
 
 /*
 unsigned short S5K4ECGX_MIPI_DEFAULT_AE_TABLE[32] =
@@ -238,11 +239,15 @@ S5K4ECGX_MIPI_GetExposureTime(void)
        interval = 30;
     }
 
+
+    if (interval > 500)
+    {
+       interval = 500;
+    }
+
     SENSORDB("[4EC] FrameTime = %d ms\n", interval);
     return interval;
 }
-
-
 
 
 
@@ -262,15 +267,6 @@ UINT32 S5K4ECGX_MIPI_SetTestPatternMode(kal_bool bEnable)
 /***********************************************************
 **    AF Control Start
 ***********************************************************/
-//S5K4ECGX_AF_STATE_ENUM   S5K4ECGX_MIPI_AFState = S5K4ECGX_AF_STATE_UNINIT;
-//S5K4ECGX_AF_MODE_ENUM   S5K4ECGX_MIPI_AF_Mode = S5K4ECGX_AF_MODE_SINGLE;
-//unsigned int            S5K4ECGX_MIPI_ASK_AE_LOCK = 0; //0: false, 1: True
-//S5K4ECGX_AE_STATE_ENUM  S5K4ECGX_MIPI_AE_STATE = S5K4ECGX_AE_STATE_UNLOCK;
-
-//S5K4ECGX_MIPI_AF_WIN_T  S5K4ECGX_MIPI_AF_Windows;
-//unsigned int            S5K4ECGX_MIPI_AF_onAutoMode = 1; //when the window is only a point, keep sensor on auto focus mode
-//unsigned int            S5K4ECGX_MIPI_AE_Windows[4]; //x0,y0,x1,y1
-
 void S5K4ECGX_MIPI_set_scene_mode(UINT16 para);
 BOOL S5K4ECGX_MIPI_set_param_wb(UINT16 para);
 
@@ -329,6 +325,11 @@ S5K4ECGX_MIPI_AWB_UnLock(void)
             S5K4ECGX_MIPI_set_param_wb(S5K4ECYX_MIPICurrentStatus.iWB);
         }
     }
+    if (!((AWB_MODE_OFF == S5K4ECYX_MIPICurrentStatus.iWB) ||
+        (AWB_MODE_AUTO == S5K4ECYX_MIPICurrentStatus.iWB)))
+    {
+        S5K4ECGX_MIPI_set_param_wb(S5K4ECYX_MIPICurrentStatus.iWB);
+    }
 #endif
     if (((AWB_MODE_OFF == S5K4ECYX_MIPICurrentStatus.iWB) || 
         (AWB_MODE_AUTO == S5K4ECYX_MIPICurrentStatus.iWB)))
@@ -338,6 +339,7 @@ S5K4ECGX_MIPI_AWB_UnLock(void)
         S5K4ECGX_write_cmos_sensor(0x0F12,0x0001);
     }
 
+    return;
 }
 
 
@@ -492,10 +494,10 @@ S5K4ECGX_MIPI_AE_Dump_WeightTbl(void)
 
     for (offset = 0; offset < 32; offset+=8)
     {
-       SENSORDB("[4EC] AETbl HW_RdBack[%d~%d]: %x, %x, %x, %x\n", offset, offset+3,
-       val[offset+0], val[offset+1], val[offset+2], val[offset+3]);
-       SENSORDB("[4EC] AETbl HW_RdBack[%d~%d]: %x, %x, %x, %x\n", offset+4, offset+7,
-       val[offset+4], val[offset+5], val[offset+6], val[offset+7]);
+        SENSORDB("[4EC] AETbl HW_RdBack[%d~%d]: %x, %x, %x, %x\n", offset, offset+3,
+        val[offset+0], val[offset+1], val[offset+2], val[offset+3]);
+        SENSORDB("[4EC] AETbl HW_RdBack[%d~%d]: %x, %x, %x, %x\n", offset+4, offset+7,
+        val[offset+4], val[offset+5], val[offset+6], val[offset+7]);
     }
     return;
 }
@@ -777,7 +779,6 @@ S5K4ECGX_MIPI_AE_Set_Window(
     if ((x1 == S5K4ECGX_Driver.mapAEWindows[0]) &&
         (y1 == S5K4ECGX_Driver.mapAEWindows[1]))
     {
-        spin_unlock(&s5k4ecgx_mipi_drv_lock);
         if (!(memcmp(&S5K4ECGX_Driver.ae_table[0], &ae_table[0][0], 64)))
         {
            //Table is the same...
@@ -853,7 +854,7 @@ S5K4ECGX_MIPI_AF_rollbackWinSet(void)
     //Update AF Window
     S5K4ECGX_write_cmos_sensor(0x002A,0x02A4);
     S5K4ECGX_write_cmos_sensor(0x0F12,0x0001);
-
+    return;
 }
 
 
@@ -908,14 +909,14 @@ S5K4ECGX_MIPI_AF_Set_Window2HW(void)
     spin_lock(&s5k4ecgx_mipi_drv_lock);
     if (S5K4ECGX_Driver.afStateOnOriginalSet)
     {
-       spin_unlock(&s5k4ecgx_mipi_drv_lock);
+        spin_unlock(&s5k4ecgx_mipi_drv_lock);
         return S5K4ECGX_AAA_AF_STATUS_OK;
     }
 
-    inWx1 = S5K4ECGX_Driver.afWindows.inWx;
-    inWy1 = S5K4ECGX_Driver.afWindows.inWy;
-    inWw1 = S5K4ECGX_Driver.afWindows.inWw;
-    inWh1 = S5K4ECGX_Driver.afWindows.inWh;
+    inWx1  = S5K4ECGX_Driver.afWindows.inWx;
+    inWy1  = S5K4ECGX_Driver.afWindows.inWy;
+    inWw1  = S5K4ECGX_Driver.afWindows.inWw;
+    inWh1  = S5K4ECGX_Driver.afWindows.inWh;
     outWx1 = S5K4ECGX_Driver.afWindows.outWx;
     outWy1 = S5K4ECGX_Driver.afWindows.outWy;
     outWw1 = S5K4ECGX_Driver.afWindows.outWw;
@@ -1001,9 +1002,6 @@ S5K4ECGX_MIPI_AF_Set_Window(
     if ((x0 == x1) && (y0 == y1))
     {
         S5K4ECGX_Driver.afStateOnOriginalSet = 1;
-        //spin_unlock(&s5k4ecgx_mipi_drv_lock);
-        //SENSORDB("~~~~Keep on AutoFocus Mode.\n");
-        //return S5K4ECGX_AAA_AF_STATUS_OK;;
     }
     spin_unlock(&s5k4ecgx_mipi_drv_lock);
 
@@ -1134,8 +1132,7 @@ S5K4ECGX_MIPI_AF_Set_Window(
         outWy1 = outWy1 * 1024 / (prevH);
 
 
- #if 1
-        //restore
+         //restore
         spin_lock(&s5k4ecgx_mipi_drv_lock);
         //check if we really need to update AF window? the tolerance shall less than 10 pixels
         //on the both x/y direction for inner & ouuter window
@@ -1168,7 +1165,6 @@ S5K4ECGX_MIPI_AF_Set_Window(
         {
             spin_unlock(&s5k4ecgx_mipi_drv_lock);
         }
-#endif
 
         spin_lock(&s5k4ecgx_mipi_drv_lock);
         S5K4ECGX_Driver.afWindows.inWx = inWx1;
@@ -1243,15 +1239,14 @@ S5K4ECGX_MIPI_AF_Stop(void)
 }
 
 
-
+/*
 static void
 S5K4ECGX_MIPI_AF_ShowLensPosition(void)
 {
     unsigned int lens_cur_pos, lens_best_pos, lens_prev_best_pos;
     unsigned int lens_tlb_idx;
-#if defined(S5K4ECGX_MIPI_AF_Enable)
 
-  S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+    S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
     S5K4ECGX_write_cmos_sensor(0x002C,0x7000);
     S5K4ECGX_write_cmos_sensor(0x002E,0x15E8);
     lens_tlb_idx = S5K4ECGX_read_cmos_sensor(0x0F12);
@@ -1266,11 +1261,10 @@ S5K4ECGX_MIPI_AF_ShowLensPosition(void)
     lens_prev_best_pos = S5K4ECGX_read_cmos_sensor(0x0F12);
 
     //SENSORDB("~~~~AF_GetLensPosition: lens_tlb_idx=%d; cur_pos=%x, best_pos=%x, prev_best_pos=%x\n", lens_tlb_idx, lens_cur_pos, lens_best_pos, lens_prev_best_pos);
-#endif
 
     return;
 }
-
+*/
 
 
 static S5K4ECGX_AAA_STATUS_ENUM
@@ -1284,8 +1278,8 @@ S5K4ECGX_MIPI_AF_CancelFocus(void)
 
     if (S5K4ECGX_AF_MODE_RSVD == S5K4ECGX_Driver.afMode)
     {
-       //have been aborted
-       return S5K4ECGX_AAA_AF_STATUS_OK;
+        //have been aborted
+        return S5K4ECGX_AAA_AF_STATUS_OK;
     }
 
     S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
@@ -1298,8 +1292,8 @@ S5K4ECGX_MIPI_AF_CancelFocus(void)
         af_status = S5K4ECGX_read_cmos_sensor(0x0F12);
         if ((af_status == 1) || (af_status == 6) || (af_status == 7))
         {
-           //Wait for Focusing or Scene Detecting done.
-           Sleep(2);
+            //Wait for Focusing or Scene Detecting done.
+            Sleep(2);
         }
     }
 
@@ -1351,13 +1345,13 @@ S5K4ECGX_MIPI_AF_Start(S5K4ECGX_AF_MODE_ENUM mode)
 
     if (mode == S5K4ECGX_AF_MODE_SINGLE)
     {
-        SENSORDB("[4EC] SAF_Start+\n\n\n");
+        SENSORDB("[4EC] SAF_Start+\n\n");
         S5K4ECGX_Driver.afMode = S5K4ECGX_AF_MODE_SINGLE;
         S5K4ECGX_Driver.afState = S5K4ECGX_AF_STATE_ENTERING;
     }
     else
     {
-        SENSORDB("[4EC] CAF_Start+\n\n\n");
+        SENSORDB("[4EC] CAF_Start+\n\n");
         if (S5K4ECGX_AF_MODE_CONTINUOUS == S5K4ECGX_Driver.afMode)
         {
             spin_unlock(&s5k4ecgx_mipi_drv_lock);
@@ -1372,7 +1366,7 @@ S5K4ECGX_MIPI_AF_Start(S5K4ECGX_AF_MODE_ENUM mode)
     frameTime = S5K4ECGX_MIPI_GetExposureTime();
     //SENSORDB("[4EC] AF_Start+, frameTime=%d ms\n", frameTime);
 
-#if 1
+
     if (mode == S5K4ECGX_AF_MODE_SINGLE)
     {
         S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
@@ -1435,7 +1429,6 @@ S5K4ECGX_MIPI_AF_Start(S5K4ECGX_AF_MODE_ENUM mode)
             S5K4ECGX_write_cmos_sensor(0x0F12, 0x007C); //#af_pos_usTable_23_
             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0080); //#af_pos_usTable_24_
     }
-#endif
 
 
     S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
@@ -1497,21 +1490,21 @@ S5K4ECGX_MIPI_AF_Get_Status(unsigned int *pFeatureReturnPara32)
         {
             case 0:
                 *pFeatureReturnPara32 = SENSOR_AF_IDLE;//;
-                SENSORDB("\n[4EC] AF--- IDLE\n");
+                //SENSORDB("\n[4EC] AF--- IDLE\n");
                 break;
             case 1:
                 *pFeatureReturnPara32 = SENSOR_AF_FOCUSING;
-                SENSORDB("\n[4EC] AF--- AF_FOCUSING\n");
+                //SENSORDB("\n[4EC] AF--- AF_FOCUSING\n");
                 break;
 
             case 2:
                 *pFeatureReturnPara32 = SENSOR_AF_FOCUSED;
-                SENSORDB("\n[4EC] AF--- FOCUSED\n");
+                //SENSORDB("\n[4EC] AF--- FOCUSED\n");
                 break;
 
             case 3: // the 1st search is low confidence
                 *pFeatureReturnPara32 = SENSOR_AF_ERROR;//SENSOR_AF_ERROR;
-                SENSORDB("\n[4EC] AF--- LOW_CONFIDENCE\n");
+                //SENSORDB("\n[4EC] AF--- LOW_CONFIDENCE\n");
                 break;
 
             case 4: // canceld
@@ -1519,22 +1512,27 @@ S5K4ECGX_MIPI_AF_Get_Status(unsigned int *pFeatureReturnPara32)
                 spin_lock(&s5k4ecgx_mipi_drv_lock);
                 S5K4ECGX_Driver.afState = S5K4ECGX_AF_STATE_DONE;
                 spin_unlock(&s5k4ecgx_mipi_drv_lock);
-                SENSORDB("\n[4EC] AF--- CANCELLED\n");
+                //SENSORDB("\n[4EC] AF--- CANCELLED\n");
                 break;
 
             case 6: //restart AE
                 *pFeatureReturnPara32 = SENSOR_AF_SCENE_DETECTING;//SENSOR_AF_SCENE_DETECTING;
-                SENSORDB("\n[4EC] AF--- Restart_AE\n");
+                //SENSORDB("\n[4EC] AF--- Restart_AE\n");
                 break;
 
             case 7: //restart Scene
                 *pFeatureReturnPara32 = SENSOR_AF_SCENE_DETECTING;//SENSOR_AF_SCENE_DETECTING;
-                SENSORDB("\n[4EC] AF--- Restart_Scene\n");
+                //SENSORDB("\n[4EC] AF--- Restart_Scene\n");
                 break;
 
             default:
                 *pFeatureReturnPara32 = SENSOR_AF_SCENE_DETECTING;
                 SENSORDB("\n[4EC] AF--- default. Status:%x\n", af_1stSearch_status);
+                {
+                    //read sensor id here to check sensor is died or not?
+                    UINT32 sensorID = 0;
+                    S5K4ECGX_MIPI_GetSensorID(&sensorID);                   
+                }
                 break;
         }
 
@@ -1593,46 +1591,54 @@ static void S5K4ECGX_MIPI_set_AF_infinite(kal_bool is_AF_OFF)
 * LOCAL AFFECTED
 *
 *************************************************************************/
-static kal_uint16 S5K4ECGX_MIPI_ReadShutter(void)
+static kal_uint32 S5K4ECGX_MIPI_ReadShutter(void)
 {
-    kal_uint32 Shutter=0,Integration_Time=0, frameTime;
+    unsigned int interval = 0;
 
     S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
     S5K4ECGX_write_cmos_sensor(0x002C,0x7000);
     S5K4ECGX_write_cmos_sensor(0x002E,0x2C28);
-    frameTime = (S5K4ECGX_read_cmos_sensor(0x0F12) & 0xFFFF) ;
-    frameTime += (S5K4ECGX_read_cmos_sensor(0x0F12) & 0xFFFF)<<16 ;
-    frameTime /= 400; //ms
-    //frameTime = 40;
-    SENSORDB("[4EC] ReadShutter+, frameTime=%d ms\n", frameTime);
+    interval  = S5K4ECGX_read_cmos_sensor(0x0F12);
+    interval |= (S5K4ECGX_read_cmos_sensor(0x0F12) << 16);
 
-    //Integration_Time = ((coarse_time * line_length_pck) + fine_time +const) * pclk[sec]
-    Integration_Time = S5K4ECGX_read_cmos_sensor(0x0F12);
-    Integration_Time = Integration_Time + 65536 * S5K4ECGX_read_cmos_sensor(0x0F12);
+    // reg is in terms of 1000/400 us
+    interval = interval * 5 / 2; //us
 
-    //Shutter=PRE_CLK*1000000*Integration_Time/((400*1000)*1920);
-    Shutter = PRE_CLK * Integration_Time / 768;
-
-    return Shutter;
+    SENSORDB("[4EC] Shutter = %d us\n", interval);
+    return interval;
 }
 
 
 void S5K4ECGX_MIPI_SetShutter(kal_uint32 iShutter)
 {
-#if 0
-    if(S5K4ECGX_Driver.shutter == iShutter)
+    // iShutter is in terms of 32us
+    iShutter *= 32;
+    unsigned int exposureTime = iShutter >> 3; // to hardware reg
+
+    SENSORDB("[4EC] SetdShutter+, iShutter=%d us, 0x%08x\n", iShutter, exposureTime);
+    //Change to Manual AE
+    S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04E6);
+    S5K4ECGX_write_cmos_sensor(0x0F12,0x0779); //Manual AE enable
+    S5K4ECGX_Driver.manualAEStart = 1;
+
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04AC);
+    S5K4ECGX_write_cmos_sensor(0x0F12,exposureTime&0xFFFF); //Exposure time
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04AE);
+    S5K4ECGX_write_cmos_sensor(0x0F12,exposureTime>>16); //Exposure time
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04B0);
+    S5K4ECGX_write_cmos_sensor(0x0F12,0x0001); //Exposure time update
+
+    //S5K4ECGX_write_cmos_sensor(0x002A,0x04B2);
+    //S5K4ECGX_write_cmos_sensor(0x0F12,totalGain);   //Total gain
+    //S5K4ECGX_write_cmos_sensor(0x0F12,0x0001);
         return;
-    spin_lock(&s5k4ecgx_mipi_drv_lock);
-    S5K4ECGX_Driver.shutter = iShutter;
-    spin_unlock(&s5k4ecgx_mipi_drv_lock);
-    S5K3H7Y_write_shutter(iShutter);
-#endif
 }
 
 
 /*************************************************************************
 * FUNCTION
-*    S5K4ECGXReadGain
+*    S5K4ECGX_MIPI_ReadGain
 * DESCRIPTION
 *    This function get gain from sensor
 * PARAMETERS
@@ -1643,41 +1649,162 @@ void S5K4ECGX_MIPI_SetShutter(kal_uint32 iShutter)
 *************************************************************************/
 static kal_uint32 S5K4ECGX_MIPI_ReadGain(void)
 {
-#if 0
-    kal_uint32 Reg ;
-    S5K4ECGX_write_cmos_sensor(0x002C, 0x7000);
-    //S5K4ECGX_write_cmos_sensor(0x002E, 0x2bc4);//A-gain
-    S5K4ECGX_write_cmos_sensor(0x002E, 0x2BC6);//D-gain
-    Reg = S5K4ECGX_read_cmos_sensor(0x0F12);
 
-    spin_lock(&s5k4ecgx_mipi_drv_lock);
-    S5K4ECGX_Driver.sensorGain = Reg;
-    spin_unlock(&s5k4ecgx_mipi_drv_lock);
-    return Reg; //
-#endif
+    //S5K4ECGX_MIPI_GetAutoISOValue();
+
+    unsigned int A_Gain, D_Gain, ISOValue;
+    S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+    S5K4ECGX_write_cmos_sensor(0x002C, 0x7000);
+    S5K4ECGX_write_cmos_sensor(0x002E, 0x2BC4);
+    A_Gain = S5K4ECGX_read_cmos_sensor(0x0F12);
+    D_Gain = S5K4ECGX_read_cmos_sensor(0x0F12);
+
+    ISOValue = ((A_Gain * D_Gain) >> 8);
+
+    SENSORDB("[4EC] ReadGain+, isoSpeed=%d\n", ISOValue);
+/*
+    switch (S5K4ECGX_Driver.isoSpeed)
+    {
+       case AE_ISO_200:
+          return 200;
+
+       case AE_ISO_400:
+       return 400;
+
+       case AE_ISO_100:
+       default:
+       return 100;
+}
+*/
+    return ISOValue; 
 }
 
+
+
+/*************************************************************************
+* FUNCTION
+*    S5K4ECGX_MIPI_SetGain
+* DESCRIPTION
+*    This function set gain to sensor
+* PARAMETERS
+*    None
+* RETURNS
+*    Gain: base on 0x40
+* LOCAL AFFECTED
+*************************************************************************/
 static void S5K4ECGX_MIPI_SetGain(kal_uint32 iGain)
 {
-#if 0
-    kal_uint32 Reg ;
+    // Cal. Method : ((A-Gain*D-Gain)/100h)/2
+    // A-Gain , D-Gain Read value is hex value.
+    //   ISO 50  : 100(HEX)
+    //   ISO 100 : 100 ~ 1FF(HEX)
+    //   ISO 200 : 200 ~ 37F(HEX)
+    //   ISO 400 : over 380(HEX)
 
-    spin_lock(&s5k4ecgx_mipi_drv_lock);
-    S5K4ECGX_Driver.sensorGain = iGain;
-    spin_unlock(&s5k4ecgx_mipi_drv_lock);
 
-    S5K4ECGX_write_cmos_sensor(0x002C,0x7000);
-    S5K4ECGX_write_cmos_sensor(0x002E,0x2bc4);
-    Reg =S5K4ECGX_read_cmos_sensor(0x0F12);
-
-    Reg =Reg / 2;
-    if(Reg < 1)
+    unsigned int totalGain = iGain;
+    /*
+    switch (iGain)
     {
-      Reg = 1;
-    }
+       case 200:	
+       	totalGain = 0x2BF; //(0x200 + 0x37F) / 2; 
+       	break;
 
-    return Reg; //
+       case 400:	
+       	totalGain = 0x380; 
+       	break; 
+
+       case 100:	
+       default:	
+       	totalGain = 0x17F; 
+       	break;    
+    }
+    */
+    SENSORDB("[4EC] SetGain+, isoGain=%d\n", totalGain);
+
+    //Change to Manual AE
+    S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04E6);
+    S5K4ECGX_write_cmos_sensor(0x0F12,0x0779); //Manual AE enable
+
+    //S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04B2);
+    S5K4ECGX_write_cmos_sensor(0x0F12,totalGain);   //Total gain
+    S5K4ECGX_write_cmos_sensor(0x002A,0x04B4);
+    S5K4ECGX_write_cmos_sensor(0x0F12,0x0001);
+
+#if 0
+    switch (iGain)
+    {
+        case 200://AE_ISO_200:
+             //ISO 200
+             S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+             S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x0938);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //afit_bUseNB_Afit
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0014);  //SARR_uNormBrInDoor_0_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x03A2);  //SARR_uNormBrInDoor_1_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0484);  //SARR_uNormBrInDoor_2_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x07D0);  //SARR_uNormBrInDoor_3_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x1388);  //SARR_uNormBrInDoor_4_
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x04D6);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0000);  //REG_SF_USER_FlickerQuant
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_FlickerQuantChanged
+
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x04D0);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_IsoType
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0380);  //REG_SF_USER_IsoVal
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_IsoChanged
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x06C2);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100);  //lt_bUseSecISODgain
+             break;
+        case 400://AE_ISO_400:
+             //ISO 400
+             S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+             S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x0938);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //afit_bUseNB_Afit
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0014);  //SARR_uNormBrInDoor_0_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x08D2);  //SARR_uNormBrInDoor_1_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0C84);  //SARR_uNormBrInDoor_2_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x10D0);  //SARR_uNormBrInDoor_3_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x1388);  //SARR_uNormBrInDoor_4_
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x04D6);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0000);  //REG_SF_USER_FlickerQuant
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_FlickerQuantChanged
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x04D0);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_IsoType
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0700);  //REG_SF_USER_IsoVal
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_IsoChanged
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x06C2);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100);  //lt_bUseSecISODgain
+             break;
+        default:
+            case 100://AE_ISO_100:
+             //ISO 100
+             S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+             S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x0938);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //afit_bUseNB_Afit
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0014);  //SARR_uNormBrInDoor_0_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x00D2);  //SARR_uNormBrInDoor_1_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0384);  //SARR_uNormBrInDoor_2_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x07D0);  //SARR_uNormBrInDoor_3_
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x1388);  //SARR_uNormBrInDoor_4_
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x04D6);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0000);  //REG_SF_USER_FlickerQuant
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_FlickerQuantChanged
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x04D0);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_IsoType
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x01C0);  //REG_SF_USER_IsoVal
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001);  //REG_SF_USER_IsoChanged
+             S5K4ECGX_write_cmos_sensor(0x002A, 0x06C2);
+             S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100);  //lt_bUseSecISODgain
+             break;
+    }
 #endif
+
+    return;
 }
 
 
@@ -1711,13 +1838,13 @@ void S5K4ECGX_MIPI_get_exposure_gain()
 void S5K4ECGX_MIPI_GetAEFlashlightInfo(UINT32 infoAddr)
 {
     SENSOR_FLASHLIGHT_AE_INFO_STRUCT* pAeInfo = (SENSOR_FLASHLIGHT_AE_INFO_STRUCT*) infoAddr;
-#if 0
+
     pAeInfo->Exposuretime = S5K4ECGX_MIPI_ReadShutter();
     pAeInfo->Gain = S5K4ECGX_MIPI_ReadGain();
     pAeInfo->u4Fno = 28;
-    pAeInfo->GAIN_BASE = 50;
-#endif
+    pAeInfo->GAIN_BASE = 0x100;
 
+    return;
 }
 
 
@@ -1748,6 +1875,219 @@ static void S5K4ECGX_MIPI_FlashTriggerCheck(unsigned int *pFeatureReturnPara32)
 ***********************************************************/
 
 
+
+/***********************************************************
+     JPEG Sensor Start                                    **
+***********************************************************/
+static
+void S5K4ECGX_MIPI_Config_JPEG_Capture(ACDK_SENSOR_JPEG_OUTPUT_PARA *jpeg_para)
+{
+#if defined(__CAPTURE_JPEG_OUTPUT__)
+    /*
+    S5K4ECGX_write_cmos_sensor(0x002A, 0x0476);
+    S5K4ECGX_write_cmos_sensor(0x0F12, 0x0000); //REG_TC_BRC_BRC_type //0x5:enable BRC
+    S5K4ECGX_write_cmos_sensor(0x002A, 0x0478);
+    S5K4ECGX_write_cmos_sensor(0x0F12, 0x005F); //REG_TC_BRC_usPrevQuality
+    S5K4ECGX_write_cmos_sensor(0x0F12, 0x005F); //REG_TC_BRC_usCaptureQuality
+    S5K4ECGX_write_cmos_sensor(0x002A, 0x047c);
+    S5K4ECGX_write_cmos_sensor(0x0F12, 0x0000); //REG_TC_THUMB_Thumb_bActive
+    */
+
+    S5K4ECGX_write_cmos_sensor(0x002A, 0x0398);
+    S5K4ECGX_write_cmos_sensor(0x0F12, jpeg_para->tgtWidth);
+    S5K4ECGX_write_cmos_sensor(0x0F12, jpeg_para->tgtHeight);
+
+    S5K4ECGX_write_cmos_sensor(0x002A, 0x0478);
+    S5K4ECGX_write_cmos_sensor(0x0F12, jpeg_para->quality); //REG_TC_BRC_usPrevQuality    
+
+#endif
+
+    return;
+}
+
+
+#define JPEG_MARKER_SKIP_CODE    0x00  // For the case of 0xFF00
+#define JPEG_MARKER_START_CODE   0XFF
+
+#define JPEG_MARKER_SOF(I)       (0xC0 + I)
+
+/* Start of Frame markers, non-differential, Huffman coding */
+#define JPEG_MARKER_SOF0         0XC0
+#define JPEG_MARKER_SOF1         0XC1
+#define JPEG_MARKER_SOF2         0XC2
+#define JPEG_MARKER_SOF3         0XC3
+
+/* Start of Frame markers, differential, Huffman coding */
+#define JPEG_MARKER_SOF5         0XC5
+#define JPEG_MARKER_SOF6         0XC6
+#define JPEG_MARKER_SOF7         0XC7
+
+/* Start of Frame markers, non-differential, arithmetic coding */
+#define JPEG_MARKER_JPG0         0XC8
+#define JPEG_MARKER_SOF9         0XC9
+#define JPEG_MARKER_SOF10        0XCA
+#define JPEG_MARKER_SOF11        0XCB
+
+/* Start of Frame markers, differential, arithmetic coding */
+#define JPEG_MARKER_SOF13        0xCD
+#define JPEG_MARKER_SOF14        0xCE
+#define JPEG_MARKER_SOF15        0xCF
+
+/* Huffman table specification */
+#define JPEG_MARKER_DHT          0xC4  /* Define Huffman table(s) */
+
+/* Arithmetic coding conditioning specification */
+#define JPEG_MARKER_DAC          0xCC  /* Define arithmetic coding conditioning(s) */
+
+/* Restart interval termination */
+#define JPEG_MARKER_RST(I)       (0xD0 + I)
+#define JPEG_MARKER_RST0         0xD0
+#define JPEG_MARKER_RST1         0xD1
+#define JPEG_MARKER_RST2         0xD2
+#define JPEG_MARKER_RST3         0xD3
+#define JPEG_MARKER_RST4         0xD4
+#define JPEG_MARKER_RST5         0xD5
+#define JPEG_MARKER_RST6         0xD6
+#define JPEG_MARKER_RST7         0xD7
+
+#define JPEG_MARKER_SOI          0xD8
+#define JPEG_MARKER_EOI          0xD9
+#define JPEG_MARKER_SOS          0xDA
+#define JPEG_MARKER_DQT          0xDB
+#define JPEG_MARKER_DNL          0xDC
+#define JPEG_MARKER_DRI          0xDD
+#define JPEG_MARKER_DHP          0xDE
+#define JPEG_MARKER_EXP          0xDF
+
+#define JPEG_MARKER_APP(I)       (0xE0 + I)
+
+#define JPEG_MARKER_JPG(I)       (0xF0 + I)
+
+#define JPEG_MARKER_TEM          0x01
+
+#define JPEG_MARKER_COM          0xFE
+
+/// Decoder
+typedef enum {
+   JPEG_PARSE_STATE_STOP = 0,
+   JPEG_PARSE_STATE_WAITING_FOR_SOI,
+
+   JPEG_PARSE_STATE_WAITING_FOR_MARKER,
+   JPEG_PARSE_STATE_WAITING_FOR_LENGTH,
+   JPEG_PARSE_STATE_WAITING_FOR_DATA,
+
+   JPEG_PARSE_STATE_ERROR,
+   JPEG_PARSE_STATE_COMPLETE
+} JPEG_PARSE_STATE_ENUM;
+
+
+unsigned int 
+jpegParserParseImage(unsigned char* srcBuf, unsigned int bufSize, unsigned int *eoiOffset)
+{
+   unsigned char marker[2] = {0};
+   unsigned char *rdPtr = srcBuf;
+   unsigned char *endPtr = srcBuf + bufSize;
+   unsigned int   parseState = JPEG_PARSE_STATE_WAITING_FOR_SOI;
+   unsigned short curSegmentLength;
+   unsigned int   offsetOfEncounter100Zeros = 0;
+   unsigned char  array100Zeros[100] ={0};
+
+    if (JPEG_MARKER_START_CODE != rdPtr[0] || JPEG_MARKER_SOI != rdPtr[1])
+    {
+        //invalid file, return error status
+        SENSORDB("[4EC] jpegParserParseImage: invalid file ###############\n");
+        *eoiOffset = 2560 * 1920;
+        return FALSE;
+    }
+
+
+
+    rdPtr += 636;
+    SENSORDB("[4EC] jpegParserParseImage:A (rd,end)=(0x%x,0x%x)\n", rdPtr, endPtr);
+       
+      
+    while (rdPtr < endPtr)
+    {
+        if (JPEG_MARKER_START_CODE == rdPtr[0])
+        {
+            if (JPEG_MARKER_EOI == rdPtr[1]) 
+            {
+                rdPtr += 2;
+                SENSORDB("[4EC] jpegParserParseImage B:Encounter FFD9: rdPtr=0x%x\n", rdPtr);
+                break;
+            }
+            rdPtr += 1;
+        }
+        else
+        {
+            if ((offsetOfEncounter100Zeros == 0) && 
+                ((rdPtr[0] == 0) && (rdPtr[1] == 0)))
+            {
+                if (!(memcmp(array100Zeros, rdPtr, 100)))
+                {
+                    SENSORDB("[4EC] jpegParserParseImage:C offsetOfEncounter100Zeros = 1: rdPtr=0x%x\n", rdPtr);
+                    offsetOfEncounter100Zeros = rdPtr;
+                }
+            }
+            rdPtr += 1;
+        }
+    } 
+
+    if (rdPtr >= endPtr)
+    {
+       //the JPEG file miss EOI marker
+       rdPtr = offsetOfEncounter100Zeros;
+       rdPtr[0] = 0xFF; 
+       rdPtr[1] = 0xD9;
+       rdPtr += 2;
+       SENSORDB("[4EC] jpegParserParseImage:D offsetOfEncounter100Zeros = 1: rdPtr=0x%x\n", rdPtr);
+    }
+
+    SENSORDB("[4EC] jpegParserParseImage:E Marker:(%x,%x); (rd,end)=(0x%x,0x%x)\n",rdPtr[-2], rdPtr[-1], rdPtr, endPtr);
+
+
+   *eoiOffset = (rdPtr - srcBuf);
+   SENSORDB("[4EC] jpegParserParseImage:eoiOffset =%x\n",*eoiOffset);
+   
+   return TRUE;
+}
+
+
+
+void S5K4ECGX_MIPI_JPEG_Capture_Parser(
+     UINT32 jpegFileAddr, UINT32 jpegMaxBufSize, ACDK_SENSOR_JPEG_INFO *jpeg_info)
+{
+    unsigned int eoiOffset = 0;
+#if defined(__CAPTURE_JPEG_OUTPUT__)
+
+    unsigned int* ptr;
+    ptr = (unsigned int*)jpegFileAddr;
+    //SENSORDB("[4EC] JPEG_Capture_Parser jpegMaxBufSize=0x%x", jpegMaxBufSize);
+    //SENSORDB("[4EC] JPEG_Capture_Parser Buf=0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x.", ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
+    
+    //To Do: Parsing the header information
+    jpegParserParseImage((unsigned char*)jpegFileAddr, jpegMaxBufSize, &eoiOffset);
+
+    jpeg_info->u4FileSize = eoiOffset; 
+    jpeg_info->u4SrcW = S5K4ECGX_Driver.jpegSensorPara.tgtWidth;
+    jpeg_info->u4SrcH = S5K4ECGX_Driver.jpegSensorPara.tgtHeight;
+
+    SENSORDB("[4EC] JPEG_Capture_Parser jpegMaxBufSize=0x%x, W=%d, H=%d\n", jpegMaxBufSize, jpeg_info->u4SrcW, jpeg_info->u4SrcH);
+#else
+    jpeg_info->u4FileSize = 2560 * 1920 * 1; //bytes//u4FileSize;
+    jpeg_info->u4SrcW = S5K4ECGX_Driver.jpegSensorPara.tgtWidth;
+    jpeg_info->u4SrcH = S5K4ECGX_Driver.jpegSensorPara.tgtHeight;
+#endif
+
+    return;
+}
+
+
+/***********************************************************
+     JPEG Sensor End                                      **
+***********************************************************/
+
+
 #define S5K4EC_PREVIEW_MODE             0
 #define S5K4EC_VIDEO_MODE               1
 #define S5K4EC_PREVIEW_FULLSIZE_MODE    2
@@ -1769,7 +2109,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     //$MIPI[Width:1280,Height:960,Format:YUV422,Lane:2,ErrorCheck:0,PolarityData:0,PolarityClock:0,Buffer:2,DataRate:600]
 
 
-#if defined(__JPEG_OUTPUT_ENABLE__)
+#if defined(__CAPTURE_JPEG_OUTPUT__)
     #define OUTPUT_FMT  9 //JPEG
 #else
     #define OUTPUT_FMT  5 //YUV
@@ -1789,6 +2129,10 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     S5K4ECGX_Driver.aeWindows[1] = 0;
     S5K4ECGX_Driver.aeWindows[2] = 0;
     S5K4ECGX_Driver.aeWindows[3] = 0;
+    S5K4ECGX_Driver.jpegSensorPara.tgtWidth = S5K4ECGX_IMAGE_SENSOR_FULL_WIDTH_DRV;
+    S5K4ECGX_Driver.jpegSensorPara.tgtHeight = S5K4ECGX_IMAGE_SENSOR_FULL_HEIGHT_DRV;
+    S5K4ECGX_Driver.jpegSensorPara.quality = 100;
+
 
     S5K4ECGX_MIPI_sensor_pclk = MIPI_CLK0_MAX * 4000 * 2; //(reg_val * 4k * 2)
     S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
@@ -1814,9 +2158,9 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[] =
         {
-    //This register is for FACTORY ONLY.
-    //If you change it without prior notification
-    //YOU are RESPONSIBLE for the FAILURE that will happen in the future
+        //This register is for FACTORY ONLY.
+        //If you change it without prior notification
+        //YOU are RESPONSIBLE for the FAILURE that will happen in the future
             0x002A ,0x007A,
             0x0F12 ,0x0000,
             0x002A ,0xE406,
@@ -1874,7 +2218,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[] =
         {
-    // Start of Patch data
+        // Start of Patch data
              0x0028, 0x7000,
              0x002A, 0x3AF8,
              0x0F12 ,0xB5F8,     //  70003AF8
@@ -3308,7 +3652,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[] =
         {
-    // Refer Mon_AWB_RotGain
+        // Refer Mon_AWB_RotGain
              0x0028, 0x7000,
              0x002A, 0x08B4,
              0x0F12, 0x0001, //wbt_bUseOutdoorASH
@@ -3321,11 +3665,11 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x017C, //TVAR_ash_AwbAshCord_5_ 6400K
              0x0F12, 0x0194, //TVAR_ash_AwbAshCord_6_ 7500K
              0x002A, 0x08F6,
-             0x0F12, 0x4000, //TVAR_ash_GASAlpha_0__0_ R  // 2300K
+             0x0F12, 0x5000, //TVAR_ash_GASAlpha_0__0_ R  // 2300K
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_0__1_ GR
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_0__2_ GB
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_0__3_ B
-             0x0F12, 0x4000, //TVAR_ash_GASAlpha_1__0_ R  // 2750K
+             0x0F12, 0x5000, //20130513, 4000, //TVAR_ash_GASAlpha_1__0_ R  // 2750K
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_1__1_ GR
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_1__2_ GB
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_1__3_ B
@@ -3345,11 +3689,11 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_5__1_ GR
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_5__2_ GB
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_5__3_ B
-             0x0F12, 0x4300, //TVAR_ash_GASAlpha_6__0_ R  // 7500K
+             0x0F12, 0x5000, //TVAR_ash_GASAlpha_6__0_ R  // 7500K
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_6__1_ GR
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_6__2_ GB
              0x0F12, 0x4000, //TVAR_ash_GASAlpha_6__3_ B
-    //Outdoor GAS Alpha
+        //Outdoor GAS Alpha
              0x0F12, 0x4500,
              0x0F12, 0x4000,
              0x0F12, 0x4000,
@@ -3358,8 +3702,8 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0001, //ash_bUseGasAlpha
 
 
-    //GAS High table   If OTP is used, GAS Setting Should be deleted. //
-    //BENI 1.1 module 101018//
+        //GAS High table   If OTP is used, GAS Setting Should be deleted. //
+        //BENI 1.1 module 101018//
              0x002A, 0x0D26,
              0x0F12, 0x0F00,
              0x0F12, 0x000F,
@@ -3434,7 +3778,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x000F,
              0x0F12, 0x0F0F,
 
-    // TVAR_ash_pGAS_low
+       // TVAR_ash_pGAS_low
              0x002A, 0x0DB6,
              0x0F12, 0x88A2,
              0x0F12, 0xEF5B,
@@ -3589,10 +3933,10 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[] =
         {
-    //This register is for FACTORY ONLY.
-    //If you change it without prior notification
-    //YOU are RESPONSIBLE for the FAILURE that will happen in the future
-    //For subsampling Size
+        //This register is for FACTORY ONLY.
+        //If you change it without prior notification
+        //YOU are RESPONSIBLE for the FAILURE that will happen in the future
+        //For subsampling Size
              0x002A, 0x18BC,
              0x0F12, 0x0004,
              0x0F12, 0x05B6,
@@ -3699,7 +4043,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0000,
              0x0F12, 0x0000,
              0x0F12, 0x0000,
-    // For Capture
+        // For Capture
              0x0F12, 0x0004,
              0x0F12, 0x09D1,
              0x0F12, 0x0000,
@@ -3853,11 +4197,11 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[] =
         {
-    //AF interface setting
+        //AF interface setting
              0x002A, 0x01FC,
              0x0F12, 0x0001, //REG_TC_IPRM_LedGpio, for Flash control
-    //s002A1720
-    //s0F120100 //afd_usFlags, Low voltage AF enable
+        //s002A1720
+        //s0F120100 //afd_usFlags, Low voltage AF enable
              0x0F12, 0x0003, //REG_TC_IPRM_CM_Init_AfModeType, VCM IIC
              0x0F12, 0x0000, //REG_TC_IPRM_CM_Init_PwmConfig1
              0x002A, 0x0204,
@@ -3866,7 +4210,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x2F0C, //REG_TC_IPRM_CM_Init_Mi2cBit
              0x0F12, 0x0190, //REG_TC_IPRM_CM_Init_Mi2cRateKhz, IIC Speed
 
-    //AF Window Settings
+        //AF Window Settings
              0x002A, 0x0294,
              0x0F12, 0x0100, //REG_TC_AF_FstWinStartX
              0x0F12, 0x00E3, //REG_TC_AF_FstWinStartY
@@ -3877,7 +4221,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x00E6, //REG_TC_AF_ScndWinSizeX
              0x0F12, 0x0132, //REG_TC_AF_ScndWinSizeY
              0x0F12, 0x0001, //REG_TC_AF_WinSizesUpdated
-    //2nd search setting
+        //2nd search setting
              0x002A, 0x070E,
              0x0F12, 0x00C0, //skl_af_StatOvlpExpFactor
              0x002A, 0x071E,
@@ -3893,7 +4237,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0403, //af_pos_usFineStepNumSize
              0x002A, 0x1656,
              0x0F12, 0x0000, //af_search_usCapturePolicy
-    //Peak Threshold
+        //Peak Threshold
              0x002A, 0x164C,
              0x0F12, 0x0003, //af_search_usMinPeakSamples
              0x002A, 0x163E,
@@ -3901,11 +4245,11 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0080, //af_search_usPeakThrLow
              0x002A, 0x47A8,
              0x0F12, 0x0080, //TNP, Macro Threshold register
-    //Home Pos
+        //Home Pos
              0x002A, 0x15D4,
              0x0F12, 0x0000, //af_pos_usHomePos
              0x0F12, 0xD000, //af_pos_usLowConfPos
-    //AF statistics
+        //AF statistics
              0x002A, 0x169A,
              0x0F12, 0xFF95, //af_search_usConfCheckOrder_1_
              0x002A, 0x166A,
@@ -3921,7 +4265,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0010, //af_stat_usBpfThresh
 
 
-    //AF Lens Position Table Settings
+        //AF Lens Position Table Settings
              0x002A, 0x15E8,
              0x0F12, 0x0010, //af_pos_usTableLastInd
              0x0F12, 0x0018, //af_pos_usTable
@@ -3943,7 +4287,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0098, //af_pos_usTable
   
 
-    //VCM AF driver with PWM/I2C
+        //VCM AF driver with PWM/I2C
              0x002A, 0x1722,
              0x0F12, 0x8000, //afd_usParam[0] I2C power down command
              0x0F12, 0x0006, //afd_usParam[1] Position Right Shift
@@ -3963,12 +4307,12 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     // 09.AWB-BASIC setting
     //==================================================================================
 
-    // AWB init Start point
+        // AWB init Start point
              0x002A, 0x145E,
              0x0F12, 0x0580, //awbb_GainsInit_0_
              0x0F12, 0x0428, //awbb_GainsInit_1_
              0x0F12, 0x07B0, //awbb_GainsInit_2_
-    // AWB Convergence Speed
+        // AWB Convergence Speed
              0x0F12, 0x0008, //awbb_WpFilterMinThr
              0x0F12, 0x0190, //awbb_WpFilterMaxThr
              0x0F12, 0x00A0, //awbb_WpFilterCoef
@@ -3983,7 +4327,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0001, //awbb_UseGrThrCorr
              0x0F12, 0x0074, //awbb_Use_Filters
              0x0F12, 0x0001, //awbb_CorrectMinNumPatches
-    // White Locus
+        // White Locus
              0x002A, 0x11F0,
              0x0F12, 0x012C, //awbb_IntcR
              0x0F12, 0x0121, //awbb_IntcB
@@ -4015,7 +4359,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x000C, //awbb_MinNumOfFinalPatches
              0x002A, 0x1208,
              0x0F12, 0x0020, //awbb_MinNumOfChromaclassifpatches
-    // Indoor Zone
+        // Indoor Zone
              0x002A, 0x101C,
              0x0F12, 0x0360, //awbb_IndoorGrZones_m_BGrid_0__m_left
              0x0F12, 0x036C, //awbb_IndoorGrZones_m_BGrid_0__m_right
@@ -4062,7 +4406,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0013, //awbb_IndoorGrZones_ZInfo_m_GridSz
              0x002A, 0x1074,
              0x0F12, 0x00EC, //awbb_IndoorGrZones_m_Boffs
-    // Outdoor Zone
+        // Outdoor Zone
              0x002A, 0x1078,
              0x0F12, 0x0232, //awbb_OutdoorGrZones_m_BGrid_0__m_left
              0x0F12, 0x025A, //awbb_OutdoorGrZones_m_BGrid_0__m_right
@@ -4093,7 +4437,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x000C, //awbb_OutdoorGrZones_ZInfo_m_GridSz
              0x002A, 0x10B0,
              0x0F12, 0x01DA, //awbb_OutdoorGrZones_m_Boffs
-    // Low Brightness Zone
+        // Low Brightness Zone
              0x002A, 0x10B4,
              0x0F12, 0x0348, //awbb_LowBrGrZones_m_BGrid_0__m_left
              0x0F12, 0x03B6, //awbb_LowBrGrZones_m_BGrid_0__m_right
@@ -4125,7 +4469,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x002A, 0x10EC,
              0x0F12, 0x00D2, //awbb_LowBrGrZones_m_Boffs
 
-    // Low Temp. Zone
+        // Low Temp. Zone
              0x002A, 0x10F0,
              0x0F12, 0x039A,
              0x0F12, 0x0000, //awbb_CrclLowT_R_c
@@ -4134,7 +4478,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x2284,
              0x0F12, 0x0000, //awbb_CrclLowT_Rad_c
 
-    //AWB - GridCorrection
+        //AWB - GridCorrection
              0x002A, 0x1434,
              0x0F12, 0x02C1, //awbb_GridConst_1_0_
              0x0F12, 0x033A, //awbb_GridConst_1_1_
@@ -4150,7 +4494,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x00CA, //awbb_GridCoeff_R_2
              0x0F12, 0x009D, //awbb_GridCoeff_B_2
 
-    // Indoor Grid Offset
+        // Indoor Grid Offset
              0x002A, 0x13A4,
              0x0F12, 0x0000, //awbb_GridCorr_R_0__0_
              0x0F12, 0x0000, //awbb_GridCorr_R_0__1_
@@ -4189,7 +4533,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0000, //awbb_GridCorr_B_2__4_
              0x0F12, 0x0000, //awbb_GridCorr_B_2__5_
 
-    // Outdoor Grid Offset
+        // Outdoor Grid Offset
              0x0F12, 0x0000, //awbb_GridCorr_R_Out_0__0_
              0x0F12, 0x0000, //awbb_GridCorr_R_Out_0__1_
              0x0F12, 0x0000, //awbb_GridCorr_R_Out_0__2_
@@ -4265,7 +4609,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0xFEF2, //awbb_GridCorr_B_2__4_
              0x0F12, 0xFE5C, //awbb_GridCorr_B_2__5_
 
-    // Outdoor Grid Offset
+        // Outdoor Grid Offset
              0x0F12, 0xFFC0, //awbb_GridCorr_R_Out_0__0_
              0x0F12, 0xFFD0, //awbb_GridCorr_R_Out_0__1_
              0x0F12, 0xFFD0, //awbb_GridCorr_R_Out_0__2_
@@ -4317,7 +4661,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
         {
              0x002A, 0x0F30,
              0x0F12, 0x0001, //AFC_D_ConvAccelerPower
-    //Auto Flicker (60Mhz start)
+        //Auto Flicker (60Mhz start)
              0x002A, 0x0F2A,
              0x0F12, 0x0000,  //AFC_Default60Hz 0001:60Hz 0000h:50Hz
              0x002A, 0x04E6,
@@ -4326,10 +4670,10 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     //==================================================================================
     // 12.AE Setting
     //==================================================================================
-    //AE Target
+        //AE Target
              0x002A, 0x1484,
              0x0F12, 0x0030,   //TVAR_ae_BrAve
-    //ae_StatMode bit[3] BLC has to be bypassed to prevent AE weight change especially backlight scene
+        //ae_StatMode bit[3] BLC has to be bypassed to prevent AE weight change especially backlight scene
              0x002A, 0x148A,
              0x0F12, 0x000F,   //ae_StatMode
              0x002A, 0x058C,
@@ -4415,9 +4759,9 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[] =
         {
-    //==================================================================================
-    // 14.Flash Setting
-    //==================================================================================
+             //==================================================================================
+             // 14.Flash Setting
+             //==================================================================================
              0x002A, 0x0484,
              0x0F12, 0x0002,     //capture flash on
              0x002A, 0x183A,
@@ -4501,7 +4845,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x002A, 0x08A0,
              0x0F12, 0x48D8, //TVAR_wbt_pOutdoorCcm
              0x0F12, 0x7000,
-    //Horizon
+        //Horizon
              0x002A, 0x4800,
              0x0F12, 0x0208, //TVAR_wbt_pBaseCcms[0]
              0x0F12, 0xFFB5, //TVAR_wbt_pBaseCcms[1]
@@ -4522,7 +4866,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x01BA, //TVAR_wbt_pBaseCcms[16]
              0x0F12, 0x0108, //TVAR_wbt_pBaseCcms[17]
 
-    // INCA A
+        // INCA A
              0x0F12, 0x0208, //TVAR_wbt_pBaseCcms[18]
              0x0F12, 0xFFB5, //TVAR_wbt_pBaseCcms[19]
              0x0F12, 0xFFE8, //TVAR_wbt_pBaseCcms[20]
@@ -4541,7 +4885,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0xFF06, //TVAR_wbt_pBaseCcms[33]
              0x0F12, 0x01BA, //TVAR_wbt_pBaseCcms[34]
              0x0F12, 0x0108, //TVAR_wbt_pBaseCcms[35]
-    //Warm White
+        //Warm White
              0x0F12, 0x0208, //TVAR_wbt_pBaseCcms[36]
              0x0F12, 0xFFB5, //TVAR_wbt_pBaseCcms[37]
              0x0F12, 0xFFE8, //TVAR_wbt_pBaseCcms[38]
@@ -4560,7 +4904,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0xFF06, //TVAR_wbt_pBaseCcms[51]
              0x0F12, 0x01BA, //TVAR_wbt_pBaseCcms[52]
              0x0F12, 0x0108, //TVAR_wbt_pBaseCcms[53]
-    //Cool White
+        //Cool White
              0x0F12, 0x0204, //TVAR_wbt_pBaseCcms[54]
              0x0F12, 0xFFB2, //TVAR_wbt_pBaseCcms[55]
              0x0F12, 0xFFF5, //TVAR_wbt_pBaseCcms[56]
@@ -4579,7 +4923,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0xFF75, //TVAR_wbt_pBaseCcms[69]
              0x0F12, 0x0187, //TVAR_wbt_pBaseCcms[70]
              0x0F12, 0x01BF, //TVAR_wbt_pBaseCcms[71]
-    //D50
+        //D50
              0x0F12, 0x0204, //TVAR_wbt_pBaseCcms[72]
              0x0F12, 0xFFB2, //TVAR_wbt_pBaseCcms[73]
              0x0F12, 0xFFF5, //TVAR_wbt_pBaseCcms[74]
@@ -4598,7 +4942,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0xFF75, //TVAR_wbt_pBaseCcms[87]
              0x0F12, 0x0187, //TVAR_wbt_pBaseCcms[88]
              0x0F12, 0x01BF, //TVAR_wbt_pBaseCcms[89]
-    //D65
+        //D65
              0x0F12, 0x0204, //TVAR_wbt_pBaseCcms[90]
              0x0F12, 0xFFB2, //TVAR_wbt_pBaseCcms[91]
              0x0F12, 0xFFF5, //TVAR_wbt_pBaseCcms[92]
@@ -4617,7 +4961,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0xFF75, //TVAR_wbt_pBaseCcms[105]
              0x0F12, 0x0187, //TVAR_wbt_pBaseCcms[106]
              0x0F12, 0x01BF, //TVAR_wbt_pBaseCcms[107]
-    //Outdoor
+        //Outdoor
              0x0F12, 0x01E5, //TVAR_wbt_pOutdoorCcm[0]
              0x0F12, 0xFFA4, //TVAR_wbt_pOutdoorCcm[1]
              0x0F12, 0xFFDC, //TVAR_wbt_pOutdoorCcm[2]
@@ -4642,10 +4986,10 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     //==================================================================================
              0x002A,  0x0734,
              0x0F12,  0x0000,   //0000  //saRR_usDualGammaLutRGBIndoor[0][0]
-             0x0F12,  0x000A,   //000A  //saRR_usDualGammaLutRGBIndoor[0][1]
-             0x0F12,  0x0016,   //0016  //saRR_usDualGammaLutRGBIndoor[0][2]
-             0x0F12,  0x0030,   //0030  //saRR_usDualGammaLutRGBIndoor[0][3]
-             0x0F12,  0x0066,   //0066  //saRR_usDualGammaLutRGBIndoor[0][4]
+             0x0F12,  0x0007,   //000A  //saRR_usDualGammaLutRGBIndoor[0][1]
+             0x0F12,  0x0012,   //0016  //saRR_usDualGammaLutRGBIndoor[0][2]
+             0x0F12,  0x0028,   //0030  //saRR_usDualGammaLutRGBIndoor[0][3]
+             0x0F12,  0x0050,   //0066  //saRR_usDualGammaLutRGBIndoor[0][4]
              0x0F12,  0x00D5,   //00D5  //saRR_usDualGammaLutRGBIndoor[0][5]
              0x0F12,  0x0138,   //0138  //saRR_usDualGammaLutRGBIndoor[0][6]
              0x0F12,  0x0163,   //0163  //saRR_usDualGammaLutRGBIndoor[0][7]
@@ -4662,10 +5006,10 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12,  0x03B8,   //03D8  //saRR_usDualGammaLutRGBIndoor[0][18]
              0x0F12,  0x03E8,   //03FF  //saRR_usDualGammaLutRGBIndoor[0][19]
              0x0F12,  0x0000,   //0000  //saRR_usDualGammaLutRGBIndoor[1][0]
-             0x0F12,  0x000A,   //000A  //saRR_usDualGammaLutRGBIndoor[1][1]
-             0x0F12,  0x0016,   //0016  //saRR_usDualGammaLutRGBIndoor[1][2]
-             0x0F12,  0x0030,   //0030  //saRR_usDualGammaLutRGBIndoor[1][3]
-             0x0F12,  0x0066,   //0066  //saRR_usDualGammaLutRGBIndoor[1][4]
+             0x0F12,  0x0007,   //000A  //saRR_usDualGammaLutRGBIndoor[1][1]
+             0x0F12,  0x0012,   //0016  //saRR_usDualGammaLutRGBIndoor[1][2]
+             0x0F12,  0x0028,   //0030  //saRR_usDualGammaLutRGBIndoor[1][3]
+             0x0F12,  0x0050,   //0066  //saRR_usDualGammaLutRGBIndoor[1][4]
              0x0F12,  0x00D5,   //00D5  //saRR_usDualGammaLutRGBIndoor[1][5]
              0x0F12,  0x0138,   //0138  //saRR_usDualGammaLutRGBIndoor[1][6]
              0x0F12,  0x0163,   //0163  //saRR_usDualGammaLutRGBIndoor[1][7]
@@ -4682,10 +5026,10 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12,  0x03B8,   //03D8  //saRR_usDualGammaLutRGBIndoor[1][18]
              0x0F12,  0x03E8,   //03FF  //saRR_usDualGammaLutRGBIndoor[1][19]
              0x0F12,  0x0000,   //0000  //saRR_usDualGammaLutRGBIndoor[2][0]
-             0x0F12,  0x000A,   //000A  //saRR_usDualGammaLutRGBIndoor[2][1]
-             0x0F12,  0x0016,   //0016  //saRR_usDualGammaLutRGBIndoor[2][2]
-             0x0F12,  0x0030,   //0030  //saRR_usDualGammaLutRGBIndoor[2][3]
-             0x0F12,  0x0066,   //0066  //saRR_usDualGammaLutRGBIndoor[2][4]
+             0x0F12,  0x0007,   //000A  //saRR_usDualGammaLutRGBIndoor[2][1]
+             0x0F12,  0x0012,   //0016  //saRR_usDualGammaLutRGBIndoor[2][2]
+             0x0F12,  0x0028,   //0030  //saRR_usDualGammaLutRGBIndoor[2][3]
+             0x0F12,  0x0050,   //0066  //saRR_usDualGammaLutRGBIndoor[2][4]
              0x0F12,  0x00D5,   //00D5  //saRR_usDualGammaLutRGBIndoor[2][5]
              0x0F12,  0x0138,   //0138  //saRR_usDualGammaLutRGBIndoor[2][6]
              0x0F12,  0x0163,   //0163  //saRR_usDualGammaLutRGBIndoor[2][7]
@@ -4865,7 +5209,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x1A02, //70000A18//AFIT8_yuviirnr_iYNRStrengthH   [7:0] AFIT8_yuviirnr_iUVNRStrengthL
              0x0F12, 0x4A18, //70000A1A//AFIT8_yuviirnr_iUVNRStrengthH   [7:0] AFIT8_byr_gras_iShadingPower
              0x0F12, 0x0080, //70000A1C//AFIT8_RGBGamma2_iLinearity [7:0] AFIT8_RGBGamma2_iDarkReduce
-             0x0F12, 0x0348, //70000A1E//AFIT8_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
+             0x0F12, 0x0048, //70000A1E//AFIT8_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
              0x0F12, 0x0180, //70000A20//AFIT8_RGB2YUV_iRGBGain [7:0] AFIT8_bnr_nClustLevel_H
              0x0F12, 0x0A0A, //70000A22//AFIT8_bnr_iClustMulT_H [7:0] AFIT8_bnr_iClustMulT_C
              0x0F12, 0x0101, //70000A24//AFIT8_bnr_iClustThresh_H   [7:0] AFIT8_bnr_iClustThresh_C
@@ -4956,7 +5300,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x1A02, //70000ACE//AFIT8_yuviirnr_iYNRStrengthH   [7:0] AFIT8_yuviirnr_iUVNRStrengthL
              0x0F12, 0x8018, //70000AD0//AFIT8_yuviirnr_iUVNRStrengthH   [7:0] AFIT8_byr_gras_iShadingPower
              0x0F12, 0x0080, //70000AD2//AFIT8_RGBGamma2_iLinearity [7:0] AFIT8_RGBGamma2_iDarkReduce
-             0x0F12, 0x0380, //70000AD4//AFIT8_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
+             0x0F12, 0x0080, //70000AD4//AFIT8_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
              0x0F12, 0x0180, //70000AD6//AFIT8_RGB2YUV_iRGBGain [7:0] AFIT8_bnr_nClustLevel_H
              0x0F12, 0x0A0A, //70000AD8//AFIT8_bnr_iClustMulT_H [7:0] AFIT8_bnr_iClustMulT_C
              0x0F12, 0x0101, //70000ADA//AFIT8_bnr_iClustThresh_H   [7:0] AFIT8_bnr_iClustThresh_C
@@ -5052,15 +5396,15 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0A0A, //70000B8E//AFIT8_bnr_iClustMulT_H [7:0] AFIT8_bnr_iClustMulT_C
              0x0F12, 0x0101, //70000B90//AFIT8_bnr_iClustThresh_H   [7:0] AFIT8_bnr_iClustThresh_C
              0x0F12, 0x141D, //70000B92//AFIT8_bnr_iDenThreshLow   [7:0] AFIT8_bnr_iDenThreshHigh
-             0x0F12, 0x6024, //70000B94//AFIT8_ee_iLowSharpPower   [7:0] AFIT8_ee_iHighSharpPower
+             0x0F12, 0x8030, //70000B94//AFIT8_ee_iLowSharpPower   [7:0] AFIT8_ee_iHighSharpPower
              0x0F12, 0x0C0C, //70000B96//AFIT8_ee_iLowShDenoise [7:0] AFIT8_ee_iHighShDenoise
              0x0F12, 0xFFFF, //70000B98//AFIT8_ee_iLowSharpClamp   [7:0] AFIT8_ee_iHighSharpClamp
              0x0F12, 0x0808, //70000B9A//AFIT8_ee_iReduceEdgeMinMult   [7:0] AFIT8_ee_iReduceEdgeSlope
              0x0F12, 0x0A01, //70000B9C//AFIT8_bnr_nClustLevel_H_Bin   [7:0] AFIT8_bnr_iClustMulT_H_Bin
              0x0F12, 0x010A, //70000B9E//AFIT8_bnr_iClustMulT_C_Bin [7:0] AFIT8_bnr_iClustThresh_H_Bin
              0x0F12, 0x1B01, //70000BA0//AFIT8_bnr_iClustThresh_C_Bin   [7:0] AFIT8_bnr_iDenThreshLow_Bin
-             0x0F12, 0x2412, //70000BA2//AFIT8_bnr_iDenThreshHigh_Bin   [7:0] AFIT8_ee_iLowSharpPower_Bin
-             0x0F12, 0x0C60, //70000BA4//AFIT8_ee_iHighSharpPower_Bin   [7:0] AFIT8_ee_iLowShDenoise_Bin
+             0x0F12, 0x3012, //70000BA2//AFIT8_bnr_iDenThreshHigh_Bin   [7:0] AFIT8_ee_iLowSharpPower_Bin
+             0x0F12, 0x0C80, //70000BA4//AFIT8_ee_iHighSharpPower_Bin   [7:0] AFIT8_ee_iLowShDenoise_Bin
              0x0F12, 0xFF0C, //70000BA6//AFIT8_ee_iHighShDenoise_Bin   [7:0] AFIT8_ee_iLowSharpClamp_Bin
              0x0F12, 0x08FF, //70000BA8//AFIT8_ee_iHighSharpClamp_Bin   [7:0] AFIT8_ee_iReduceEdgeMinMult_Bin
              0x0F12, 0x0008, //70000BAA//AFIT8_ee_iReduceEdgeSlope_Bin [7:0]
@@ -5143,15 +5487,15 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0A0A, //70000C44//AFIT8_bnr_iClustMulT_H [7:0] AFIT8_bnr_iClustMulT_C
              0x0F12, 0x0101, //70000C46//AFIT8_bnr_iClustThresh_H   [7:0] AFIT8_bnr_iClustThresh_C
              0x0F12, 0x1117, //70000C48//AFIT8_bnr_iDenThreshLow   [7:0] AFIT8_bnr_iDenThreshHigh
-             0x0F12, 0x6024, //70000C4A//AFIT8_ee_iLowSharpPower   [7:0] AFIT8_ee_iHighSharpPower
+             0x0F12, 0x8030, //70000C4A//AFIT8_ee_iLowSharpPower   [7:0] AFIT8_ee_iHighSharpPower
              0x0F12, 0x0A0A, //70000C4C//AFIT8_ee_iLowShDenoise [7:0] AFIT8_ee_iHighShDenoise
              0x0F12, 0xFFFF, //70000C4E//AFIT8_ee_iLowSharpClamp   [7:0] AFIT8_ee_iHighSharpClamp
              0x0F12, 0x0808, //70000C50//AFIT8_ee_iReduceEdgeMinMult   [7:0] AFIT8_ee_iReduceEdgeSlope
              0x0F12, 0x0A01, //70000C52//AFIT8_bnr_nClustLevel_H_Bin   [7:0] AFIT8_bnr_iClustMulT_H_Bin
              0x0F12, 0x010A, //70000C54//AFIT8_bnr_iClustMulT_C_Bin [7:0] AFIT8_bnr_iClustThresh_H_Bin
              0x0F12, 0x1501, //70000C56//AFIT8_bnr_iClustThresh_C_Bin   [7:0] AFIT8_bnr_iDenThreshLow_Bin
-             0x0F12, 0x240F, //70000C58//AFIT8_bnr_iDenThreshHigh_Bin   [7:0] AFIT8_ee_iLowSharpPower_Bin
-             0x0F12, 0x0A60, //70000C5A//AFIT8_ee_iHighSharpPower_Bin   [7:0] AFIT8_ee_iLowShDenoise_Bin
+             0x0F12, 0x3012, //70000C58//AFIT8_bnr_iDenThreshHigh_Bin   [7:0] AFIT8_ee_iLowSharpPower_Bin
+             0x0F12, 0x0C80, //70000C5A//AFIT8_ee_iHighSharpPower_Bin   [7:0] AFIT8_ee_iLowShDenoise_Bin
              0x0F12, 0xFF0A, //70000C5C//AFIT8_ee_iHighShDenoise_Bin   [7:0] AFIT8_ee_iLowSharpClamp_Bin
              0x0F12, 0x08FF, //70000C5E//AFIT8_ee_iHighSharpClamp_Bin   [7:0] AFIT8_ee_iReduceEdgeMinMult_Bin
              0x0F12, 0x0008, //70000C60//AFIT8_ee_iReduceEdgeSlope_Bin [7:0]
@@ -5234,15 +5578,15 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0A0A, //70000CFA//AFIT8_bnr_iClustMulT_H [7:0] AFIT8_bnr_iClustMulT_C
              0x0F12, 0x0101, //70000CFC//AFIT8_bnr_iClustThresh_H   [7:0] AFIT8_bnr_iClustThresh_C
              0x0F12, 0x0C0F, //70000CFE//AFIT8_bnr_iDenThreshLow   [7:0] AFIT8_bnr_iDenThreshHigh
-             0x0F12, 0x6024, //70000D00//AFIT8_ee_iLowSharpPower   [7:0] AFIT8_ee_iHighSharpPower
+             0x0F12, 0x8030, //70000D00//AFIT8_ee_iLowSharpPower   [7:0] AFIT8_ee_iHighSharpPower
              0x0F12, 0x0808, //70000D02//AFIT8_ee_iLowShDenoise [7:0] AFIT8_ee_iHighShDenoise
              0x0F12, 0xFFFF, //70000D04//AFIT8_ee_iLowSharpClamp   [7:0] AFIT8_ee_iHighSharpClamp
              0x0F12, 0x0808, //70000D06//AFIT8_ee_iReduceEdgeMinMult   [7:0] AFIT8_ee_iReduceEdgeSlope
              0x0F12, 0x0A01, //70000D08//AFIT8_bnr_nClustLevel_H_Bin   [7:0] AFIT8_bnr_iClustMulT_H_Bin
              0x0F12, 0x010A, //70000D0A//AFIT8_bnr_iClustMulT_C_Bin [7:0] AFIT8_bnr_iClustThresh_H_Bin
              0x0F12, 0x0F01, //70000D0C//AFIT8_bnr_iClustThresh_C_Bin   [7:0] AFIT8_bnr_iDenThreshLow_Bin
-             0x0F12, 0x240C, //70000D0E//AFIT8_bnr_iDenThreshHigh_Bin   [7:0] AFIT8_ee_iLowSharpPower_Bin
-             0x0F12, 0x0860, //70000D10//AFIT8_ee_iHighSharpPower_Bin   [7:0] AFIT8_ee_iLowShDenoise_Bin
+             0x0F12, 0x3012, //70000D0E//AFIT8_bnr_iDenThreshHigh_Bin   [7:0] AFIT8_ee_iLowSharpPower_Bin
+             0x0F12, 0x0C80, //70000D10//AFIT8_ee_iHighSharpPower_Bin   [7:0] AFIT8_ee_iLowShDenoise_Bin
              0x0F12, 0xFF08, //70000D12//AFIT8_ee_iHighShDenoise_Bin   [7:0] AFIT8_ee_iLowSharpClamp_Bin
              0x0F12, 0x08FF, //70000D14//AFIT8_ee_iHighSharpClamp_Bin   [7:0] AFIT8_ee_iReduceEdgeMinMult_Bin
              0x0F12, 0x0008, //70000D16//AFIT8_ee_iReduceEdgeSlope_Bin [7:0]
@@ -5253,30 +5597,45 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x93A5, //70000D1C//ConstAfitBaseVals
              0x0F12, 0xFE67, //70000D1D//ConstAfitBaseVals
              0x0F12, 0x0000, //70000D1E//ConstAfitBaseVals
+
+             0x002A ,0x0A1E,
+             0x0F12 ,0x0350, //0x0028 AfitBaseVals_0__73_ 0040
     //==================================================================================
     // 18.JPEG Thumnail Setting
     //==================================================================================
+#if defined(__CAPTURE_JPEG_OUTPUT__)
+             //1. Enable Bit-Rate Control
+             //2. Disable Thumbnail
+             //3. Quality 95%
+             0x002A, 0x0476,
+             0x0F12, 0x0000, //REG_TC_BRC_BRC_type //0x5
+             0x002A, 0x0478,
+             0x0F12, 0x005F, //REG_TC_BRC_usPrevQuality
+             0x0F12, 0x005F, //REG_TC_BRC_usCaptureQuality
+             0x002A, 0x047c,
+             0x0F12, 0x0000, //REG_TC_THUMB_Thumb_bActive
+#endif
 
-    //s002A0478
-    //s0F12005F //REG_TC_BRC_usPrevQuality
-    //s0F12005F //REG_TC_BRC_usCaptureQuality
-    //s0F120001 //REG_TC_THUMB_Thumb_bActive
-    //s0F120280 //REG_TC_THUMB_Thumb_uWidth
-    //s0F1201E0 //REG_TC_THUMB_Thumb_uHeight
-    //s0F120005 //REG_TC_THUMB_Thumb_Format
-    //s002A17DC
-    //s0F120054 //jpeg_ManualMBCV
-    //s002A1AE4
-    //s0F12001C //senHal_bExtraAddLine
-    //s002A0284
-    //s0F120001 //REG_TC_GP_bBypassScalerJpg
-    //s002A028A
-    //s0F120000 //REG_TC_GP_bUse1FrameCaptureMode
-    //s002A1CC2 //DRx_uDRxWeight for AutoCont function
-    //s0F120100
-    //s0F120100
-    //s0F120100
-    //s0F120100
+             //s002A0478
+             //s0F12005F //REG_TC_BRC_usPrevQuality
+             //s0F12005F //REG_TC_BRC_usCaptureQuality
+             //s0F120001 //REG_TC_THUMB_Thumb_bActive
+             //s0F120280 //REG_TC_THUMB_Thumb_uWidth
+             //s0F1201E0 //REG_TC_THUMB_Thumb_uHeight
+             //s0F120005 //REG_TC_THUMB_Thumb_Format
+             //s002A17DC
+             //s0F120054 //jpeg_ManualMBCV
+             //s002A1AE4
+             //s0F12001C //senHal_bExtraAddLine
+             //s002A0284
+             //s0F120001 //REG_TC_GP_bBypassScalerJpg
+             //s002A028A
+             //s0F120000 //REG_TC_GP_bUse1FrameCaptureMode
+             //s002A1CC2 //DRx_uDRxWeight for AutoCont function
+             //s0F120100
+             //s0F120100
+             //s0F120100
+             //s0F120100
 
              0x002A, 0x0EE2,      //System Setting
              0x0F12, 0x0010,      //0x5DC0
@@ -5365,9 +5724,9 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
         {
              //Preview config[1]: video mode
              //91MHz, 1280x960, Fix 30fps
-             0x002A, 0x02D6,   //Night mode(VGA preview 30~4fps)
+             0x002A, 0x02D6, //Night mode(VGA preview 30~4fps)
              0x0F12, 1280,   //REG_1TC_PCFG_usWidth
-             0x0F12, 960,   //REG_1TC_PCFG_usHeight
+             0x0F12, 960,    //REG_1TC_PCFG_usHeight
              0x0F12, 0x0005,   //REG_1TC_PCFG_Format 5 YUV 7 Raw 9 JPG
              0x0F12, MIPI_CLK0_MAX,  //REG_1TC_PCFG_usMaxOut4KHzRate PCLK Min : xxMhz
              0x0F12, MIPI_CLK0_MIN,  //REG_1TC_PCFG_usMinOut4KHzRate PCLK Max : xxMhz
@@ -5434,7 +5793,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
     {
         static const kal_uint16 addr_data_pair[]=
         {
-    //Capture config[0]: 12 ~ 7.5fps
+             //Capture config[0]: 12 ~ 7.5fps
              0x002A, 0x0396,  //Normal mode Capture(7.5fps)
              0x0F12, 0x0001,   //REG_0TC_CCFG_uCaptureMode//[Sophie Add]
              0x002A, 0x0398,
@@ -5448,7 +5807,7 @@ static void S5K4ECGX_MIPI_Init_Setting(void)
              0x0F12, 0x0002,   //REG_0TC_CCFG_PVIMask //[Sophie Add]
              0x0F12, 0x0070,   //REG_0TC_CCFG_OIFMask
              0x0F12, 0x0810,   //REG_0TC_CCFG_usJpegPacketSize
-             0x0F12, 0x0900,   //REG_0TC_CCFG_usJpegTotalPackets
+             0x0F12, 0x0000,   //REG_0TC_CCFG_usJpegTotalPackets
              0x0F12, MIPI_CAP_CLK_IDX,   //REG_0TC_CCFG_uClockInd
              0x0F12, 0x0000,   //REG_0TC_CCFG_usFrTimeType
              0x0F12, 0x0002,   //REG_0TC_CCFG_FrRateQualityType
@@ -5873,6 +6232,7 @@ static void S5K4ECGX_MIPI_Preview_Mode_Setting(kal_uint8 preview_mode)
 
         // stop Capture
         //unsigned int frameTime;
+#if 0
         S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
         S5K4ECGX_write_cmos_sensor(0x002C,0x7000);
         S5K4ECGX_write_cmos_sensor(0x002E,0x2C28);
@@ -5880,6 +6240,8 @@ static void S5K4ECGX_MIPI_Preview_Mode_Setting(kal_uint8 preview_mode)
         frameTime += (S5K4ECGX_read_cmos_sensor(0x0F12) & 0xFFFF)<<16 ;
         frameTime /= 400; //ms
         //frameTime = 40;
+#endif
+        frameTime = S5K4ECGX_MIPI_GetExposureTime();
         SENSORDB("[4EC] Preview_Mode_Setting: frameTime=%d ms\n", frameTime);
 
         S5K4ECGX_write_cmos_sensor(0x0028 ,0x7000);
@@ -5928,8 +6290,6 @@ static void S5K4ECGX_MIPI_Preview_Mode_Setting(kal_uint8 preview_mode)
     S5K4ECGX_write_cmos_sensor(0x0F12 ,0x0001); // #REG_TC_GP_bUseReqInputInPre
     S5K4ECGX_write_cmos_sensor(0x0F12 ,0x0001); //REG_TC_GP_bUseReqInputInCap
 
-    S5K4ECGX_write_cmos_sensor(0x002A ,0x0A1E);
-    S5K4ECGX_write_cmos_sensor(0x0F12 ,0x0028); // AfitBaseVals_0__73_ 0040   Why??
     S5K4ECGX_write_cmos_sensor(0x002A ,0x0AD4);
     S5K4ECGX_write_cmos_sensor(0x0F12 ,0x003C); // AfitBaseVals_1__73_ 0060   Why??
 
@@ -5965,7 +6325,7 @@ UINT32 S5K4ECGX_MIPI_StopPreview(void)
     {
       unsigned int frameTime;
       //SENSORDB("[Exit]:S5K4ECGX StopPreview +\r\n");
-
+#if 0
       S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
       S5K4ECGX_write_cmos_sensor(0x002C,0x7000);
       S5K4ECGX_write_cmos_sensor(0x002E,0x2C28);
@@ -5973,6 +6333,8 @@ UINT32 S5K4ECGX_MIPI_StopPreview(void)
       frameTime += (S5K4ECGX_read_cmos_sensor(0x0F12) & 0xFFFF)<<16 ;
       frameTime /= 400; //ms
       //frameTime = 40;
+#endif
+      frameTime = S5K4ECGX_MIPI_GetExposureTime();
       SENSORDB("[4EC] StopPreview: frameTime=%d ms\n", frameTime);
 
       S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
@@ -5987,6 +6349,7 @@ UINT32 S5K4ECGX_MIPI_StopPreview(void)
       //S5K4ECGX_Preview_enabled= 0;
       SENSORDB("[4EC]StopPreview- \n");
     }
+    return 1;
 }
 
 
@@ -6033,6 +6396,8 @@ static void S5K4ECGX_MIPI_Capture_Mode_Setting(kal_uint8 capture_mode)
     S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //REG_TC_THUMB_Thumb_bActive
     S5K4ECGX_write_cmos_sensor(0x0F12, 0x0280); //REG_TC_THUMB_Thumb_uWidth //640
     S5K4ECGX_write_cmos_sensor(0x0F12, 0x01E0); //REG_TC_THUMB_Thumb_uHeight //480
+
+    S5K4ECGX_MIPI_Config_JPEG_Capture(&S5K4ECGX_Driver.jpegSensorPara);
 
     //mipi format
     S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
@@ -6373,6 +6738,17 @@ UINT32 S5K4ECGX_MIPI_Capture(
     image_window->ExposureWindowHeight = S5K4ECGX_Driver.iGrabheight;
     spin_unlock(&s5k4ecgx_mipi_drv_lock);;
 
+#if defined(__CAPTURE_JPEG_OUTPUT__)
+
+    if (S5K4ECGX_Driver.manualAEStart)
+    {
+        //delay 2 frames for frame stable
+        //do this in sensor driver in order to cover some limitations
+		//Sleep(S5K4ECGX_MIPI_GetExposureTime()*2);
+    }
+
+#endif
+
 }
 
 
@@ -6435,7 +6811,10 @@ UINT32 S5K4ECGX_MIPI_GetInfo(MSDK_SCENARIO_ID_ENUM ScenarioId,
     pSensorInfo->SensorResetDelayCount=4;  //4ms
 
     pSensorInfo->SensorOutputDataFormat=SENSOR_OUTPUT_FORMAT_YUYV;
-
+    pSensorInfo->SensorCaptureOutputJPEG = FALSE;
+#if defined(__CAPTURE_JPEG_OUTPUT__)
+    pSensorInfo->SensorCaptureOutputJPEG = TRUE;
+#endif
     pSensorInfo->SensorClockPolarity = SENSOR_CLOCK_POLARITY_LOW;
     pSensorInfo->SensorClockFallingPolarity = SENSOR_CLOCK_POLARITY_LOW;
 
@@ -6453,7 +6832,7 @@ UINT32 S5K4ECGX_MIPI_GetInfo(MSDK_SCENARIO_ID_ENUM ScenarioId,
     pSensorInfo->SensorMasterClockSwitch = 0;
     pSensorInfo->SensorDrivingCurrent = ISP_DRIVING_4MA;
     spin_lock(&s5k4ecgx_mipi_drv_lock);
-    pSensorInfo->CaptureDelayFrame = (0 == S5K4ECGX_Driver.manualAEStart) ? 3 : 2;
+    pSensorInfo->CaptureDelayFrame = 3; //(0 == S5K4ECGX_Driver.manualAEStart) ? 3 : 2;
     spin_unlock(&s5k4ecgx_mipi_drv_lock);
     pSensorInfo->PreviewDelayFrame = 0;
     pSensorInfo->VideoDelayFrame = 0;
@@ -6648,7 +7027,9 @@ BOOL S5K4ECGX_MIPI_set_param_wb(UINT16 para)
     //we suggest higher fps or drop some frame to avoid garbage color when preview initial
     //SENSORDB("[Enter]S5K4ECGX set_param_wb func:para = %d\n",para);
     kal_uint16 Status_3A=0;
-    while(Status_3A==0)
+    kal_int16 iter = 30;
+
+    while ((Status_3A==0) && (iter-- > 0))
     {
 
         S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
@@ -6680,13 +7061,13 @@ BOOL S5K4ECGX_MIPI_set_param_wb(UINT16 para)
     {
       case AWB_MODE_AUTO:
       {
-          Status_3A = (Status_3A | 0x8); // Enable AWB
-          S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
-          S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
-          S5K4ECGX_write_cmos_sensor(0x002a, 0x04e6);//
-          S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);//
-          //S5K4ECGX_write_cmos_sensor(0x0F12, 0x077F);//
-          //SENSORDB("[Enter]S5K4ECGX AWB_MODE_AUTO\n");
+           Status_3A = (Status_3A | 0x8); // Enable AWB
+           S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002a, 0x04e6);//
+           S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);//
+           //S5K4ECGX_write_cmos_sensor(0x0F12, 0x077F);//
+           //SENSORDB("[Enter]S5K4ECGX AWB_MODE_AUTO\n");
       }
       break;
 
@@ -6703,96 +7084,96 @@ BOOL S5K4ECGX_MIPI_set_param_wb(UINT16 para)
 
       case AWB_MODE_CLOUDY_DAYLIGHT:
       {
-         Status_3A = (Status_3A & 0xFFF7); // Disable AWB
-         S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
-         S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
-         S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
-         //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0740); //Reg_sf_user_Rgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x03D0); //0400Reg_sf_user_Ggain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x04D0); //0460Reg_sf_user_Bgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
-         //SENSORDB("[Enter]S5K4ECGX AWB_MODE_CLOUDY_DAYLIGHT\n");
+           Status_3A = (Status_3A & 0xFFF7); // Disable AWB
+           S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
+           S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
+           //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x01D0); //Reg_sf_user_Rgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100); //0400Reg_sf_user_Ggain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0140); //0460Reg_sf_user_Bgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
+           //SENSORDB("[Enter]S5K4ECGX AWB_MODE_CLOUDY_DAYLIGHT\n");
       }
       break;
       case AWB_MODE_DAYLIGHT:
       {
-         Status_3A = (Status_3A & 0xFFF7); // Disable AWB
-         S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
-         S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
-         S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
-         //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0173); //Reg_sf_user_Rgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100); //0400Reg_sf_user_Ggain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x016B); //0460Reg_sf_user_Bgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
-         //SENSORDB("[Enter]S5K4ECGX AWB_MODE_DAYLIGHT\n");
+           Status_3A = (Status_3A & 0xFFF7); // Disable AWB
+           S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
+           S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
+           //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0190); //Reg_sf_user_Rgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100); //0400Reg_sf_user_Ggain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0150); //0460Reg_sf_user_Bgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
+           //SENSORDB("[Enter]S5K4ECGX AWB_MODE_DAYLIGHT\n");
 
       }
       break;
       case AWB_MODE_INCANDESCENT:
       {
-         Status_3A = (Status_3A & 0xFFF7); // Disable AWB
-         S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
-         S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
-         S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
-         //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0401); //0575Reg_sf_user_Rgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0400); //0400Reg_sf_user_Ggain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0957); //0800Reg_sf_user_Bgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
-         //SENSORDB("[Enter]S5K4ECGX AWB_MODE_INCANDESCENT\n");
+           Status_3A = (Status_3A & 0xFFF7); // Disable AWB
+           S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
+           S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
+           //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0118); //0575Reg_sf_user_Rgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100); //0400Reg_sf_user_Ggain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x026F); //0800Reg_sf_user_Bgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
+           //SENSORDB("[Enter]S5K4ECGX AWB_MODE_INCANDESCENT\n");
       }
       break;
       case AWB_MODE_FLUORESCENT:
       {
-         Status_3A = (Status_3A & 0xFFF7); // Disable AWB
-         S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
-         S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
-         S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
-         //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x05a1); //0400Reg_sf_user_Rgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0400); //0400Reg_sf_user_Ggain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x08e7); //Reg_sf_user_Bgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
-         //SENSORDB("[Enter]S5K4ECGX AWB_MODE_FLUORESCENT\n");
+           Status_3A = (Status_3A & 0xFFF7); // Disable AWB
+           S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
+           S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
+           //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0180); //0400Reg_sf_user_Rgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0100); //0400Reg_sf_user_Ggain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0240); //Reg_sf_user_Bgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
+           //SENSORDB("[Enter]S5K4ECGX AWB_MODE_FLUORESCENT\n");
       }
       break;
       case AWB_MODE_TUNGSTEN:
       {
-         Status_3A = (Status_3A & 0xFFF7); // Disable AWB
-         S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
-         S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
-         S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
-         //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
-         S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0200); //0400Reg_sf_user_Rgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0200); //0400Reg_sf_user_Ggain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x04A0); //Reg_sf_user_Bgain
-         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
-         //SENSORDB("[Enter]S5K4ECGX AWB_MODE_TUNGSTEN\n");
+           Status_3A = (Status_3A & 0xFFF7); // Disable AWB
+           S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04E6);
+           S5K4ECGX_write_cmos_sensor(0x0F12, Status_3A);
+           //S5K4ECGX_write_cmos_sensor(0x0F12, 0x0777);
+           S5K4ECGX_write_cmos_sensor(0x002A, 0x04BA);
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0110); //0400Reg_sf_user_Rgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0120); //0400Reg_sf_user_Ggain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0320); //Reg_sf_user_Bgain
+           S5K4ECGX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
+           //SENSORDB("[Enter]S5K4ECGX AWB_MODE_TUNGSTEN\n");
       }
       break;
-     default:
+      default:
         //SENSORDB("[Enter]:S5K4ECGX AWB_MODE_ default\n");
         break;//return FALSE;
     }
@@ -6827,6 +7208,7 @@ BOOL S5K4ECGX_MIPI_set_param_banding(UINT16 para)
 {
    //SENSORDB("[Enter]S5K4ECGX set_param_banding func:para = %d\n",para);
    kal_uint16 Status_3A=0;
+   kal_int16 iter = 30;
 
    if(S5K4ECGX_Driver.Banding == para)
        return TRUE;
@@ -6836,7 +7218,7 @@ BOOL S5K4ECGX_MIPI_set_param_banding(UINT16 para)
    spin_unlock(&s5k4ecgx_mipi_drv_lock);;
 
 
-   while(Status_3A==0)
+   while ((Status_3A==0) && (iter-- > 0))
    {
 
       S5K4ECGX_write_cmos_sensor(0xFCFC,0xd000);
@@ -6941,6 +7323,7 @@ BOOL S5K4ECGX_MIPI_set_param_exposure_for_HDR(UINT16 para)
     kal_uint32 totalGain = 0, exposureTime = 0;
     spin_lock(&s5k4ecgx_mipi_drv_lock);
 
+    SENSORDB("[4EC] S5K4ECGX_MIPI_set_param_exposure_for_HDR\n");
     if (0 == S5K4ECGX_Driver.manualAEStart)
     {
         S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
@@ -6952,24 +7335,24 @@ BOOL S5K4ECGX_MIPI_set_param_exposure_for_HDR(UINT16 para)
   switch (para)
   {
      case AE_EV_COMP_20:  //+2 EV
-       case AE_EV_COMP_10:  // +1 EV
-       totalGain = S5K4ECGX_Driver.currentAxDGain << 1;
+     case AE_EV_COMP_10:  // +1 EV
+           totalGain = S5K4ECGX_Driver.currentAxDGain << 1;
            exposureTime = S5K4ECGX_Driver.currentExposureTime << 1;
            SENSORDB("[4EC] HDR AE_EV_COMP_20\n");
-     break;
+           break;
      case AE_EV_COMP_00:  // +0 EV
-       totalGain = S5K4ECGX_Driver.currentAxDGain;
+           totalGain = S5K4ECGX_Driver.currentAxDGain;
            exposureTime = S5K4ECGX_Driver.currentExposureTime;
            SENSORDB("[4EC] HDR AE_EV_COMP_00\n");
-     break;
+           break;
      case AE_EV_COMP_n10:  // -1 EV
      case AE_EV_COMP_n20:  // -2 EV
-       totalGain = S5K4ECGX_Driver.currentAxDGain >> 1;
+           totalGain = S5K4ECGX_Driver.currentAxDGain >> 1;
            exposureTime = S5K4ECGX_Driver.currentExposureTime >> 1;
            SENSORDB("[4EC] HDR AE_EV_COMP_n20\n");
-     break;
+           break;
      default:
-     break;//return FALSE;
+           break;//return FALSE;
   }
     spin_unlock(&s5k4ecgx_mipi_drv_lock);
 
@@ -6987,7 +7370,7 @@ BOOL S5K4ECGX_MIPI_set_param_exposure_for_HDR(UINT16 para)
     S5K4ECGX_write_cmos_sensor(0x0F12,totalGain);   //Total gain
     S5K4ECGX_write_cmos_sensor(0x0F12,0x0001);
 
-  return TRUE;
+    return TRUE;
 }
 
 /*************************************************************************
@@ -7025,49 +7408,106 @@ BOOL S5K4ECGX_MIPI_set_param_exposure(UINT16 para)
    switch (para)
    {
       case AE_EV_COMP_30:  //+3 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x0190);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0280);  //TVAR_ae_BrAve
+           break;
       case AE_EV_COMP_20:  //+2 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x0170);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x01E0);  //TVAR_ae_BrAve
+           S5K4ECGX_write_cmos_sensor(0x002A,0x098C);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000F);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0A42);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000F);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0AF8);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000F);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0BAE);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000F);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0C64);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000F);  //
+
+           break;
       case AE_EV_COMP_10:  // +1 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x0145);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0160);  //TVAR_ae_BrAve
+
+           S5K4ECGX_write_cmos_sensor(0x002A,0x098C);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000A);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0A42);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000A);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0AF8);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000A);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0BAE);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000A);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0C64);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x000A);  //
+
+           break;
       case AE_EV_COMP_00:  // +0 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x0100);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0100);  //TVAR_ae_BrAve
+
+           S5K4ECGX_write_cmos_sensor(0x002A,0x098C);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0000);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0A42);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0000);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0AF8);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0000);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0BAE);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0000);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0C64);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0000);  //
+
+           break;
       case AE_EV_COMP_n10:  // -1 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x00C0);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x00B0);  //TVAR_ae_BrAve
+
+           S5K4ECGX_write_cmos_sensor(0x002A,0x098C);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFFB);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0A42);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFFB);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0AF8);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFFB);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0BAE);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFFB);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0C64);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFFB);  //
+           break;
       case AE_EV_COMP_n20:  // -2 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x0080);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0080);  //TVAR_ae_BrAve
+
+           S5K4ECGX_write_cmos_sensor(0x002A,0x098C);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFF6);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0A42);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFF6);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0AF8);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFF6);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0BAE);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFF6);  //
+           S5K4ECGX_write_cmos_sensor(0x002A,0x0C64);  //
+           S5K4ECGX_write_cmos_sensor(0x0F12,0xFFF6);  //
+           break;
       case AE_EV_COMP_n30:   //-3 EV
-        S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
-        S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
-        S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
-        S5K4ECGX_write_cmos_sensor(0x0F12,0x0060);  //TVAR_ae_BrAve
-        break;
+           S5K4ECGX_write_cmos_sensor(0xFCFC,0xD000);
+           S5K4ECGX_write_cmos_sensor(0x0028,0x7000);
+           S5K4ECGX_write_cmos_sensor(0x002A,0x023A);  //UserExposureVal88
+           S5K4ECGX_write_cmos_sensor(0x0F12,0x0050);  //TVAR_ae_BrAve
+           break;
       default:
-        break;//return FALSE;
+           break;//return FALSE;
    }
 
 
@@ -7271,6 +7711,7 @@ void S5K4ECGX_MIPI_set_scene_mode(UINT16 para)
 {
     unsigned int activeConfigNum = 0;
     unsigned int prevSceneMode;
+    unsigned int oscar_iSaturation = 0;
 
     S5K4ECGX_MIPI_GetActiveConfigNum(&activeConfigNum);
     spin_lock(&s5k4ecgx_mipi_drv_lock);
@@ -7307,17 +7748,8 @@ void S5K4ECGX_MIPI_set_scene_mode(UINT16 para)
         S5K4ECGX_write_cmos_sensor(0x002A, 0x06B8);
         S5K4ECGX_write_cmos_sensor(0x0F12, 0x452C);
         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0005);  //lt_uMaxLei 
-        S5K4ECGX_write_cmos_sensor(0x002A, 0x0A1E);  
+        S5K4ECGX_write_cmos_sensor(0x002A, 0x0A1E);
         S5K4ECGX_write_cmos_sensor(0x0F12, 0x0350);  //_ccm_oscar_iSaturation	[7:0] AFIT8_RGB2YUV_iYOffset
-#if 0
-        //Restore AF setting here....
-        S5K4ECGX_write_cmos_sensor(0x002A, 0x1648);
-        S5K4ECGX_write_cmos_sensor(0x0F12, 0x9002);  //af_search_usSingleAfFlags
-        if (S5K4ECGX_AF_MODE_RSVD != S5K4ECGX_Driver.afMode)
-        {
-            S5K4ECGX_MIPI_AF_Start(S5K4ECGX_Driver.afMode);
-        }
-#endif
     }
 
     //Night mode and Sport mode will modfiy AE weighting table
@@ -7397,27 +7829,23 @@ void S5K4ECGX_MIPI_set_scene_mode(UINT16 para)
             // ==========================================================
             //  CAMERA_SCENE_NIGHT (Night/Center/Br0/Auto/Sharp0/Sat0)
             // ==========================================================
+            {
+                S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
+                S5K4ECGX_write_cmos_sensor(0x002C,0x7000);
+                S5K4ECGX_write_cmos_sensor(0x002E,0x0A1E);
+                oscar_iSaturation = S5K4ECGX_read_cmos_sensor(0x0F12);
+                SENSORDB("[4EC]SCENE_MODE_NIGHTSCENE: oscar_iSaturation:%x\n", oscar_iSaturation);
+            }
+
             S5K4ECGX_write_cmos_sensor(0xFCFC, 0xD000);
             S5K4ECGX_write_cmos_sensor(0x0028, 0x7000);
             S5K4ECGX_write_cmos_sensor(0x002A, 0x06B8);
             S5K4ECGX_write_cmos_sensor(0x0F12, 0xFFFF); //lt_uMaxLei
             S5K4ECGX_write_cmos_sensor(0x0F12, 0x00FF); //lt_usMinExp
             S5K4ECGX_write_cmos_sensor(0x002A, 0x0A1E);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x1500); //0x15C0//_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
-#if 0
-            //AF
-            S5K4ECGX_write_cmos_sensor(0x002A, 0x1648); //af_search_usSingleAfFlags
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x9000);
-            S5K4ECGX_write_cmos_sensor(0x002A, 0x15E8);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0006); //af_pos_usTableLastInd
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0036);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x003A);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0040);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0048);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0050);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0058);
-            S5K4ECGX_write_cmos_sensor(0x0F12, 0x0060);
-#endif
+            //This setting is a tradeoff between color noise and color saturation.
+            //S5K4ECGX_write_cmos_sensor(0x0F12, 0x1500); //0x15C0//_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
+            S5K4ECGX_write_cmos_sensor(0x0F12, 0x1550); //0x15C0//_ccm_oscar_iSaturation   [7:0] AFIT8_RGB2YUV_iYOffset
             break;
 
         case SCENE_MODE_SUNSET:
@@ -7464,13 +7892,13 @@ void S5K4ECGX_MIPI_set_scene_mode(UINT16 para)
 
 UINT32 S5K4ECGX_MIPI_SensorSetting(FEATURE_ID iCmd, UINT32 iPara)
 {
-    //SENSORDB("SensorSetting\n");
+    //SENSORDB("[4EC] SensorSetting\n");
     //return TRUE;
 
     switch (iCmd)
     {
         case FID_SCENE_MODE:     //auto mode or night mode
-            SENSORDB("FID_SCENE_MODE\n");
+            SENSORDB("[4EC] FID_SCENE_MODE\n");
             S5K4ECGX_MIPI_set_scene_mode(iPara);
             break;
         case FID_AWB_MODE:
@@ -7745,17 +8173,17 @@ UINT32 S5K4ECGX_MIPI_FeatureControl(MSDK_SENSOR_FEATURE_ENUM FeatureId,
         /**********************Strobe Ctrl Start *******************************/
         case SENSOR_FEATURE_SET_ESHUTTER:
              SENSORDB("[4EC] F_SET_ESHUTTER: Not Support\n");
-             //S5K4ECGX_MIPI_SetShutter(*pFeatureData16);
+             S5K4ECGX_MIPI_SetShutter(*pFeatureData16);
              break;
 
         case SENSOR_FEATURE_SET_GAIN:
              SENSORDB("[4EC] F_SET_GAIN: Not Support\n");
-             //S5K4ECGX_MIPI_SetGain(*pFeatureData16);
+             S5K4ECGX_MIPI_SetGain(*pFeatureData16);
              break;
 
         case SENSOR_FEATURE_GET_AE_FLASHLIGHT_INFO:
              SENSORDB("[4EC] F_GET_AE_FLASHLIGHT_INFO: Not Support\n");
-             //S5K4ECGX_MIPI_GetAEFlashlightInfo(*pFeatureData32);
+             S5K4ECGX_MIPI_GetAEFlashlightInfo(*pFeatureData32);
              break;
 
         case SENSOR_FEATURE_GET_TRIGGER_FLASHLIGHT_INFO:
@@ -7955,6 +8383,47 @@ UINT32 S5K4ECGX_MIPI_FeatureControl(MSDK_SENSOR_FEATURE_ENUM FeatureId,
              *pFeatureReturnPara32= S5K4ECGX_TEST_PATTERN_CHECKSUM;
              *pFeatureParaLen=4;
              break;
+
+#if defined(__CAPTURE_JPEG_OUTPUT__)
+        /*case SENSOR_FEATURE_GET_YUV_CAPTURE_OUTPUT_JPEG:
+             *pFeatureReturnPara32 = TRUE; 
+             *pFeatureParaLen=4;
+              break;
+        */
+        case SENSOR_FEATURE_GET_YUV_JPEG_INFO:
+            SENSORDB("[4EC]GET_YUV_JPEG_INFO");
+            {
+               UINT32*                para =  (UINT32*)pFeaturePara;
+               UINT8                 *jpegFileAddr = para[0];
+               //UINT32                 maxBufSize =  para[1];
+               ACDK_SENSOR_JPEG_INFO *jpegInfo = (ACDK_SENSOR_JPEG_INFO*) para[1];
+
+               UINT32                 maxBufSize =  2560 * 1920;
+  
+               SENSORDB("[4EC]GET_YUV_JPEG_INFO: jpegFileAddr=0x%x, maxBufSize=%d, infoAddr=0x%x\n", jpegFileAddr, maxBufSize, jpegInfo);
+               S5K4ECGX_MIPI_JPEG_Capture_Parser(jpegFileAddr, maxBufSize, &S5K4ECGX_Driver.jpegSensorInfo);
+               memcpy(jpegInfo, &S5K4ECGX_Driver.jpegSensorInfo, sizeof(ACDK_SENSOR_JPEG_INFO));
+               *pFeatureParaLen = sizeof(ACDK_SENSOR_JPEG_INFO);
+            }
+             break;
+
+        case SENSOR_FEATURE_SET_YUV_JPEG_PARA:
+            SENSORDB("[4EC]SET_JPEG_PARA \n");
+            {
+                UINT32* para =  (UINT32*)pFeaturePara;
+                ACDK_SENSOR_JPEG_OUTPUT_PARA *jpegPara = (ACDK_SENSOR_JPEG_OUTPUT_PARA*) para[0];
+                SENSORDB("[4EC]width=%d, hegith=%d, Quality=%d\n", jpegPara->tgtWidth, jpegPara->tgtHeight,jpegPara->quality);
+                if ((jpegPara->tgtHeight == 0) || (jpegPara->tgtWidth == 0) || (jpegPara->quality == 0) || (jpegPara->quality > 100))
+                {
+                    SENSORDB("[4EC]SET_JPEG_PARA: Invalid Para!\n");
+                    return ERROR_INVALID_PARA;
+                }
+                memcpy(&S5K4ECGX_Driver.jpegSensorPara, jpegPara, sizeof(ACDK_SENSOR_JPEG_OUTPUT_PARA));
+                SENSORDB("[4EC]SET_JPEG_PARA S5K4ECGX_Driver.jpegSensorPara width=%d, hegith=%d, Quality=%d\n", 
+                       S5K4ECGX_Driver.jpegSensorPara.tgtWidth, S5K4ECGX_Driver.jpegSensorPara.tgtHeight,S5K4ECGX_Driver.jpegSensorPara.quality);
+            }
+             break;
+#endif
 
         default:
              SENSORDB("[4EC]FeatureControl default\n");

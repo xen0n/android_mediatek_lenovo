@@ -59,8 +59,12 @@ static struct OV7675_Sensor_Struct OV7675_Sensor_Driver;
 #define CAMERA_CONTROL_FLOW(para1, para2)
 #endif
 
-kal_uint8 res=0,closed=0,info=0;
-
+// 
+// it's not a good choice that using a global variable that is simple, which can cause conflict with other 
+// global variables
+// so here, use static type
+// 
+static kal_uint8 res=0,closed=0, info=0;
 
 
 #if 0

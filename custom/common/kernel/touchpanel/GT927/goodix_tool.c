@@ -32,7 +32,7 @@
 #include "cust_gpio_usage.h"
 #include <asm/uaccess.h>
 
-#include "tpd_custom_gt927.h"
+#include "tpd_custom_gt9xx.h"
 
 
 #pragma pack(1)
@@ -155,6 +155,8 @@ static void unregister_i2c_func(void)
 s32 init_wr_node(struct i2c_client *client)
 {
     s32 i;
+    const s8 entry_prefix[] = "GMNode_";
+    s8 gtp_tool_entry[30];
 
     gt_client = i2c_client_point;
     GTP_INFO("client %d.%d", (int)gt_client, (int)client);
@@ -192,7 +194,14 @@ s32 init_wr_node(struct i2c_client *client)
 
     register_i2c_func();
 
-    goodix_proc_entry = create_proc_entry(GOODIX_ENTRY_NAME, 0666, NULL);
+ //   goodix_proc_entry = create_proc_entry(GOODIX_ENTRY_NAME, 0664, NULL);
+ 
+    memset(gtp_tool_entry, 0, sizeof(gtp_tool_entry));
+    i = sizeof(entry_prefix)/sizeof(s8);
+    memcpy(gtp_tool_entry, entry_prefix, i-1);
+    memcpy(&gtp_tool_entry[i-1], __DATE__, sizeof(__DATE__)/sizeof(s8));
+#if 0 //linux-3.10 procfs API changed
+    goodix_proc_entry = create_proc_entry(gtp_tool_entry, 0664, NULL);
 
     if (goodix_proc_entry == NULL)
     {
@@ -205,7 +214,7 @@ s32 init_wr_node(struct i2c_client *client)
         goodix_proc_entry->write_proc = goodix_tool_write;
         goodix_proc_entry->read_proc = goodix_tool_read;
     }
-
+#endif
     return SUCCESS;
 }
 

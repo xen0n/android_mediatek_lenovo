@@ -28,6 +28,8 @@ FID_TO_TYPE_ENUM  (
         //  (Unsupported legacy symbol; don't use this symbol if possible)
         SCENE_MODE_BRACKET_AE,                      // Bracket AE
         SCENE_MODE_HDR, 
+        SCENE_MODE_FACE_PRIORITY,
+        SCENE_MODE_BARCODE,
         SCENE_MODE_NUM
     )
 ) SCENE_MODE_T;

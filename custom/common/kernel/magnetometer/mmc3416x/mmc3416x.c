@@ -34,7 +34,6 @@
 #include <linux/time.h>
 #include <linux/hrtimer.h>
 
-#include <mach/mt_devs.h>
 #include <mach/mt_typedefs.h>
 #include <mach/mt_gpio.h>
 #include <mach/mt_pm_ldo.h>
@@ -1421,46 +1420,46 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 #if 1
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_REFILL;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(MMC3416X_DELAY_SET);
 
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_SET;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(1);
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = 0;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(MMC3416X_DELAY_SET);
 
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_REFILL;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(MMC3416X_DELAY_RST);
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_RESET;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(1);
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = 0;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(1);
 
 	tmp[0] = MMC3416X_REG_BITS;
 	tmp[1] = MMC3416X_BITS_SLOW_16;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(MMC3416X_DELAY_TM);
 
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_TM;
-	if (I2C_TxData(data, 2) < 0) {
+	if (I2C_TxData(tmp, 2) < 0) {
 	}
 	msleep(MMC3416X_DELAY_TM);
 

@@ -220,6 +220,10 @@ typedef enum
   SENSOR_FEATURE_AUTOTEST_CMD,
   SENSOR_FEATURE_GET_TRIGGER_FLASHLIGHT_INFO, //Trigger flashlight or not
   SENSOR_FEATURE_SET_YUV_3A_CMD,
+  SENSOR_FEATURE_SET_ESHUTTER_GAIN,
+  SENSOR_FEATURE_GET_YUV_CAPTURE_OUTPUT_JPEG,
+  SENSOR_FEATURE_SET_YUV_JPEG_PARA,
+  SENSOR_FEATURE_GET_YUV_JPEG_INFO,
 
   SENSOR_FEATURE_MAX
 } ACDK_SENSOR_FEATURE_ENUM;
@@ -270,6 +274,12 @@ typedef enum
   SENSOR_MIPI_4_LANE
 } ACDK_SENSOR_MIPI_LANE_NUMBER_ENUM;
 
+typedef enum
+{
+    MIPI_OPHY_NCSI2 = 0,
+    MIPI_OPHY_CSI2 = 1,
+}SENSOR_MIPI_TYPE_ENUM;
+
 typedef struct
 {
   MUINT16 SensorPreviewWidth;
@@ -286,6 +296,34 @@ typedef struct
   MUINT16 Sensor3DFullHeight;
   MUINT16 Sensor3DVideoWidth;
   MUINT16 Sensor3DVideoHeight;  
+  MUINT16 SensorEffectivePreviewWidth;
+  MUINT16 SensorEffectivePreviewHeight;
+  MUINT16 SensorEffectiveFullWidth;
+  MUINT16 SensorEffectiveFullHeight;
+  MUINT16 SensorEffectiveVideoWidth;
+  MUINT16 SensorEffectiveVideoHeight;
+  MUINT16 SensorEffectiveHighSpeedVideoWidth;
+  MUINT16 SensorEffectiveHighSpeedVideoHeight;
+  MUINT16 SensorEffective3DPreviewWidth;
+  MUINT16 SensorEffective3DPreviewHeight;
+  MUINT16 SensorEffective3DFullWidth;
+  MUINT16 SensorEffective3DFullHeight;
+  MUINT16 SensorEffective3DVideoWidth;
+  MUINT16 SensorEffective3DVideoHeight; 
+  MUINT16 SensorPreviewWidthOffset;//from effective width to output width
+  MUINT16 SensorPreviewHeightOffset;//from effective height to output height
+  MUINT16 SensorFullWidthOffset;//from effective width to output width
+  MUINT16 SensorFullHeightOffset;//from effective height to output height
+  MUINT16 SensorVideoWidthOffset;//from effective width to output width
+  MUINT16 SensorVideoHeightOffset;//from effective height to output height
+  MUINT16 SensorHighSpeedVideoWidthOffset;//from effective width to output width
+  MUINT16 SensorHighSpeedVideoHeightOffset;//from effective height to output height
+  MUINT16 Sensor3DPreviewWidthOffset;//from effective width to output width
+  MUINT16 Sensor3DPreviewHeightOffset;//from effective height to output height
+  MUINT16 Sensor3DFullWidthOffset;//from effective width to output width
+  MUINT16 Sensor3DFullHeightOffset;//from effective height to output height
+  MUINT16 Sensor3DVideoWidthOffset;//from effective width to output width
+  MUINT16 Sensor3DVideoHeightOffset;//from effective height to output height
 } ACDK_SENSOR_RESOLUTION_INFO_STRUCT, *PACDK_SENSOR_RESOLUTION_INFO_STRUCT;
 
 
@@ -333,6 +371,8 @@ typedef struct
   MUINT8   SensorWidthSampling;
   MUINT8   SensorHightSampling;  
   MUINT8   SensorPacketECCOrder;
+  SENSOR_MIPI_TYPE_ENUM MIPIsensorType;
+  MUINT8   SensorCaptureOutputJPEG; //JPEG file or not?
 } ACDK_SENSOR_INFO_STRUCT, *PACDK_SENSOR_INFO_STRUCT;
 
 
@@ -453,7 +493,25 @@ typedef struct
 	MUINT32  FrameLines;      //valid+dummy lines for minimum shutter
 }	ACDK_SENSOR_CONFIG_STRUCT;
 
+typedef enum
+{
+    MCLK_48MHZ_GROUP = 0x1,
+    MCLK_52MHZ_GROUP = 0x2,
+}ACKD_SENSOR_MCLK_ENUM;
 
+typedef struct
+{
+    MUINT8 on;
+    ACKD_SENSOR_MCLK_ENUM freq;
+}ACDK_SENSOR_MCLK_STRUCT;
+
+typedef struct
+{
+    MINT32 mSensorDev;
+    MUINT8 GpioEnable;
+    ACDK_SENSOR_INTERFACE_TYPE_ENUM SensroInterfaceType;
+}ACDK_SENSOR_GPIO_STRUCT;
+ 
 /*******************************************************************************
 *
 ********************************************************************************/
@@ -755,6 +813,24 @@ typedef enum
   //SENSOR_3A_AF_LOCK,
   //SENSOR_3A_AF_UNLOCK,
 } ACDK_SENSOR_3A_LOCK_ENUM;
+
+
+typedef struct
+{
+   MUINT32 tgtWidth;
+   MUINT32 tgtHeight;
+   MUINT32 quality;
+
+}ACDK_SENSOR_JPEG_OUTPUT_PARA;
+
+
+// for JPEG Sensor Info
+typedef struct {
+    MUINT32 u4FileSize;      // For input sensor width
+    MUINT32 u4SrcW;          // For input sensor width
+    MUINT32 u4SrcH;          // For input sensor height
+} ACDK_SENSOR_JPEG_INFO;
+
 
 #endif //_KD_IMGSENSOR_DATA_H
 

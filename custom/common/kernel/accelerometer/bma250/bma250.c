@@ -261,7 +261,7 @@ static int BMA250_ReadData(struct i2c_client *client, s16 data[BMA250_AXES_NUM])
 			}
 		}	
 
-		if(1)//(atomic_read(&priv->trace) & ADX_TRC_RAWDATA)
+		if(atomic_read(&priv->trace) & ADX_TRC_RAWDATA)
 		{
 			GSE_LOG("[%08X %08X %08X] => [%5d %5d %5d] after\n", data[BMA250_AXIS_X], data[BMA250_AXIS_Y], data[BMA250_AXIS_Z],
 		                               data[BMA250_AXIS_X], data[BMA250_AXIS_Y], data[BMA250_AXIS_Z]);

@@ -44,7 +44,7 @@
     		 android:removable="true"
 	       android:allowMassStorage="true" />
     		 
-    <storage android:mountPoint="/mnt/usbotg"
+    <storage android:mountPoint="/storage/usbotg"
     		 android:storageDescription="@string/storage_external_usb"
     		 android:removable="true" />
 </StorageList>

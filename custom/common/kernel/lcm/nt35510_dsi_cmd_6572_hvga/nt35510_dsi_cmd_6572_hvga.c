@@ -67,11 +67,9 @@ static struct LCM_setting_table lcm_sleep_out_setting[] = {
 static struct LCM_setting_table lcm_deep_sleep_mode_in_setting[] = {
     // Display off sequence
     {0x28, 1, {0x00}},
-    {REGFLAG_DELAY, 10, {}},
     
     // Sleep Mode On
     {0x10, 1, {0x00}},
-    {REGFLAG_DELAY, 120, {}},
     
     {REGFLAG_END_OF_TABLE, 0x00, {}}
 };
@@ -146,18 +144,11 @@ static void lcm_get_params(LCM_PARAMS *params)
     
     params->dsi.word_count=480*3;	//DSI CMD mode need set these two bellow params, different to 6577
     params->dsi.vertical_active_line=800;
-    params->dsi.compatibility_for_nvk = 0;		// this parameter would be set to 1 if DriverIC is NTK's and when force match DSI clock for NTK's
     
     // Bit rate calculation
-#ifdef CONFIG_MT6589_FPGA
-    params->dsi.pll_div1=2;		// div1=0,1,2,3;div1_real=1,2,4,4
-    params->dsi.pll_div2=2;		// div2=0,1,2,3;div2_real=1,2,4,4
-    params->dsi.fbk_div =8;		// fref=26MHz, fvco=fref*(fbk_div+1)*2/(div1_real*div2_real)
-#else
-    params->dsi.pll_div1=1;		// div1=0,1,2,3;div1_real=1,2,4,4
+    params->dsi.pll_div1=0;		// div1=0,1,2,3;div1_real=1,2,4,4
     params->dsi.pll_div2=0;		// div2=0,1,2,3;div2_real=1,2,4,4
     params->dsi.fbk_div =17;		// fref=26MHz, fvco=fref*(fbk_div+1)*2/(div1_real*div2_real)		
-#endif
 }
 
 
@@ -165,85 +156,14 @@ static void init_lcm_registers(void)
 {
     unsigned int data_array[16];
 
-
-    //*************Enable TE  *******************//
-    data_array[0]= 0x00053902;
-    data_array[1]= 0x2555aaff;
-    data_array[2]= 0x00000001;
-    dsi_set_cmdq(data_array, 3, 1);
-
-    data_array[0]= 0x00093902;
-    data_array[1]= 0x000201f8;
-    data_array[2]= 0x00133320;
-    data_array[3]= 0x00000048;
-    dsi_set_cmdq(data_array, 4, 1);
+    data_array[0]=0x00350500;
+    dsi_set_cmdq(data_array, 1, 1);
     
     //*************Enable CMD2 Page1  *******************//
     data_array[0]=0x00063902;
     data_array[1]=0x52aa55f0;
     data_array[2]=0x00000108;
     dsi_set_cmdq(data_array, 3, 1);
-    
-    //************* AVDD: manual  *******************//
-    data_array[0]=0x00043902;
-    data_array[1]=0x0d0d0db0;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x343434b6;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x0d0d0db1;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x343434b7;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x000000b2;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x242424b8;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00023902;
-    data_array[1]=0x000001bf;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x0f0f0fb3;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x343434b9;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x080808b5;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00023902;
-    data_array[1]=0x000003c2;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x242424ba;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x007800bc;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00043902;
-    data_array[1]=0x007800bd;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00033902;
-    data_array[1]=0x006400be;
-    dsi_set_cmdq(data_array, 2, 1);
     
     //*************Gamma Table  *******************//
     data_array[0]=0x00353902;
@@ -349,44 +269,42 @@ static void init_lcm_registers(void)
     dsi_set_cmdq(data_array, 15, 1);
     MDELAY(10);
 
+    //************* AVDD: manual  *******************//
+    data_array[0]=0x00043902;
+    data_array[1]=0x343434b9;
+    dsi_set_cmdq(data_array, 2, 1);
+    
+    data_array[0]=0x00043902;
+    data_array[1]=0x343434ba;
+    dsi_set_cmdq(data_array, 2, 1);
+    
+    data_array[0]=0x00043902;
+    data_array[1]=0x007800bc;
+    dsi_set_cmdq(data_array, 2, 1);
+    
+    data_array[0]=0x00043902;
+    data_array[1]=0x007800bd;
+    dsi_set_cmdq(data_array, 2, 1);
+    
+    data_array[0]=0x00033902;
+    data_array[1]=0x00ac00be;
+    dsi_set_cmdq(data_array, 2, 1);
+    
     // ********************  EABLE CMD2 PAGE 0 **************//
     data_array[0]=0x00063902;
     data_array[1]=0x52aa55f0;
     data_array[2]=0x00000008;
     dsi_set_cmdq(data_array, 3, 1);
 
-    // ********************  EABLE DSI TE **************//
     data_array[0]=0x00033902;
-    data_array[1]=0x0000fcb1;
+    data_array[1]=0x00000cb1;
     dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00023902;
-    data_array[1]=0x000005b6;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00033902;
-    data_array[1]=0x007070b7;
-    dsi_set_cmdq(data_array, 2, 1);
-    
-    data_array[0]=0x00053902;
-    data_array[1]=0x030301b8;
-    data_array[2]=0x00000003;
-    dsi_set_cmdq(data_array, 3, 1);
     
     data_array[0]=0x00043902;
-    data_array[1]=0x000002bc;
+    data_array[1]=0x000001bc;
     dsi_set_cmdq(data_array, 2, 1);
     
-    data_array[0]=0x00063902;
-    data_array[1]=0x5002d0c9;
-    data_array[2]=0x00005050;
-    dsi_set_cmdq(data_array, 3, 1);
-    
-    // ********************  EABLE DSI TE packet **************//
-    data_array[0]=0x00351500;
-    dsi_set_cmdq(data_array, 1, 1);
-    
-    data_array[0]=0x773a1500;
+    data_array[0] = 0x00110500;
     dsi_set_cmdq(data_array, 1, 1);
     
     data_array[0]= 0x00053902;
@@ -399,10 +317,6 @@ static void init_lcm_registers(void)
     data_array[2]= 0x00000055;
     dsi_set_cmdq(data_array, 3, 1);
 
-    data_array[0] = 0x00110500;
-    dsi_set_cmdq(data_array, 1, 1);
-    MDELAY(120);
-    
     data_array[0]= 0x00290500;
     dsi_set_cmdq(data_array, 1, 1);
 }
@@ -412,7 +326,7 @@ static void lcm_init(void)
 {
     SET_RESET_PIN(1);
     SET_RESET_PIN(0);
-    MDELAY(5);
+    MDELAY(1);
     SET_RESET_PIN(1);
     MDELAY(20);
 
@@ -422,25 +336,15 @@ static void lcm_init(void)
 
 static void lcm_suspend(void)
 {
-    unsigned int data_array[16];
-
-    data_array[0] = 0x00100500;
-    dsi_set_cmdq(data_array, 1, 1);
-    MDELAY(120);
-
-    data_array[0] = 0x00280500;
-    dsi_set_cmdq(data_array, 1, 1);
-    MDELAY(10);
-
-    data_array[0] = 0x014F1500;
-    dsi_set_cmdq(data_array, 1, 1);
-    MDELAY(40);
+    push_table(lcm_deep_sleep_mode_in_setting, sizeof(lcm_deep_sleep_mode_in_setting) / sizeof(struct LCM_setting_table), 1);
 }
 
 
 static void lcm_resume(void)
 {
     lcm_init();
+	
+    push_table(lcm_sleep_out_setting, sizeof(lcm_sleep_out_setting) / sizeof(struct LCM_setting_table), 1);
 }
          
 
@@ -474,6 +378,9 @@ static void lcm_update(unsigned int x, unsigned int y,
     data_array[2]= (y1_LSB);
     dsi_set_cmdq(data_array, 3, 1);
     
+    data_array[0]= 0x00290508; //HW bug, so need send one HS packet
+    dsi_set_cmdq(data_array, 1, 1);
+
     data_array[0]= 0x002c3909;
     dsi_set_cmdq(data_array, 1, 0);
 }

@@ -406,9 +406,9 @@ static int MPU6050C_SetPWR_MGMT_12(struct i2c_client *client)
 	{ 
 		//means it works only for acc,so set gyro as standby mode
 		GYRO_LOG("MPU6050C_SetPWR_MGMT_12 !CMC_BIT_GYRO&&CMC_BIT_ACC \n");
-		databuf1[0] = 0x24;// CYCLE =1 ;SLEEP =0; TEMP_DIS =1
-
-		databuf2[0] = 0xc7;//STBY_XG =1,STBY_YG =1,STBY_ZG =1
+		//databuf1[0] = 0x24;// CYCLE =1 ;SLEEP =0; TEMP_DIS =1
+		databuf1[0] = 0x28;// CYCLE =1 ;SLEEP =0; TEMP_DIS =1; internal 8M clock
+		databuf2[0] = 0xc7;//STBY_XG =1,STBY_YG =1,STBY_ZG =1,LP_WAKE_CTRL =11
 
 	}
 	else if((test_bit(CMC_BIT_GYRO, &obj->enable))
@@ -416,18 +416,16 @@ static int MPU6050C_SetPWR_MGMT_12(struct i2c_client *client)
 	{
 		//mean  work both
 		GYRO_LOG("MPU6050C_SetPWR_MGMT_12 CMC_BIT_GYR&&CMC_BIT_ACC \n");
-		databuf1[0] = 0x01;//SLEEP=0;CLKSEL =1 MPU6050C_ACC_CLKSEL_PLL_X
-
-		databuf2[0] = 0x00;
+		databuf1[0] = 0x01;//SLEEP=0;CYCLE =0 MPU6050C_ACC_CLKSEL_PLL_X;TEMP_DIS = 0
+		databuf2[0] = 0x00;//STBY_XG =0,STBY_YG =0,STBY_ZG =0;STBY_XA =0,STBY_YA =0,STBY_ZA =0
 	}
 	else if((test_bit(CMC_BIT_GYRO, &obj->enable))
 		&&(!test_bit(CMC_BIT_ACC, &obj->enable)))
 	{
 		//mean	gyro work only,acc sleep
 		GYRO_LOG("MPU6050C_SetPWR_MGMT_12 CMC_BIT_GYR&&CMC_BIT_ACC \n");
-		databuf1[0] = 0x01;//SLEEP=0;CLKSEL =1
-
-		databuf2[0] = 0x34;//STBY_XA =1,STBY_YA =1,STBY_ZA =1
+		databuf1[0] = 0x01;//SLEEP=0;CYCLE =0;MPU6050C_ACC_CLKSEL_PLL_X;TEMP_DIS = 0		
+		databuf2[0] = 0x38;//0x34;//STBY_XA =1,STBY_YA =1,STBY_ZA =1
 	}
 	else if((!test_bit(CMC_BIT_GYRO, &obj->enable))
 		&&(!test_bit(CMC_BIT_ACC, &obj->enable)))

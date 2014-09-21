@@ -842,7 +842,7 @@ UINT32 OV9740MIPIGetInfo(MSDK_SCENARIO_ID_ENUM ScenarioId,
 					  MSDK_SENSOR_INFO_STRUCT *pSensorInfo,
 					  MSDK_SENSOR_CONFIG_STRUCT *pSensorConfigData)
 {
-	#if defined(MT6575)
+	#if 0
     switch(ScenarioId)
     {
         
@@ -967,7 +967,7 @@ UINT32 OV9740MIPIControl(MSDK_SCENARIO_ID_ENUM ScenarioId, MSDK_SENSOR_EXPOSURE_
 			OV9740MIPICapture(pImageWindow, pSensorConfigData);
 		break;
 		
-		#if defined(MT6575)
+		#if 0
 		case MSDK_SCENARIO_ID_CAMERA_ZSD:
 			   OV9740MIPICapture(pImageWindow, pSensorConfigData);
 			break;
@@ -1451,7 +1451,7 @@ kal_uint16 OV9740MIPIReadAwbBGain(void)
 	return (temp_msb|temp_lsb);
 
 }
-#if defined(MT6575)
+#if 0
 
 /*************************************************************************
 * FUNCTION
@@ -1697,7 +1697,7 @@ UINT32 OV9740MIPIFeatureControl(MSDK_SENSOR_FEATURE_ENUM FeatureId,
 		case SENSOR_FEATURE_SET_VIDEO_MODE:
 		    OV9740MIPIYUVSetVideoMode(*pFeatureData16);
 		    break; 
-		#if defined(MT6575)
+		#if 0//
 		case SENSOR_FEATURE_GET_EV_AWB_REF:
 			 OV9740MIPIGetEvAwbRef(*pFeatureData32);
 				break;

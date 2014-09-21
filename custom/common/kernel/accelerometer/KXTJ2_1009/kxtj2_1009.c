@@ -47,7 +47,7 @@
 /*----------------------------------------------------------------------------*/
 //#define CONFIG_KXTJ2_1009_LOWPASS   /*apply low pass filter on output*/       
 #define SW_CALIBRATION
-
+//#define USE_EARLY_SUSPEND
 /*----------------------------------------------------------------------------*/
 #define KXTJ2_1009_AXIS_X          0
 #define KXTJ2_1009_AXIS_Y          1
@@ -69,6 +69,8 @@ static struct i2c_board_info __initdata i2c_kxtj2_1009={ I2C_BOARD_INFO(KXTJ2_10
 static int kxtj2_1009_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id); 
 static int kxtj2_1009_i2c_remove(struct i2c_client *client);
 static int kxtj2_1009_i2c_detect(struct i2c_client *client, int kind, struct i2c_board_info *info);
+static int kxtj2_1009_suspend(struct i2c_client *client, pm_message_t msg);
+static int kxtj2_1009_resume(struct i2c_client *client);
 
 /*----------------------------------------------------------------------------*/
 typedef enum {
@@ -121,7 +123,7 @@ struct kxtj2_1009_i2c_data {
     struct data_filter      fir;
 #endif 
     /*early suspend*/
-#if defined(CONFIG_HAS_EARLYSUSPEND)
+#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(USE_EARLY_SUSPEND)
     struct early_suspend    early_drv;
 #endif     
 };
@@ -134,7 +136,7 @@ static struct i2c_driver kxtj2_1009_i2c_driver = {
 	.probe      		= kxtj2_1009_i2c_probe,
 	.remove    			= kxtj2_1009_i2c_remove,
 	.detect				= kxtj2_1009_i2c_detect,
-#if !defined(CONFIG_HAS_EARLYSUSPEND)    
+#if !defined(CONFIG_HAS_EARLYSUSPEND) || !defined(USE_EARLY_SUSPEND)
     .suspend            = kxtj2_1009_suspend,
     .resume             = kxtj2_1009_resume,
 #endif
@@ -1773,7 +1775,7 @@ static struct miscdevice kxtj2_1009_device = {
 	.fops = &kxtj2_1009_fops,
 };
 /*----------------------------------------------------------------------------*/
-#ifndef CONFIG_HAS_EARLYSUSPEND
+#if !defined(CONFIG_HAS_EARLYSUSPEND) || !defined(USE_EARLY_SUSPEND)
 /*----------------------------------------------------------------------------*/
 static int kxtj2_1009_suspend(struct i2c_client *client, pm_message_t msg) 
 {
@@ -1788,12 +1790,14 @@ static int kxtj2_1009_suspend(struct i2c_client *client, pm_message_t msg)
 			GSE_ERR("null pointer!!\n");
 			return -EINVAL;
 		}
+        mutex_lock(&kxtj2_1009_mutex);
 		atomic_set(&obj->suspend, 1);
 		if(err = KXTJ2_1009_SetPowerMode(obj->client, false))
 		{
 			GSE_ERR("write power control fail!!\n");
 			return;
 		}
+        mutex_unlock(&kxtj2_1009_mutex);
 
 		//sensor_power = false;      
 		KXTJ2_1009_power(obj->hw, 0);
@@ -1814,17 +1818,19 @@ static int kxtj2_1009_resume(struct i2c_client *client)
 	}
 
 	KXTJ2_1009_power(obj->hw, 1);
+    mutex_lock(&kxtj2_1009_mutex);
 	if(err = kxtj2_1009_init_client(client, 0))
 	{
 		GSE_ERR("initialize client fail!!\n");
 		return err;        
 	}
 	atomic_set(&obj->suspend, 0);
+    mutex_unlock(&kxtj2_1009_mutex);
 
 	return 0;
 }
 /*----------------------------------------------------------------------------*/
-#else /*CONFIG_HAS_EARLY_SUSPEND is defined*/
+#else //!defined(CONFIG_HAS_EARLYSUSPEND) || !defined(USE_EARLY_SUSPEND)
 /*----------------------------------------------------------------------------*/
 static void kxtj2_1009_early_suspend(struct early_suspend *h) 
 {
@@ -1874,7 +1880,7 @@ static void kxtj2_1009_late_resume(struct early_suspend *h)
 	mutex_unlock(&kxtj2_1009_mutex);
 }
 /*----------------------------------------------------------------------------*/
-#endif /*CONFIG_HAS_EARLYSUSPEND*/
+#endif //!defined(CONFIG_HAS_EARLYSUSPEND) || !defined(USE_EARLY_SUSPEND)
 /*----------------------------------------------------------------------------*/
 static int kxtj2_1009_i2c_detect(struct i2c_client *client, int kind, struct i2c_board_info *info) 
 {    
@@ -1961,7 +1967,7 @@ static int kxtj2_1009_i2c_probe(struct i2c_client *client, const struct i2c_devi
 		goto exit_kfree;
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#if defined(CONFIG_HAS_EARLYSUSPEND) && defined(USE_EARLY_SUSPEND)
 	obj->early_drv.level    = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1,
 	obj->early_drv.suspend  = kxtj2_1009_early_suspend,
 	obj->early_drv.resume   = kxtj2_1009_late_resume,    

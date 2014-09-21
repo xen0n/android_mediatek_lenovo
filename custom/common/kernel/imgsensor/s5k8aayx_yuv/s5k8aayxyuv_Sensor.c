@@ -334,11 +334,11 @@ SENSORDB("Enter S5K8AAYX_set_mirror \n");
 }
 
 
-
+#if 0
 void S5K8AAYX_set_isp_driving_current(kal_uint8 current)
 {
 }
-
+#endif
 /*****************************************************************************
  * FUNCTION
  *  S5K8AAYX_set_dummy
@@ -1096,9 +1096,9 @@ void S5K8AAYX_Initialize_Setting(void)
   {
     static const kal_uint16 addr_data_pair[] =
     {
-  //============================================================
-  // Analog Settings
-  //============================================================
+      //============================================================
+      // Analog Settings
+      //============================================================
       0x0028, 0x7000,
       0x002A, 0x0E38,
       0x0F12, 0x0476, //senHal_RegCompBiasNormSf //CDS bias
@@ -1114,112 +1114,112 @@ void S5K8AAYX_Initialize_Setting(void)
       0x002A, 0x1202,
       0x0F12, 0x0010,   //senHal_Dblr_VcoFreqMHZ
 
-  //ADLC Filter
+      //ADLC Filter
       0x002A, 0x1288,
       0x0F12, 0x020F, //gisp_dadlc_ResetFilterValue
       0x0F12, 0x1C02, //gisp_dadlc_SteadyFilterValue
       0x0F12, 0x0006, //gisp_dadlc_NResetIIrFrames
 
-  //============================================================
-  // AE
-  //============================================================
-          0x002A,0x0D40,
-          0x0F12,0x003E, // 3E TVAR_ae_BrAve
-          // For LT Calibration
-          0x002A, 0x0D46,
-          0x0F12, 0x000F,  // ae_StatMode
+      //============================================================
+      // AE
+      //============================================================
+      0x002A, 0x0D40,
+      0x0F12, 0x003E, // 3E TVAR_ae_BrAve
+      // For LT Calibration
+      0x002A, 0x0D46,
+      0x0F12, 0x000F, //ae_StatMode
+
+      0x002A, 0x0440,
+      0x0F12, 0x3410, //lt_uMaxExp_0_
+      0x002A, 0x0444,
+      0x0F12, 0x6590, //lt_uMaxExp_1_
+      0x002A, 0x0448,
+      0x0F12, 0xBB80, //lt_uMaxExp_2_
+      0x002A, 0x044C,
+      0x0F12, 0x3880, //lt_uMaxExp_3_
+      0x0F12, 0x0001,
+      0x002A, 0x0450,
+      0x0F12, 0x3410, //lt_uCapMaxExp_0_
+      0x002A, 0x0454,
+      0x0F12, 0x6590, //lt_uCapMaxExp_1_
+      0x002A, 0x0458,
+      0x0F12, 0xBB80, //lt_uCapMaxExp_2_
+      0x002A, 0x045C,
+      0x0F12, 0x3880, //lt_uCapMaxExp_3_
+      0x0F12, 0x0001,
+      0x002A, 0x0460,
+      0x0F12, 0x01B0, //lt_uMaxAnGain_0_
+      0x0F12, 0x01B0, //lt_uMaxAnGain_1_
+      0x0F12, 0x0280, //lt_uMaxAnGain_2_
+      0x0F12, 0x0800, //lt_uMaxAnGain_3_
+      0x0F12, 0x0100, //lt_uMaxDigGain
+      0x0F12, 0x3000, //lt_uMaxTotGain
+      0x002A, 0x042E,
+      0x0F12, 0x010E, //lt_uLimitHigh
+      0x0F12, 0x00F5, //lt_uLimitLow
+      0x002A, 0x0DE0,
+      0x0F12, 0x0002, //ae_Fade2BlackEnable  F2B off, F2W on
+
+
+
+      0x002A,0x0D4E,
+      0x0F12,0x0000, //ae_WeightTbl_16_0_
+      0x0F12,0x0101, //ae_WeightTbl_16_1_
+      0x0F12,0x0101, //ae_WeightTbl_16_2_
+      0x0F12,0x0000, //ae_WeightTbl_16_3_
+      0x0F12,0x0201, //ae_WeightTbl_16_4_
+      0x0F12,0x0202, //ae_WeightTbl_16_5_
+      0x0F12,0x0202, //ae_WeightTbl_16_6_
+      0x0F12,0x0102, //ae_WeightTbl_16_7_
+      0x0F12,0x0201, //ae_WeightTbl_16_8_
+      0x0F12,0x0303, //ae_WeightTbl_16_9_
+      0x0F12,0x0303, //ae_WeightTbl_16_10_
+      0x0F12,0x0102, //ae_WeightTbl_16_11_
+      0x0F12,0x0201, //ae_WeightTbl_16_12_
+      0x0F12,0x0403, //ae_WeightTbl_16_13_
+      0x0F12,0x0304, //ae_WeightTbl_16_14_
+      0x0F12,0x0102, //ae_WeightTbl_16_15_
+      0x0F12,0x0201, //ae_WeightTbl_16_16_
+      0x0F12,0x0403, //ae_WeightTbl_16_17_
+      0x0F12,0x0304, //ae_WeightTbl_16_18_
+      0x0F12,0x0102, //ae_WeightTbl_16_19_
+      0x0F12,0x0201, //ae_WeightTbl_16_20_
+      0x0F12,0x0303, //ae_WeightTbl_16_21_
+      0x0F12,0x0303, //ae_WeightTbl_16_22_
+      0x0F12,0x0102, //ae_WeightTbl_16_23_
+      0x0F12,0x0201, //ae_WeightTbl_16_24_
+      0x0F12,0x0202, //ae_WeightTbl_16_25_
+      0x0F12,0x0202, //ae_WeightTbl_16_26_
+      0x0F12,0x0102, //ae_WeightTbl_16_27_
+      0x0F12,0x0000, //ae_WeightTbl_16_28_
+      0x0F12,0x0101, //ae_WeightTbl_16_29_
+      0x0F12,0x0101, //ae_WeightTbl_16_30_
+      0x0F12,0x0000, //ae_WeightTbl_16_31_
       
-          0x002A, 0x0440,
-          0x0F12, 0x3410, //lt_uMaxExp_0_
-          0x002A, 0x0444,
-          0x0F12, 0x6590, //lt_uMaxExp_1_
-          0x002A, 0x0448,
-          0x0F12, 0xBB80, //lt_uMaxExp_2_
-          0x002A, 0x044C,
-          0x0F12, 0x3880, //lt_uMaxExp_3_
-          0x0F12, 0x0001,
-          0x002A, 0x0450,
-          0x0F12,0x3410,  // lt_uCapMaxExp_0_
-          0x002A, 0x0454,
-          0x0F12, 0x6590, //lt_uCapMaxExp_1_
-          0x002A, 0x0458,
-          0x0F12, 0xBB80, //lt_uCapMaxExp_2_
-          0x002A, 0x045C,
-          0x0F12, 0x3880, //lt_uCapMaxExp_3_
-          0x0F12, 0x0001,
-          0x002A, 0x0460,
-          0x0F12,0x01B0,  // lt_uMaxAnGain_0_
-          0x0F12,0x01B0,  // lt_uMaxAnGain_1_
-          0x0F12,0x0280,  // lt_uMaxAnGain_2_
-          0x0F12,0x0800,  // lt_uMaxAnGain_3_
-          0x0F12, 0x0100, //lt_uMaxDigGain
-          0x0F12, 0x3000, //lt_uMaxTotGain
-          0x002A, 0x042E,
-          0x0F12, 0x010E, //lt_uLimitHigh
-          0x0F12, 0x00F5, //lt_uLimitLow
-          0x002A, 0x0DE0,
-          0x0F12, 0x0002, //ae_Fade2BlackEnable  F2B off, F2W on
-
-
-
-  0x002A,0x0D4E,
-  0x0F12,0x0000, //ae_WeightTbl_16_0_
-  0x0F12,0x0101, //ae_WeightTbl_16_1_
-  0x0F12,0x0101, //ae_WeightTbl_16_2_
-  0x0F12,0x0000, //ae_WeightTbl_16_3_
-  0x0F12,0x0201, //ae_WeightTbl_16_4_
-  0x0F12,0x0202, //ae_WeightTbl_16_5_
-  0x0F12,0x0202, //ae_WeightTbl_16_6_
-  0x0F12,0x0102, //ae_WeightTbl_16_7_
-  0x0F12,0x0201, //ae_WeightTbl_16_8_
-  0x0F12,0x0303, //ae_WeightTbl_16_9_
-  0x0F12,0x0303, //ae_WeightTbl_16_10_
-  0x0F12,0x0102, //ae_WeightTbl_16_11_
-  0x0F12,0x0201, //ae_WeightTbl_16_12_
-  0x0F12,0x0403, //ae_WeightTbl_16_13_
-  0x0F12,0x0304, //ae_WeightTbl_16_14_
-  0x0F12,0x0102, //ae_WeightTbl_16_15_
-  0x0F12,0x0201, //ae_WeightTbl_16_16_
-  0x0F12,0x0403, //ae_WeightTbl_16_17_
-  0x0F12,0x0304, //ae_WeightTbl_16_18_
-  0x0F12,0x0102, //ae_WeightTbl_16_19_
-  0x0F12,0x0201, //ae_WeightTbl_16_20_
-  0x0F12,0x0303, //ae_WeightTbl_16_21_
-  0x0F12,0x0303, //ae_WeightTbl_16_22_
-  0x0F12,0x0102, //ae_WeightTbl_16_23_
-  0x0F12,0x0201, //ae_WeightTbl_16_24_
-  0x0F12,0x0202, //ae_WeightTbl_16_25_
-  0x0F12,0x0202, //ae_WeightTbl_16_26_
-  0x0F12,0x0102, //ae_WeightTbl_16_27_
-  0x0F12,0x0000, //ae_WeightTbl_16_28_
-  0x0F12,0x0101, //ae_WeightTbl_16_29_
-  0x0F12,0x0101, //ae_WeightTbl_16_30_
-  0x0F12,0x0000, //ae_WeightTbl_16_31_
-  
-
-
-  //============================================================
-  //  Illum Type calibration
-  //============================================================
-  //WRITE #SARR_IllumType_0_            0078
-  //WRITE #SARR_IllumType_1_            00C3
-  //WRITE #SARR_IllumType_2_            00E9
-  //WRITE #SARR_IllumType_3_            0128
-  //WRITE #SARR_IllumType_4_            016F
-  //WRITE #SARR_IllumType_5_            0195
-  //WRITE #SARR_IllumType_6_            01A4
-  //
-  //WRITE #SARR_IllumTypeF_0_             0100
-  //WRITE #SARR_IllumTypeF_1_             0100
-  //WRITE #SARR_IllumTypeF_2_             0110
-  //WRITE #SARR_IllumTypeF_3_             00E5
-  //WRITE #SARR_IllumTypeF_4_             0100
-  //WRITE #SARR_IllumTypeF_5_             00ED
-  //WRITE #SARR_IllumTypeF_6_             00ED
-
-  //*************************************/
-  // 05.OTP Control                     */
-  //*************************************/
+      
+      
+      //============================================================
+      //  Illum Type calibration
+      //============================================================
+      //WRITE #SARR_IllumType_0_            0078
+      //WRITE #SARR_IllumType_1_            00C3
+      //WRITE #SARR_IllumType_2_            00E9
+      //WRITE #SARR_IllumType_3_            0128
+      //WRITE #SARR_IllumType_4_            016F
+      //WRITE #SARR_IllumType_5_            0195
+      //WRITE #SARR_IllumType_6_            01A4
+      //
+      //WRITE #SARR_IllumTypeF_0_             0100
+      //WRITE #SARR_IllumTypeF_1_             0100
+      //WRITE #SARR_IllumTypeF_2_             0110
+      //WRITE #SARR_IllumTypeF_3_             00E5
+      //WRITE #SARR_IllumTypeF_4_             0100
+      //WRITE #SARR_IllumTypeF_5_             00ED
+      //WRITE #SARR_IllumTypeF_6_             00ED
+      
+      //*************************************/
+      // 05.OTP Control                     */
+      //*************************************/
       0x002A, 0x3368,
       0x0F12, 0x0000,  // Tune_TP_bReMultGainsByNvm */
       0x0F12, 0x0001, // Tune_TP_bUseNvmMultGain            2 7000336A SHORT
@@ -1227,9 +1227,9 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12, 0x0000, // Tune_TP_BlueGainOfs88              2 7000336E SHORT
       0x0F12, 0x0000, // Tune_TP_BlueGainFactor88           2 70003370 SHORT
 
-  //============================================================
-  // Lens Shading
-  //============================================================
+      //============================================================
+      // Lens Shading
+      //============================================================
       0x002A, 0x1326,
       0x0F12, 0x0000,  //gisp_gos_Enable
 
@@ -1909,60 +1909,60 @@ void S5K8AAYX_Initialize_Setting(void)
       0x002A, 0x1348,
       0x0F12, 0x0001,
 
-  //============================================================
-  // AWB
-  //============================================================
+      //============================================================
+      // AWB
+      //============================================================
 
-      0X002A,0X04C6,                                        
-      0X0F12,0X0030,	//awbb_MinNumOfChromaClassifyPatches
+      0X002A,0X04C6,
+      0X0F12,0X0030,  //awbb_MinNumOfChromaClassifyPatches
       0x002A,0x0B36,
       0x0F12,0x0005,
       0x002A,0x0B3A,
-      0x0F12,0x00DA,		//00EC,
-      0x0F12,0x02AF,		//02C1,
+      0x0F12,0x00D7,
+      0x0F12,0x02AC,
       0x002A,0x0B38,
       0x0F12,0x0010,
       0x002A,0x0AE6,
-      0x0F12,0x03F3,		//03E1,
-      0x0F12,0x0425,		//0413,
-      0x0F12,0x03C6,		//039E,
-      0x0F12,0x0428,		//0416,
-      0x0F12,0x0388,		//0367,
-      0x0F12,0x03E1,		//03F3,
-      0x0F12,0x033F,		//032D,
-      0x0F12,0x03C2,		//03C5,
-      0x0F12,0x030D,		//02FD,
-      0x0F12,0x03A1,		//038F,
-      0x0F12,0x02FA,		//02D3,
-      0x0F12,0x0377,		//0365,
-      0x0F12,0x02DD,		//02AA,
-      0x0F12,0x0350,		//033E,
-      0x0F12,0x02AF,		//028D,
-      0x0F12,0x033B,		//0310,
-      0x0F12,0x0283,		//0271,
-      0x0F12,0x030D,		//02F1,
-      0x0F12,0x026C,		//025A,
-      0x0F12,0x02E4,		//02D2,
-      0x0F12,0x025B,		//0249,
-      0x0F12,0x02CB,		//02B9,
-      0x0F12,0x024A,		//0238,
-      0x0F12,0x02B4,		//02A2,
-      0x0F12,0x022D,		//021B,
-      0x0F12,0x029B,		//0289,
-      0x0F12,0x0212,		//0200,
-      0x0F12,0x027E,		//026C,
-      0x0F12,0x020E,		//01FC,
-      0x0F12,0x0261,		//024F,
-      0x0F12,0x0230,		//021E,
-      0x0F12,0x023E,		//022C,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
-      0x0F12,0x0000,		//0000,
+      0x0F12,0x03E2,
+      0x0F12,0x041C,
+      0x0F12,0x03AC,
+      0x0F12,0x041F,
+      0x0F12,0x0371,
+      0x0F12,0x03DF,
+      0x0F12,0x0340,
+      0x0F12,0x03BF,
+      0x0F12,0x0317,
+      0x0F12,0x0398,
+      0x0F12,0x02EE,
+      0x0F12,0x037B,
+      0x0F12,0x02D1,
+      0x0F12,0x0356,
+      0x0F12,0x02AF,
+      0x0F12,0x0330,
+      0x0F12,0x0283,
+      0x0F12,0x0304,
+      0x0F12,0x0263,
+      0x0F12,0x02DF,
+      0x0F12,0x0252,
+      0x0F12,0x02C2,
+      0x0F12,0x0241,
+      0x0F12,0x02AB,
+      0x0F12,0x0224,
+      0x0F12,0x0292,
+      0x0F12,0x0209,
+      0x0F12,0x0275,
+      0x0F12,0x0205,
+      0x0F12,0x0258,
+      0x0F12,0x0227,
+      0x0F12,0x0235,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
+      0x0F12,0x0000,
       0x002A,0x0BAA,
       0x0F12,0x0006,
       0x002A,0x0BAE,
@@ -1973,16 +1973,16 @@ void S5K8AAYX_Initialize_Setting(void)
       0x002A,0x0B7A,
       0x0F12,0x038C,
       0x0F12,0x03DA,
-      0x0F12,0x030E,
+      0x0F12,0x0339,
       0x0F12,0x03E9,
-      0x0F12,0x02A2,
-      0x0F12,0x03C2,
-      0x0F12,0x0259,
-      0x0F12,0x038A,
-      0x0F12,0x0218,
-      0x0F12,0x0352,
+      0x0F12,0x02FD,
+      0x0F12,0x03A5,
+      0x0F12,0x02A4,
+      0x0F12,0x0362,
+      0x0F12,0x0223,
+      0x0F12,0x0315,
       0x0F12,0x01F4,
-      0x0F12,0x02E1,
+      0x0F12,0x02CF,
       0x0F12,0x01D7,
       0x0F12,0x028E,
       0x0F12,0x01CB,
@@ -2081,10 +2081,10 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12,0x027F,
       0x0F12,0x0214,
       0x0F12,0x02A8,
-                    
+
       0x0F12,0x0270,
       0x0F12,0x0210,
-                    
+
       0x002A,0x0C4C,
       0x0F12,0x0452,
       0x002A,0x0C58,
@@ -2113,7 +2113,7 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12,0x030E,
       0x0F12,0x034C,
       0x0F12,0x0388,
-                    
+
       0x002A,0x0CB0,
       0x0F12,0x0000,
       0x0F12,0x0000,
@@ -2121,51 +2121,51 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12,0x0064,
       0x0F12,0x0078,
       0x0F12,0x0078,
-                    
+
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0x0064,
       0x0F12,0x0064,
       0x0F12,0x0078,
       0x0F12,0x0078,
-                    
+
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0x0064,
       0x0F12,0x0064,
       0x0F12,0x0078,
       0x0F12,0x0078,
-                    
+
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0xFFC0,
       0x0F12,0xFF60,
       0x0F12,0xFF40,
-                    
+
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0xFFC0,
       0x0F12,0xFF60,
       0x0F12,0xFF40,
-                    
+
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0x0000,
       0x0F12,0xFFC0,
       0x0F12,0xFF60,
       0x0F12,0xFF40,
-                    
+
       0x002A,0x0D30,
       0x0F12,0x0002,
-                    
-      0x002A,0x3362,   //original 0x3372 solve the green phenomeon
+
+      0x002A,0x3362,
       0x0F12,0x0001,
       0x0F12,0x0000,
       0x0F12,0x0000,
-                    
-                    
+
+
       // For Outdoor,
       0x002A,0x0C86,
       0x0F12,0x0005,
@@ -2187,7 +2187,7 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12,0x0A7C,
 
 
-//from 89
+      //from 89
       0x002A,0x33A4,
       0x0F12,0x01D0,
       0x0F12,0xFFA1,
@@ -2325,547 +2325,546 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12,0x0193,
 
 
-    //============================================================
-    // Pre-Gamma
-    //============================================================
-        0x002A, 0x0538, //LutPreDemNoBin
-        0x0F12, 0x0000,
-        0x0F12, 0x001F,
-        0x0F12, 0x0035,
-        0x0F12, 0x005A,
-        0x0F12, 0x0095,
-        0x0F12, 0x00E6,
-        0x0F12, 0x0121,
-        0x0F12, 0x0139,
-        0x0F12, 0x0150,
-        0x0F12, 0x0177,
-        0x0F12, 0x019A,
-        0x0F12, 0x01BB,
-        0x0F12, 0x01DC,
-        0x0F12, 0x0219,
-        0x0F12, 0x0251,
-        0x0F12, 0x02B3,
-        0x0F12, 0x030A,
-        0x0F12, 0x035F,
-        0x0F12, 0x03B1,
-        0x0F12, 0x03FF,
-  
-        0x0F12, 0x0000, //LutPostDemNoBin
-        0x0F12, 0x0001,
-        0x0F12, 0x0001,
-        0x0F12, 0x0002,
-        0x0F12, 0x0004,
-        0x0F12, 0x000A,
-        0x0F12, 0x0012,
-        0x0F12, 0x0016,
-        0x0F12, 0x001A,
-        0x0F12, 0x0024,
-        0x0F12, 0x0031,
-        0x0F12, 0x003E,
-        0x0F12, 0x004E,
-        0x0F12, 0x0075,
-        0x0F12, 0x00A8,
-        0x0F12, 0x0126,
-        0x0F12, 0x01BE,
-        0x0F12, 0x0272,
-        0x0F12, 0x0334,
-        0x0F12, 0x03FF,
+      //============================================================
+      // Pre-Gamma
+      //============================================================
+      0x002A, 0x0538, //LutPreDemNoBin
+      0x0F12, 0x0000,
+      0x0F12, 0x001F,
+      0x0F12, 0x0035,
+      0x0F12, 0x005A,
+      0x0F12, 0x0095,
+      0x0F12, 0x00E6,
+      0x0F12, 0x0121,
+      0x0F12, 0x0139,
+      0x0F12, 0x0150,
+      0x0F12, 0x0177,
+      0x0F12, 0x019A,
+      0x0F12, 0x01BB,
+      0x0F12, 0x01DC,
+      0x0F12, 0x0219,
+      0x0F12, 0x0251,
+      0x0F12, 0x02B3,
+      0x0F12, 0x030A,
+      0x0F12, 0x035F,
+      0x0F12, 0x03B1,
+      0x0F12, 0x03FF,
 
-  //============================================================
-  // Gamma
-  //============================================================
+      0x0F12, 0x0000, //LutPostDemNoBin
+      0x0F12, 0x0001,
+      0x0F12, 0x0001,
+      0x0F12, 0x0002,
+      0x0F12, 0x0004,
+      0x0F12, 0x000A,
+      0x0F12, 0x0012,
+      0x0F12, 0x0016,
+      0x0F12, 0x001A,
+      0x0F12, 0x0024,
+      0x0F12, 0x0031,
+      0x0F12, 0x003E,
+      0x0F12, 0x004E,
+      0x0F12, 0x0075,
+      0x0F12, 0x00A8,
+      0x0F12, 0x0126,
+      0x0F12, 0x01BE,
+      0x0F12, 0x0272,
+      0x0F12, 0x0334,
+      0x0F12, 0x03FF,
 
-  0x002A,0x0498,
-  0x0F12,0x0000,
-  0x0F12,0x0002,
-  0x0F12,0x0007,
-  0x0F12,0x001D,
-  0x0F12,0x006E,
-  0x0F12,0x00D3,
-  0x0F12,0x0127,
-  0x0F12,0x014C,
-  0x0F12,0x016E,
-  0x0F12,0x01A5,
-  0x0F12,0x01D3,
-  0x0F12,0x01FB,
-  0x0F12,0x021F,
-  0x0F12,0x0260,
-  0x0F12,0x029A,
-  0x0F12,0x02F7,
-  0x0F12,0x034D,
-  0x0F12,0x0395,
-  0x0F12,0x03CE,
-  0x0F12,0x03FF,
-  0x0F12,0x0000,
-  0x0F12,0x0004,
-  0x0F12,0x000C,
-  0x0F12,0x0024,
-  0x0F12,0x006E,
-  0x0F12,0x00D1,
-  0x0F12,0x0119,
-  0x0F12,0x0139,
-  0x0F12,0x0157,
-  0x0F12,0x018E,
-  0x0F12,0x01C3,
-  0x0F12,0x01F3,
-  0x0F12,0x021F,
-  0x0F12,0x0269,
-  0x0F12,0x02A6,
-  0x0F12,0x02FF,
-  0x0F12,0x0351,
-  0x0F12,0x0395,
-  0x0F12,0x03CE,
-  0x0F12,0x03FF,
+      //============================================================
+      // Gamma
+      //============================================================
+      0x002A,0x0498,
+      0x0F12,0x0000,
+      0x0F12,0x0002,
+      0x0F12,0x0007,
+      0x0F12,0x001D,
+      0x0F12,0x006E,
+      0x0F12,0x00D3,
+      0x0F12,0x0127,
+      0x0F12,0x014C,
+      0x0F12,0x016E,
+      0x0F12,0x01A5,
+      0x0F12,0x01D3,
+      0x0F12,0x01FB,
+      0x0F12,0x021F,
+      0x0F12,0x0260,
+      0x0F12,0x029A,
+      0x0F12,0x02F7,
+      0x0F12,0x034D,
+      0x0F12,0x0395,
+      0x0F12,0x03CE,
+      0x0F12,0x03FF,
+      0x0F12,0x0000,
+      0x0F12,0x0004,
+      0x0F12,0x000C,
+      0x0F12,0x0024,
+      0x0F12,0x006E,
+      0x0F12,0x00D1,
+      0x0F12,0x0119,
+      0x0F12,0x0139,
+      0x0F12,0x0157,
+      0x0F12,0x018E,
+      0x0F12,0x01C3,
+      0x0F12,0x01F3,
+      0x0F12,0x021F,
+      0x0F12,0x0269,
+      0x0F12,0x02A6,
+      0x0F12,0x02FF,
+      0x0F12,0x0351,
+      0x0F12,0x0395,
+      0x0F12,0x03CE,
+      0x0F12,0x03FF,
+      
+      
+      
+      //============================================================
+      // AFIT
+      //============================================================
 
+      0x002A,0x3370,
+      0x0F12,0x0000,  // afit_bUseNormBrForAfit
+      
+      0x002A,0x06D4,
+      0x0F12,0x0032,  // afit_uNoiseIndInDoor_0
+      0x0F12,0x0078,  // afit_uNoiseIndInDoor_1
+      0x0F12,0x00C8,  // afit_uNoiseIndInDoor_2
+      0x0F12,0x0190,  // afit_uNoiseIndInDoor_3
+      0x0F12,0x028C,  // afit_uNoiseIndInDoor_4
+      
+      0x002A,0x0734,
+      0x0F12,0x0000, // AfitBaseVals_0__0_  Brightness[0]
+      0x0F12,0x0000, // AfitBaseVals_0__1_  Contrast[0]
+      0x0F12,0x0000, // AfitBaseVals_0__2_
+      0x0F12,0x0000, // AfitBaseVals_0__3_
+      0x0F12,0x0000, // AfitBaseVals_0__4_
+      0x0F12,0x0078, // AfitBaseVals_0__5_
+      0x0F12,0x012C, // AfitBaseVals_0__6_
+      0x0F12,0x03FF, // AfitBaseVals_0__7_
+      0x0F12,0x0014, // AfitBaseVals_0__8_
+      0x0F12,0x0064, // AfitBaseVals_0__9_
+      0x0F12,0x000C, // AfitBaseVals_0__10_
+      0x0F12,0x0010, // AfitBaseVals_0__11_
+      0x0F12,0x01E6, // AfitBaseVals_0__12_
+      0x0F12,0x0000, // AfitBaseVals_0__13_
+      0x0F12,0x0070, // AfitBaseVals_0__14_
+      0x0F12,0x01FF, // AfitBaseVals_0__15_
+      0x0F12,0x0144, // AfitBaseVals_0__16_
+      0x0F12,0x000F, // AfitBaseVals_0__17_
+      0x0F12,0x000A, // AfitBaseVals_0__18_
+      0x0F12,0x0073, // AfitBaseVals_0__19_
+      0x0F12,0x0087, // AfitBaseVals_0__20_
+      0x0F12,0x0014, // AfitBaseVals_0__21_
+      0x0F12,0x000A, // AfitBaseVals_0__22_
+      0x0F12,0x0023, // AfitBaseVals_0__23_
+      0x0F12,0x001E, // AfitBaseVals_0__24_
+      0x0F12,0x0014, // AfitBaseVals_0__25_
+      0x0F12,0x000A, // AfitBaseVals_0__26_
+      0x0F12,0x0023, // AfitBaseVals_0__27_
+      0x0F12,0x0046, // AfitBaseVals_0__28_
+      0x0F12,0x2B32, // AfitBaseVals_0__29_
+      0x0F12,0x0601, // AfitBaseVals_0__30_
+      0x0F12,0x0000, // AfitBaseVals_0__31_
+      0x0F12,0x0000, // AfitBaseVals_0__32_
+      0x0F12,0x0000, // AfitBaseVals_0__33_
+      0x0F12,0x00FF, // AfitBaseVals_0__34_
+      0x0F12,0x07FF, // AfitBaseVals_0__35_
+      0x0F12,0xFFFF, // AfitBaseVals_0__36_
+      0x0F12,0x0000, // AfitBaseVals_0__37_
+      0x0F12,0x050D, // AfitBaseVals_0__38_
+      0x0F12,0x1E80, // AfitBaseVals_0__39_
+      0x0F12,0x0000, // AfitBaseVals_0__40_
+      0x0F12,0x1408, // AfitBaseVals_0__41_
+      0x0F12,0x0214, // AfitBaseVals_0__42_
+      0x0F12,0xFF01, // AfitBaseVals_0__43_
+      0x0F12,0x180F, // AfitBaseVals_0__44_
+      0x0F12,0x0001, // AfitBaseVals_0__45_
+      0x0F12,0x0000, // AfitBaseVals_0__46_
+      0x0F12,0x8003, // AfitBaseVals_0__47_
+      0x0F12,0x0094, // AfitBaseVals_0__48_
+      0x0F12,0x0580, // AfitBaseVals_0__49_
+      0x0F12,0x0280, // AfitBaseVals_0__50_
+      0x0F12,0x0308, // AfitBaseVals_0__51_
+      0x0F12,0x3186, // AfitBaseVals_0__52_
+      0x0F12,0x5260, // AfitBaseVals_0__53_
+      0x0F12,0x0A02, // AfitBaseVals_0__54_
+      0x0F12,0x080A, // AfitBaseVals_0__55_
+      0x0F12,0x0500, // AfitBaseVals_0__56_
+      0x0F12,0x032D, // AfitBaseVals_0__57_
+      0x0F12,0x324E, // AfitBaseVals_0__58_
+      0x0F12,0x001E, // AfitBaseVals_0__59_
+      0x0F12,0x0200, // AfitBaseVals_0__60_
+      0x0F12,0x0103, // AfitBaseVals_0__61_
+      0x0F12,0x010C, // AfitBaseVals_0__62_
+      0x0F12,0x9696, // AfitBaseVals_0__63_
+      0x0F12,0x4646, // AfitBaseVals_0__64_
+      0x0F12,0x0802, // AfitBaseVals_0__65_
+      0x0F12,0x0802, // AfitBaseVals_0__66_
+      0x0F12,0x0000, // AfitBaseVals_0__67_
+      0x0F12,0x030F, // AfitBaseVals_0__68_
+      0x0F12,0x3202, // AfitBaseVals_0__69_
+      0x0F12,0x0F1E, // AfitBaseVals_0__70_
+      0x0F12,0x020F, // AfitBaseVals_0__71_
+      0x0F12,0x0103, // AfitBaseVals_0__72_
+      0x0F12,0x010C, // AfitBaseVals_0__73_
+      0x0F12,0x9696, // AfitBaseVals_0__74_
+      0x0F12,0x4646, // AfitBaseVals_0__75_
+      0x0F12,0x0802, // AfitBaseVals_0__76_
+      0x0F12,0x0802, // AfitBaseVals_0__77_
+      0x0F12,0x0000, // AfitBaseVals_0__78_
+      0x0F12,0x030F, // AfitBaseVals_0__79_
+      0x0F12,0x3202, // AfitBaseVals_0__80_
+      0x0F12,0x0F1E, // AfitBaseVals_0__81_
+      0x0F12,0x020F, // AfitBaseVals_0__82_
+      0x0F12,0x0003, // AfitBaseVals_0__83_
+      0x0F12,0x0000, // AfitBaseVals_1__0_  Brightness[1]
+      0x0F12,0x0000, // AfitBaseVals_1__1_  Contrast[1]
+      0x0F12,0x0000, // AfitBaseVals_1__2_
+      0x0F12,0x0000, // AfitBaseVals_1__3_
+      0x0F12,0x0000, // AfitBaseVals_1__4_
+      0x0F12,0x006A, // AfitBaseVals_1__5_
+      0x0F12,0x012C, // AfitBaseVals_1__6_
+      0x0F12,0x03FF, // AfitBaseVals_1__7_
+      0x0F12,0x0014, // AfitBaseVals_1__8_
+      0x0F12,0x0064, // AfitBaseVals_1__9_
+      0x0F12,0x000C, // AfitBaseVals_1__10_
+      0x0F12,0x0010, // AfitBaseVals_1__11_
+      0x0F12,0x01E6, // AfitBaseVals_1__12_
+      0x0F12,0x03FF, // AfitBaseVals_1__13_
+      0x0F12,0x0070, // AfitBaseVals_1__14_
+      0x0F12,0x007D, // AfitBaseVals_1__15_
+      0x0F12,0x0064, // AfitBaseVals_1__16_
+      0x0F12,0x0014, // AfitBaseVals_1__17_
+      0x0F12,0x000A, // AfitBaseVals_1__18_
+      0x0F12,0x0073, // AfitBaseVals_1__19_
+      0x0F12,0x0087, // AfitBaseVals_1__20_
+      0x0F12,0x0014, // AfitBaseVals_1__21_
+      0x0F12,0x000A, // AfitBaseVals_1__22_
+      0x0F12,0x0023, // AfitBaseVals_1__23_
+      0x0F12,0x001E, // AfitBaseVals_1__24_
+      0x0F12,0x0014, // AfitBaseVals_1__25_
+      0x0F12,0x000A, // AfitBaseVals_1__26_
+      0x0F12,0x0023, // AfitBaseVals_1__27_
+      0x0F12,0x001E, // AfitBaseVals_1__28_
+      0x0F12,0x2B32, // AfitBaseVals_1__29_
+      0x0F12,0x0601, // AfitBaseVals_1__30_
+      0x0F12,0x0000, // AfitBaseVals_1__31_
+      0x0F12,0x0000, // AfitBaseVals_1__32_
+      0x0F12,0x0000, // AfitBaseVals_1__33_
+      0x0F12,0x00FF, // AfitBaseVals_1__34_
+      0x0F12,0x07FF, // AfitBaseVals_1__35_
+      0x0F12,0xFFFF, // AfitBaseVals_1__36_
+      0x0F12,0x0000, // AfitBaseVals_1__37_
+      0x0F12,0x050D, // AfitBaseVals_1__38_
+      0x0F12,0x1E80, // AfitBaseVals_1__39_
+      0x0F12,0x0000, // AfitBaseVals_1__40_
+      0x0F12,0x1408, // AfitBaseVals_1__41_
+      0x0F12,0x0214, // AfitBaseVals_1__42_
+      0x0F12,0xFF01, // AfitBaseVals_1__43_
+      0x0F12,0x180F, // AfitBaseVals_1__44_
+      0x0F12,0x0002, // AfitBaseVals_1__45_
+      0x0F12,0x0000, // AfitBaseVals_1__46_
+      0x0F12,0x8003, // AfitBaseVals_1__47_
+      0x0F12,0x0080, // AfitBaseVals_1__48_
+      0x0F12,0x0080, // AfitBaseVals_1__49_
+      0x0F12,0x0280, // AfitBaseVals_1__50_
+      0x0F12,0x0308, // AfitBaseVals_1__51_
+      0x0F12,0x1E65, // AfitBaseVals_1__52_
+      0x0F12,0x1A24, // AfitBaseVals_1__53_
+      0x0F12,0x0A03, // AfitBaseVals_1__54_
+      0x0F12,0x080A, // AfitBaseVals_1__55_
+      0x0F12,0x0500, // AfitBaseVals_1__56_
+      0x0F12,0x032D, // AfitBaseVals_1__57_
+      0x0F12,0x324D, // AfitBaseVals_1__58_
+      0x0F12,0x001E, // AfitBaseVals_1__59_
+      0x0F12,0x0200, // AfitBaseVals_1__60_
+      0x0F12,0x0103, // AfitBaseVals_1__61_
+      0x0F12,0x010C, // AfitBaseVals_1__62_
+      0x0F12,0x9696, // AfitBaseVals_1__63_
+      0x0F12,0x2F34, // AfitBaseVals_1__64_
+      0x0F12,0x0504, // AfitBaseVals_1__65_
+      0x0F12,0x080F, // AfitBaseVals_1__66_
+      0x0F12,0x0000, // AfitBaseVals_1__67_
+      0x0F12,0x030F, // AfitBaseVals_1__68_
+      0x0F12,0x3208, // AfitBaseVals_1__69_
+      0x0F12,0x0F1E, // AfitBaseVals_1__70_
+      0x0F12,0x020F, // AfitBaseVals_1__71_
+      0x0F12,0x0103, // AfitBaseVals_1__72_
+      0x0F12,0x010C, // AfitBaseVals_1__73_
+      0x0F12,0x9696, // AfitBaseVals_1__74_
+      0x0F12,0x1414, // AfitBaseVals_1__75_
+      0x0F12,0x0504, // AfitBaseVals_1__76_
+      0x0F12,0x080F, // AfitBaseVals_1__77_
+      0x0F12,0x0000, // AfitBaseVals_1__78_
+      0x0F12,0x030F, // AfitBaseVals_1__79_
+      0x0F12,0x3208, // AfitBaseVals_1__80_
+      0x0F12,0x0F1E, // AfitBaseVals_1__81_
+      0x0F12,0x020F, // AfitBaseVals_1__82_
+      0x0F12,0x0003, // AfitBaseVals_1__83_
+      0x0F12,0x0000, // AfitBaseVals_2__0_  Brightness[2]
+      0x0F12,0x0000, // AfitBaseVals_2__1_  Contrast[2]
+      0x0F12,0x0000, // AfitBaseVals_2__2_
+      0x0F12,0x0000, // AfitBaseVals_2__3_
+      0x0F12,0x0000, // AfitBaseVals_2__4_
+      0x0F12,0x0064, // AfitBaseVals_2__5_
+      0x0F12,0x012C, // AfitBaseVals_2__6_
+      0x0F12,0x03FF, // AfitBaseVals_2__7_
+      0x0F12,0x0014, // AfitBaseVals_2__8_
+      0x0F12,0x0064, // AfitBaseVals_2__9_
+      0x0F12,0x000C, // AfitBaseVals_2__10_
+      0x0F12,0x0010, // AfitBaseVals_2__11_
+      0x0F12,0x01E6, // AfitBaseVals_2__12_
+      0x0F12,0x03FF, // AfitBaseVals_2__13_
+      0x0F12,0x0070, // AfitBaseVals_2__14_
+      0x0F12,0x007D, // AfitBaseVals_2__15_
+      0x0F12,0x0064, // AfitBaseVals_2__16_
+      0x0F12,0x0096, // AfitBaseVals_2__17_
+      0x0F12,0x0096, // AfitBaseVals_2__18_
+      0x0F12,0x0073, // AfitBaseVals_2__19_
+      0x0F12,0x0087, // AfitBaseVals_2__20_
+      0x0F12,0x0014, // AfitBaseVals_2__21_
+      0x0F12,0x0019, // AfitBaseVals_2__22_
+      0x0F12,0x0023, // AfitBaseVals_2__23_
+      0x0F12,0x001E, // AfitBaseVals_2__24_
+      0x0F12,0x0014, // AfitBaseVals_2__25_
+      0x0F12,0x0019, // AfitBaseVals_2__26_
+      0x0F12,0x0023, // AfitBaseVals_2__27_
+      0x0F12,0x001E, // AfitBaseVals_2__28_
+      0x0F12,0x2B32, // AfitBaseVals_2__29_
+      0x0F12,0x0601, // AfitBaseVals_2__30_
+      0x0F12,0x0000, // AfitBaseVals_2__31_
+      0x0F12,0x0000, // AfitBaseVals_2__32_
+      0x0F12,0x0000, // AfitBaseVals_2__33_
+      0x0F12,0x00FF, // AfitBaseVals_2__34_
+      0x0F12,0x07FF, // AfitBaseVals_2__35_
+      0x0F12,0xFFFF, // AfitBaseVals_2__36_
+      0x0F12,0x0000, // AfitBaseVals_2__37_
+      0x0F12,0x050D, // AfitBaseVals_2__38_
+      0x0F12,0x1E80, // AfitBaseVals_2__39_
+      0x0F12,0x0000, // AfitBaseVals_2__40_
+      0x0F12,0x0A08, // AfitBaseVals_2__41_
+      0x0F12,0x0200, // AfitBaseVals_2__42_
+      0x0F12,0xFF01, // AfitBaseVals_2__43_
+      0x0F12,0x180F, // AfitBaseVals_2__44_
+      0x0F12,0x0002, // AfitBaseVals_2__45_
+      0x0F12,0x0000, // AfitBaseVals_2__46_
+      0x0F12,0x8003, // AfitBaseVals_2__47_
+      0x0F12,0x0080, // AfitBaseVals_2__48_
+      0x0F12,0x0080, // AfitBaseVals_2__49_
+      0x0F12,0x0280, // AfitBaseVals_2__50_
+      0x0F12,0x0208, // AfitBaseVals_2__51_
+      0x0F12,0x1E4B, // AfitBaseVals_2__52_
+      0x0F12,0x1A24, // AfitBaseVals_2__53_
+      0x0F12,0x0A05, // AfitBaseVals_2__54_
+      0x0F12,0x080A, // AfitBaseVals_2__55_
+      0x0F12,0x0500, // AfitBaseVals_2__56_
+      0x0F12,0x032D, // AfitBaseVals_2__57_
+      0x0F12,0x324D, // AfitBaseVals_2__58_
+      0x0F12,0x001E, // AfitBaseVals_2__59_
+      0x0F12,0x0200, // AfitBaseVals_2__60_
+      0x0F12,0x0103, // AfitBaseVals_2__61_
+      0x0F12,0x010C, // AfitBaseVals_2__62_
+      0x0F12,0x9696, // AfitBaseVals_2__63_
+      0x0F12,0x1E23, // AfitBaseVals_2__64_
+      0x0F12,0x0505, // AfitBaseVals_2__65_
+      0x0F12,0x080F, // AfitBaseVals_2__66_
+      0x0F12,0x0000, // AfitBaseVals_2__67_
+      0x0F12,0x030F, // AfitBaseVals_2__68_
+      0x0F12,0x3208, // AfitBaseVals_2__69_
+      0x0F12,0x0F1E, // AfitBaseVals_2__70_
+      0x0F12,0x020F, // AfitBaseVals_2__71_
+      0x0F12,0x0103, // AfitBaseVals_2__72_
+      0x0F12,0x010C, // AfitBaseVals_2__73_
+      0x0F12,0x9696, // AfitBaseVals_2__74_
+      0x0F12,0x1E23, // AfitBaseVals_2__75_
+      0x0F12,0x0505, // AfitBaseVals_2__76_
+      0x0F12,0x080F, // AfitBaseVals_2__77_
+      0x0F12,0x0000, // AfitBaseVals_2__78_
+      0x0F12,0x030F, // AfitBaseVals_2__79_
+      0x0F12,0x3208, // AfitBaseVals_2__80_
+      0x0F12,0x0F1E, // AfitBaseVals_2__81_
+      0x0F12,0x020F, // AfitBaseVals_2__82_
+      0x0F12,0x0003, // AfitBaseVals_2__83_
+      0x0F12,0x0000, // AfitBaseVals_3__0_  Brightness[3]
+      0x0F12,0x0018, // 0000 AfitBaseVals_3__1_  Contrast[3]
+      0x0F12,0x0000, // AfitBaseVals_3__2_
+      0x0F12,0x0000, // AfitBaseVals_3__3_
+      0x0F12,0x0000, // AfitBaseVals_3__4_
+      0x0F12,0x0064, // AfitBaseVals_3__5_
+      0x0F12,0x012C, // AfitBaseVals_3__6_
+      0x0F12,0x03FF, // AfitBaseVals_3__7_
+      0x0F12,0x0014, // AfitBaseVals_3__8_
+      0x0F12,0x0064, // AfitBaseVals_3__9_
+      0x0F12,0x000C, // AfitBaseVals_3__10_
+      0x0F12,0x0010, // AfitBaseVals_3__11_
+      0x0F12,0x01E6, // AfitBaseVals_3__12_
+      0x0F12,0x0000, // AfitBaseVals_3__13_
+      0x0F12,0x0070, // AfitBaseVals_3__14_
+      0x0F12,0x007D, // AfitBaseVals_3__15_
+      0x0F12,0x0064, // AfitBaseVals_3__16_
+      0x0F12,0x0096, // AfitBaseVals_3__17_
+      0x0F12,0x0096, // AfitBaseVals_3__18_
+      0x0F12,0x0073, // AfitBaseVals_3__19_
+      0x0F12,0x009F, // AfitBaseVals_3__20_
+      0x0F12,0x0028, // AfitBaseVals_3__21_
+      0x0F12,0x0028, // AfitBaseVals_3__22_
+      0x0F12,0x0023, // AfitBaseVals_3__23_
+      0x0F12,0x0037, // AfitBaseVals_3__24_
+      0x0F12,0x0028, // AfitBaseVals_3__25_
+      0x0F12,0x0028, // AfitBaseVals_3__26_
+      0x0F12,0x0023, // AfitBaseVals_3__27_
+      0x0F12,0x0037, // AfitBaseVals_3__28_
+      0x0F12,0x2B32, // AfitBaseVals_3__29_
+      0x0F12,0x0601, // AfitBaseVals_3__30_
+      0x0F12,0x0000, // AfitBaseVals_3__31_
+      0x0F12,0x0000, // AfitBaseVals_3__32_
+      0x0F12,0x0000, // AfitBaseVals_3__33_
+      0x0F12,0x00FF, // AfitBaseVals_3__34_
+      0x0F12,0x07A0, // AfitBaseVals_3__35_
+      0x0F12,0xFFFF, // AfitBaseVals_3__36_
+      0x0F12,0x0000, // AfitBaseVals_3__37_
+      0x0F12,0x050D, // AfitBaseVals_3__38_
+      0x0F12,0x1E80, // AfitBaseVals_3__39_
+      0x0F12,0x0000, // AfitBaseVals_3__40_
+      0x0F12,0x0A08, // AfitBaseVals_3__41_
+      0x0F12,0x0200, // AfitBaseVals_3__42_
+      0x0F12,0xFF01, // AfitBaseVals_3__43_
+      0x0F12,0x180F, // AfitBaseVals_3__44_
+      0x0F12,0x0001, // AfitBaseVals_3__45_
+      0x0F12,0x0000, // AfitBaseVals_3__46_
+      0x0F12,0x8003, // AfitBaseVals_3__47_
+      0x0F12,0x0080, // AfitBaseVals_3__48_
+      0x0F12,0x0080, // AfitBaseVals_3__49_
+      0x0F12,0x0280, // AfitBaseVals_3__50_
+      0x0F12,0x0108, // AfitBaseVals_3__51_
+      0x0F12,0x1E32, // AfitBaseVals_3__52_
+      0x0F12,0x1A24, // AfitBaseVals_3__53_
+      0x0F12,0x0A05, // AfitBaseVals_3__54_
+      0x0F12,0x080A, // AfitBaseVals_3__55_
+      0x0F12,0x0000, // AfitBaseVals_3__56_
+      0x0F12,0x0328, // AfitBaseVals_3__57_
+      0x0F12,0x324C, // AfitBaseVals_3__58_
+      0x0F12,0x001E, // AfitBaseVals_3__59_
+      0x0F12,0x0200, // AfitBaseVals_3__60_
+      0x0F12,0x0103, // AfitBaseVals_3__61_
+      0x0F12,0x010C, // AfitBaseVals_3__62_
+      0x0F12,0x9696, // AfitBaseVals_3__63_
+      0x0F12,0x0F0F, // AfitBaseVals_3__64_
+      0x0F12,0x0307, // AfitBaseVals_3__65_
+      0x0F12,0x080F, // AfitBaseVals_3__66_
+      0x0F12,0x0000, // AfitBaseVals_3__67_
+      0x0F12,0x030F, // AfitBaseVals_3__68_
+      0x0F12,0x3208, // AfitBaseVals_3__69_
+      0x0F12,0x0F1E, // AfitBaseVals_3__70_
+      0x0F12,0x020F, // AfitBaseVals_3__71_
+      0x0F12,0x0103, // AfitBaseVals_3__72_
+      0x0F12,0x010C, // AfitBaseVals_3__73_
+      0x0F12,0x9696, // AfitBaseVals_3__74_
+      0x0F12,0x0F0F, // AfitBaseVals_3__75_
+      0x0F12,0x0307, // AfitBaseVals_3__76_
+      0x0F12,0x080F, // AfitBaseVals_3__77_
+      0x0F12,0x0000, // AfitBaseVals_3__78_
+      0x0F12,0x030F, // AfitBaseVals_3__79_
+      0x0F12,0x3208, // AfitBaseVals_3__80_
+      0x0F12,0x0F1E, // AfitBaseVals_3__81_
+      0x0F12,0x020F, // AfitBaseVals_3__82_
+      0x0F12,0x0003, // AfitBaseVals_3__83_
+      0x0F12,0x0000, // AfitBaseVals_4__0_  Brightness[4]
+      0x0F12,0x0014, // 0000 AfitBaseVals_4__1_  Contrast[4]
+      0x0F12,0x0000, // AfitBaseVals_4__2_
+      0x0F12,0x0000, // AfitBaseVals_4__3_
+      0x0F12,0x0000, // AfitBaseVals_4__4_
+      0x0F12,0x0028, // AfitBaseVals_4__5_
+      0x0F12,0x012C, // AfitBaseVals_4__6_
+      0x0F12,0x03FF, // AfitBaseVals_4__7_
+      0x0F12,0x0014, // AfitBaseVals_4__8_
+      0x0F12,0x0064, // AfitBaseVals_4__9_
+      0x0F12,0x000C, // AfitBaseVals_4__10_
+      0x0F12,0x0010, // AfitBaseVals_4__11_
+      0x0F12,0x01E6, // AfitBaseVals_4__12_
+      0x0F12,0x0000, // AfitBaseVals_4__13_
+      0x0F12,0x0070, // AfitBaseVals_4__14_
+      0x0F12,0x0087, // AfitBaseVals_4__15_
+      0x0F12,0x0073, // AfitBaseVals_4__16_
+      0x0F12,0x0096, // AfitBaseVals_4__17_
+      0x0F12,0x0096, // AfitBaseVals_4__18_
+      0x0F12,0x0073, // AfitBaseVals_4__19_
+      0x0F12,0x00B4, // AfitBaseVals_4__20_
+      0x0F12,0x0028, // AfitBaseVals_4__21_
+      0x0F12,0x0028, // AfitBaseVals_4__22_
+      0x0F12,0x0023, // AfitBaseVals_4__23_
+      0x0F12,0x0046, // AfitBaseVals_4__24_
+      0x0F12,0x0028, // AfitBaseVals_4__25_
+      0x0F12,0x0028, // AfitBaseVals_4__26_
+      0x0F12,0x0023, // AfitBaseVals_4__27_
+      0x0F12,0x0046, // AfitBaseVals_4__28_
+      0x0F12,0x2B23, // AfitBaseVals_4__29_
+      0x0F12,0x0601, // AfitBaseVals_4__30_
+      0x0F12,0x0000, // AfitBaseVals_4__31_
+      0x0F12,0x0000, // AfitBaseVals_4__32_
+      0x0F12,0x0000, // AfitBaseVals_4__33_
+      0x0F12,0x00FF, // AfitBaseVals_4__34_
+      0x0F12,0x0B84, // AfitBaseVals_4__35_
+      0x0F12,0xFFFF, // AfitBaseVals_4__36_
+      0x0F12,0x0000, // AfitBaseVals_4__37_
+      0x0F12,0x050D, // AfitBaseVals_4__38_
+      0x0F12,0x1E80, // AfitBaseVals_4__39_
+      0x0F12,0x0000, // AfitBaseVals_4__40_
+      0x0F12,0x0A08, // AfitBaseVals_4__41_
+      0x0F12,0x0200, // AfitBaseVals_4__42_
+      0x0F12,0xFF01, // AfitBaseVals_4__43_
+      0x0F12,0x180F, // AfitBaseVals_4__44_
+      0x0F12,0x0001, // AfitBaseVals_4__45_
+      0x0F12,0x0000, // AfitBaseVals_4__46_
+      0x0F12,0x8003, // AfitBaseVals_4__47_
+      0x0F12,0x0080, // AfitBaseVals_4__48_
+      0x0F12,0x0080, // AfitBaseVals_4__49_
+      0x0F12,0x0280, // AfitBaseVals_4__50_
+      0x0F12,0x0108, // AfitBaseVals_4__51_
+      0x0F12,0x1E1E, // AfitBaseVals_4__52_
+      0x0F12,0x1419, // AfitBaseVals_4__53_
+      0x0F12,0x0A0A, // AfitBaseVals_4__54_
+      0x0F12,0x0800, // AfitBaseVals_4__55_
+      0x0F12,0x0000, // AfitBaseVals_4__56_
+      0x0F12,0x0328, // AfitBaseVals_4__57_
+      0x0F12,0x324C, // AfitBaseVals_4__58_
+      0x0F12,0x001E, // AfitBaseVals_4__59_
+      0x0F12,0x0200, // AfitBaseVals_4__60_
+      0x0F12,0x0103, // AfitBaseVals_4__61_
+      0x0F12,0x010C, // AfitBaseVals_4__62_
+      0x0F12,0x6464, // AfitBaseVals_4__63_
+      0x0F12,0x0F0F, // AfitBaseVals_4__64_
+      0x0F12,0x0307, // AfitBaseVals_4__65_
+      0x0F12,0x080F, // AfitBaseVals_4__66_
+      0x0F12,0x0000, // AfitBaseVals_4__67_
+      0x0F12,0x030F, // AfitBaseVals_4__68_
+      0x0F12,0x3208, // AfitBaseVals_4__69_
+      0x0F12,0x0F1E, // AfitBaseVals_4__70_
+      0x0F12,0x020F, // AfitBaseVals_4__71_
+      0x0F12,0x0103, // AfitBaseVals_4__72_
+      0x0F12,0x010C, // AfitBaseVals_4__73_
+      0x0F12,0x6464, // AfitBaseVals_4__74_
+      0x0F12,0x0F0F, // AfitBaseVals_4__75_
+      0x0F12,0x0307, // AfitBaseVals_4__76_
+      0x0F12,0x080F, // AfitBaseVals_4__77_
+      0x0F12,0x0000, // AfitBaseVals_4__78_
+      0x0F12,0x030F, // AfitBaseVals_4__79_
+      0x0F12,0x3208, // AfitBaseVals_4__80_
+      0x0F12,0x0F1E, // AfitBaseVals_4__81_
+      0x0F12,0x020F, // AfitBaseVals_4__82_
+      0x0F12,0x0003, // AfitBaseVals_4__83_
+      0x0F12,0x7F5E,  // ConstAfitBaseVals_0_
+      0x0F12,0xFEEE,  // ConstAfitBaseVals_1_
+      0x0F12,0xD9B7,  // ConstAfitBaseVals_2_
+      0x0F12,0x0472,  // ConstAfitBaseVals_3_
+      0x0F12,0x0001,  // ConstAfitBaseVals_4_
 
-
-  //============================================================
-  // AFIT
-  //============================================================
-
-0x002A,0x3370,
-0x0F12,0x0000,  // afit_bUseNormBrForAfit
-
-0x002A,0x06D4,
-0x0F12,0x0032,  // afit_uNoiseIndInDoor_0
-0x0F12,0x0078,  // afit_uNoiseIndInDoor_1
-0x0F12,0x00C8,  // afit_uNoiseIndInDoor_2
-0x0F12,0x0190,  // afit_uNoiseIndInDoor_3
-0x0F12,0x028C,  // afit_uNoiseIndInDoor_4
-
-0x002A,0x0734,
-0x0F12,0x0000, // AfitBaseVals_0__0_  Brightness[0]
-0x0F12,0x0000, // AfitBaseVals_0__1_  Contrast[0]
-0x0F12,0x0000, // AfitBaseVals_0__2_
-0x0F12,0x0000, // AfitBaseVals_0__3_
-0x0F12,0x0000, // AfitBaseVals_0__4_
-0x0F12,0x0078, // AfitBaseVals_0__5_
-0x0F12,0x012C, // AfitBaseVals_0__6_
-0x0F12,0x03FF, // AfitBaseVals_0__7_
-0x0F12,0x0014, // AfitBaseVals_0__8_
-0x0F12,0x0064, // AfitBaseVals_0__9_
-0x0F12,0x000C, // AfitBaseVals_0__10_
-0x0F12,0x0010, // AfitBaseVals_0__11_
-0x0F12,0x01E6, // AfitBaseVals_0__12_
-0x0F12,0x0000, // AfitBaseVals_0__13_
-0x0F12,0x0070, // AfitBaseVals_0__14_
-0x0F12,0x01FF, // AfitBaseVals_0__15_
-0x0F12,0x0144, // AfitBaseVals_0__16_
-0x0F12,0x000F, // AfitBaseVals_0__17_
-0x0F12,0x000A, // AfitBaseVals_0__18_
-0x0F12,0x0073, // AfitBaseVals_0__19_
-0x0F12,0x0087, // AfitBaseVals_0__20_
-0x0F12,0x0014, // AfitBaseVals_0__21_
-0x0F12,0x000A, // AfitBaseVals_0__22_
-0x0F12,0x0023, // AfitBaseVals_0__23_
-0x0F12,0x001E, // AfitBaseVals_0__24_
-0x0F12,0x0014, // AfitBaseVals_0__25_
-0x0F12,0x000A, // AfitBaseVals_0__26_
-0x0F12,0x0023, // AfitBaseVals_0__27_
-0x0F12,0x0046, // AfitBaseVals_0__28_
-0x0F12,0x2B32, // AfitBaseVals_0__29_
-0x0F12,0x0601, // AfitBaseVals_0__30_
-0x0F12,0x0000, // AfitBaseVals_0__31_
-0x0F12,0x0000, // AfitBaseVals_0__32_
-0x0F12,0x0000, // AfitBaseVals_0__33_
-0x0F12,0x00FF, // AfitBaseVals_0__34_
-0x0F12,0x07FF, // AfitBaseVals_0__35_
-0x0F12,0xFFFF, // AfitBaseVals_0__36_
-0x0F12,0x0000, // AfitBaseVals_0__37_
-0x0F12,0x050D, // AfitBaseVals_0__38_
-0x0F12,0x1E80, // AfitBaseVals_0__39_
-0x0F12,0x0000, // AfitBaseVals_0__40_
-0x0F12,0x1408, // AfitBaseVals_0__41_
-0x0F12,0x0214, // AfitBaseVals_0__42_
-0x0F12,0xFF01, // AfitBaseVals_0__43_
-0x0F12,0x180F, // AfitBaseVals_0__44_
-0x0F12,0x0001, // AfitBaseVals_0__45_
-0x0F12,0x0000, // AfitBaseVals_0__46_
-0x0F12,0x8003, // AfitBaseVals_0__47_
-0x0F12,0x0094, // AfitBaseVals_0__48_
-0x0F12,0x0580, // AfitBaseVals_0__49_
-0x0F12,0x0280, // AfitBaseVals_0__50_
-0x0F12,0x0308, // AfitBaseVals_0__51_
-0x0F12,0x3186, // AfitBaseVals_0__52_
-0x0F12,0x5260, // AfitBaseVals_0__53_
-0x0F12,0x0A02, // AfitBaseVals_0__54_
-0x0F12,0x080A, // AfitBaseVals_0__55_
-0x0F12,0x0500, // AfitBaseVals_0__56_
-0x0F12,0x032D, // AfitBaseVals_0__57_
-0x0F12,0x324E, // AfitBaseVals_0__58_
-0x0F12,0x001E, // AfitBaseVals_0__59_
-0x0F12,0x0200, // AfitBaseVals_0__60_
-0x0F12,0x0103, // AfitBaseVals_0__61_
-0x0F12,0x010C, // AfitBaseVals_0__62_
-0x0F12,0x9696, // AfitBaseVals_0__63_
-0x0F12,0x4646, // AfitBaseVals_0__64_
-0x0F12,0x0802, // AfitBaseVals_0__65_
-0x0F12,0x0802, // AfitBaseVals_0__66_
-0x0F12,0x0000, // AfitBaseVals_0__67_
-0x0F12,0x030F, // AfitBaseVals_0__68_
-0x0F12,0x3202, // AfitBaseVals_0__69_
-0x0F12,0x0F1E, // AfitBaseVals_0__70_
-0x0F12,0x020F, // AfitBaseVals_0__71_
-0x0F12,0x0103, // AfitBaseVals_0__72_
-0x0F12,0x010C, // AfitBaseVals_0__73_
-0x0F12,0x9696, // AfitBaseVals_0__74_
-0x0F12,0x4646, // AfitBaseVals_0__75_
-0x0F12,0x0802, // AfitBaseVals_0__76_
-0x0F12,0x0802, // AfitBaseVals_0__77_
-0x0F12,0x0000, // AfitBaseVals_0__78_
-0x0F12,0x030F, // AfitBaseVals_0__79_
-0x0F12,0x3202, // AfitBaseVals_0__80_
-0x0F12,0x0F1E, // AfitBaseVals_0__81_
-0x0F12,0x020F, // AfitBaseVals_0__82_
-0x0F12,0x0003, // AfitBaseVals_0__83_
-0x0F12,0x0000, // AfitBaseVals_1__0_  Brightness[1]
-0x0F12,0x0000, // AfitBaseVals_1__1_  Contrast[1]
-0x0F12,0x0000, // AfitBaseVals_1__2_
-0x0F12,0x0000, // AfitBaseVals_1__3_
-0x0F12,0x0000, // AfitBaseVals_1__4_
-0x0F12,0x006A, // AfitBaseVals_1__5_
-0x0F12,0x012C, // AfitBaseVals_1__6_
-0x0F12,0x03FF, // AfitBaseVals_1__7_
-0x0F12,0x0014, // AfitBaseVals_1__8_
-0x0F12,0x0064, // AfitBaseVals_1__9_
-0x0F12,0x000C, // AfitBaseVals_1__10_
-0x0F12,0x0010, // AfitBaseVals_1__11_
-0x0F12,0x01E6, // AfitBaseVals_1__12_
-0x0F12,0x03FF, // AfitBaseVals_1__13_
-0x0F12,0x0070, // AfitBaseVals_1__14_
-0x0F12,0x007D, // AfitBaseVals_1__15_
-0x0F12,0x0064, // AfitBaseVals_1__16_
-0x0F12,0x0014, // AfitBaseVals_1__17_
-0x0F12,0x000A, // AfitBaseVals_1__18_
-0x0F12,0x0073, // AfitBaseVals_1__19_
-0x0F12,0x0087, // AfitBaseVals_1__20_
-0x0F12,0x0014, // AfitBaseVals_1__21_
-0x0F12,0x000A, // AfitBaseVals_1__22_
-0x0F12,0x0023, // AfitBaseVals_1__23_
-0x0F12,0x001E, // AfitBaseVals_1__24_
-0x0F12,0x0014, // AfitBaseVals_1__25_
-0x0F12,0x000A, // AfitBaseVals_1__26_
-0x0F12,0x0023, // AfitBaseVals_1__27_
-0x0F12,0x001E, // AfitBaseVals_1__28_
-0x0F12,0x2B32, // AfitBaseVals_1__29_
-0x0F12,0x0601, // AfitBaseVals_1__30_
-0x0F12,0x0000, // AfitBaseVals_1__31_
-0x0F12,0x0000, // AfitBaseVals_1__32_
-0x0F12,0x0000, // AfitBaseVals_1__33_
-0x0F12,0x00FF, // AfitBaseVals_1__34_
-0x0F12,0x07FF, // AfitBaseVals_1__35_
-0x0F12,0xFFFF, // AfitBaseVals_1__36_
-0x0F12,0x0000, // AfitBaseVals_1__37_
-0x0F12,0x050D, // AfitBaseVals_1__38_
-0x0F12,0x1E80, // AfitBaseVals_1__39_
-0x0F12,0x0000, // AfitBaseVals_1__40_
-0x0F12,0x1408, // AfitBaseVals_1__41_
-0x0F12,0x0214, // AfitBaseVals_1__42_
-0x0F12,0xFF01, // AfitBaseVals_1__43_
-0x0F12,0x180F, // AfitBaseVals_1__44_
-0x0F12,0x0002, // AfitBaseVals_1__45_
-0x0F12,0x0000, // AfitBaseVals_1__46_
-0x0F12,0x8003, // AfitBaseVals_1__47_
-0x0F12,0x0080, // AfitBaseVals_1__48_
-0x0F12,0x0080, // AfitBaseVals_1__49_
-0x0F12,0x0280, // AfitBaseVals_1__50_
-0x0F12,0x0308, // AfitBaseVals_1__51_
-0x0F12,0x1E65, // AfitBaseVals_1__52_
-0x0F12,0x1A24, // AfitBaseVals_1__53_
-0x0F12,0x0A03, // AfitBaseVals_1__54_
-0x0F12,0x080A, // AfitBaseVals_1__55_
-0x0F12,0x0500, // AfitBaseVals_1__56_
-0x0F12,0x032D, // AfitBaseVals_1__57_
-0x0F12,0x324D, // AfitBaseVals_1__58_
-0x0F12,0x001E, // AfitBaseVals_1__59_
-0x0F12,0x0200, // AfitBaseVals_1__60_
-0x0F12,0x0103, // AfitBaseVals_1__61_
-0x0F12,0x010C, // AfitBaseVals_1__62_
-0x0F12,0x9696, // AfitBaseVals_1__63_
-0x0F12,0x2F34, // AfitBaseVals_1__64_
-0x0F12,0x0504, // AfitBaseVals_1__65_
-0x0F12,0x080F, // AfitBaseVals_1__66_
-0x0F12,0x0000, // AfitBaseVals_1__67_
-0x0F12,0x030F, // AfitBaseVals_1__68_
-0x0F12,0x3208, // AfitBaseVals_1__69_
-0x0F12,0x0F1E, // AfitBaseVals_1__70_
-0x0F12,0x020F, // AfitBaseVals_1__71_
-0x0F12,0x0103, // AfitBaseVals_1__72_
-0x0F12,0x010C, // AfitBaseVals_1__73_
-0x0F12,0x9696, // AfitBaseVals_1__74_
-0x0F12,0x1414, // AfitBaseVals_1__75_
-0x0F12,0x0504, // AfitBaseVals_1__76_
-0x0F12,0x080F, // AfitBaseVals_1__77_
-0x0F12,0x0000, // AfitBaseVals_1__78_
-0x0F12,0x030F, // AfitBaseVals_1__79_
-0x0F12,0x3208, // AfitBaseVals_1__80_
-0x0F12,0x0F1E, // AfitBaseVals_1__81_
-0x0F12,0x020F, // AfitBaseVals_1__82_
-0x0F12,0x0003, // AfitBaseVals_1__83_
-0x0F12,0x0000, // AfitBaseVals_2__0_  Brightness[2]
-0x0F12,0x0000, // AfitBaseVals_2__1_  Contrast[2]
-0x0F12,0x0000, // AfitBaseVals_2__2_
-0x0F12,0x0000, // AfitBaseVals_2__3_
-0x0F12,0x0000, // AfitBaseVals_2__4_
-0x0F12,0x0064, // AfitBaseVals_2__5_
-0x0F12,0x012C, // AfitBaseVals_2__6_
-0x0F12,0x03FF, // AfitBaseVals_2__7_
-0x0F12,0x0014, // AfitBaseVals_2__8_
-0x0F12,0x0064, // AfitBaseVals_2__9_
-0x0F12,0x000C, // AfitBaseVals_2__10_
-0x0F12,0x0010, // AfitBaseVals_2__11_
-0x0F12,0x01E6, // AfitBaseVals_2__12_
-0x0F12,0x03FF, // AfitBaseVals_2__13_
-0x0F12,0x0070, // AfitBaseVals_2__14_
-0x0F12,0x007D, // AfitBaseVals_2__15_
-0x0F12,0x0064, // AfitBaseVals_2__16_
-0x0F12,0x0096, // AfitBaseVals_2__17_
-0x0F12,0x0096, // AfitBaseVals_2__18_
-0x0F12,0x0073, // AfitBaseVals_2__19_
-0x0F12,0x0087, // AfitBaseVals_2__20_
-0x0F12,0x0014, // AfitBaseVals_2__21_
-0x0F12,0x0019, // AfitBaseVals_2__22_
-0x0F12,0x0023, // AfitBaseVals_2__23_
-0x0F12,0x001E, // AfitBaseVals_2__24_
-0x0F12,0x0014, // AfitBaseVals_2__25_
-0x0F12,0x0019, // AfitBaseVals_2__26_
-0x0F12,0x0023, // AfitBaseVals_2__27_
-0x0F12,0x001E, // AfitBaseVals_2__28_
-0x0F12,0x2B32, // AfitBaseVals_2__29_
-0x0F12,0x0601, // AfitBaseVals_2__30_
-0x0F12,0x0000, // AfitBaseVals_2__31_
-0x0F12,0x0000, // AfitBaseVals_2__32_
-0x0F12,0x0000, // AfitBaseVals_2__33_
-0x0F12,0x00FF, // AfitBaseVals_2__34_
-0x0F12,0x07FF, // AfitBaseVals_2__35_
-0x0F12,0xFFFF, // AfitBaseVals_2__36_
-0x0F12,0x0000, // AfitBaseVals_2__37_
-0x0F12,0x050D, // AfitBaseVals_2__38_
-0x0F12,0x1E80, // AfitBaseVals_2__39_
-0x0F12,0x0000, // AfitBaseVals_2__40_
-0x0F12,0x0A08, // AfitBaseVals_2__41_
-0x0F12,0x0200, // AfitBaseVals_2__42_
-0x0F12,0xFF01, // AfitBaseVals_2__43_
-0x0F12,0x180F, // AfitBaseVals_2__44_
-0x0F12,0x0002, // AfitBaseVals_2__45_
-0x0F12,0x0000, // AfitBaseVals_2__46_
-0x0F12,0x8003, // AfitBaseVals_2__47_
-0x0F12,0x0080, // AfitBaseVals_2__48_
-0x0F12,0x0080, // AfitBaseVals_2__49_
-0x0F12,0x0280, // AfitBaseVals_2__50_
-0x0F12,0x0208, // AfitBaseVals_2__51_
-0x0F12,0x1E4B, // AfitBaseVals_2__52_
-0x0F12,0x1A24, // AfitBaseVals_2__53_
-0x0F12,0x0A05, // AfitBaseVals_2__54_
-0x0F12,0x080A, // AfitBaseVals_2__55_
-0x0F12,0x0500, // AfitBaseVals_2__56_
-0x0F12,0x032D, // AfitBaseVals_2__57_
-0x0F12,0x324D, // AfitBaseVals_2__58_
-0x0F12,0x001E, // AfitBaseVals_2__59_
-0x0F12,0x0200, // AfitBaseVals_2__60_
-0x0F12,0x0103, // AfitBaseVals_2__61_
-0x0F12,0x010C, // AfitBaseVals_2__62_
-0x0F12,0x9696, // AfitBaseVals_2__63_
-0x0F12,0x1E23, // AfitBaseVals_2__64_
-0x0F12,0x0505, // AfitBaseVals_2__65_
-0x0F12,0x080F, // AfitBaseVals_2__66_
-0x0F12,0x0000, // AfitBaseVals_2__67_
-0x0F12,0x030F, // AfitBaseVals_2__68_
-0x0F12,0x3208, // AfitBaseVals_2__69_
-0x0F12,0x0F1E, // AfitBaseVals_2__70_
-0x0F12,0x020F, // AfitBaseVals_2__71_
-0x0F12,0x0103, // AfitBaseVals_2__72_
-0x0F12,0x010C, // AfitBaseVals_2__73_
-0x0F12,0x9696, // AfitBaseVals_2__74_
-0x0F12,0x1E23, // AfitBaseVals_2__75_
-0x0F12,0x0505, // AfitBaseVals_2__76_
-0x0F12,0x080F, // AfitBaseVals_2__77_
-0x0F12,0x0000, // AfitBaseVals_2__78_
-0x0F12,0x030F, // AfitBaseVals_2__79_
-0x0F12,0x3208, // AfitBaseVals_2__80_
-0x0F12,0x0F1E, // AfitBaseVals_2__81_
-0x0F12,0x020F, // AfitBaseVals_2__82_
-0x0F12,0x0003, // AfitBaseVals_2__83_
-0x0F12,0x0000, // AfitBaseVals_3__0_  Brightness[3]
-0x0F12,0x0018, // 0000 AfitBaseVals_3__1_  Contrast[3]
-0x0F12,0x0000, // AfitBaseVals_3__2_
-0x0F12,0x0000, // AfitBaseVals_3__3_
-0x0F12,0x0000, // AfitBaseVals_3__4_
-0x0F12,0x0064, // AfitBaseVals_3__5_
-0x0F12,0x012C, // AfitBaseVals_3__6_
-0x0F12,0x03FF, // AfitBaseVals_3__7_
-0x0F12,0x0014, // AfitBaseVals_3__8_
-0x0F12,0x0064, // AfitBaseVals_3__9_
-0x0F12,0x000C, // AfitBaseVals_3__10_
-0x0F12,0x0010, // AfitBaseVals_3__11_
-0x0F12,0x01E6, // AfitBaseVals_3__12_
-0x0F12,0x0000, // AfitBaseVals_3__13_
-0x0F12,0x0070, // AfitBaseVals_3__14_
-0x0F12,0x007D, // AfitBaseVals_3__15_
-0x0F12,0x0064, // AfitBaseVals_3__16_
-0x0F12,0x0096, // AfitBaseVals_3__17_
-0x0F12,0x0096, // AfitBaseVals_3__18_
-0x0F12,0x0073, // AfitBaseVals_3__19_
-0x0F12,0x009F, // AfitBaseVals_3__20_
-0x0F12,0x0028, // AfitBaseVals_3__21_
-0x0F12,0x0028, // AfitBaseVals_3__22_
-0x0F12,0x0023, // AfitBaseVals_3__23_
-0x0F12,0x0037, // AfitBaseVals_3__24_
-0x0F12,0x0028, // AfitBaseVals_3__25_
-0x0F12,0x0028, // AfitBaseVals_3__26_
-0x0F12,0x0023, // AfitBaseVals_3__27_
-0x0F12,0x0037, // AfitBaseVals_3__28_
-0x0F12,0x2B32, // AfitBaseVals_3__29_
-0x0F12,0x0601, // AfitBaseVals_3__30_
-0x0F12,0x0000, // AfitBaseVals_3__31_
-0x0F12,0x0000, // AfitBaseVals_3__32_
-0x0F12,0x0000, // AfitBaseVals_3__33_
-0x0F12,0x00FF, // AfitBaseVals_3__34_
-0x0F12,0x07A0, // AfitBaseVals_3__35_
-0x0F12,0xFFFF, // AfitBaseVals_3__36_
-0x0F12,0x0000, // AfitBaseVals_3__37_
-0x0F12,0x050D, // AfitBaseVals_3__38_
-0x0F12,0x1E80, // AfitBaseVals_3__39_
-0x0F12,0x0000, // AfitBaseVals_3__40_
-0x0F12,0x0A08, // AfitBaseVals_3__41_
-0x0F12,0x0200, // AfitBaseVals_3__42_
-0x0F12,0xFF01, // AfitBaseVals_3__43_
-0x0F12,0x180F, // AfitBaseVals_3__44_
-0x0F12,0x0001, // AfitBaseVals_3__45_
-0x0F12,0x0000, // AfitBaseVals_3__46_
-0x0F12,0x8003, // AfitBaseVals_3__47_
-0x0F12,0x0080, // AfitBaseVals_3__48_
-0x0F12,0x0080, // AfitBaseVals_3__49_
-0x0F12,0x0280, // AfitBaseVals_3__50_
-0x0F12,0x0108, // AfitBaseVals_3__51_
-0x0F12,0x1E32, // AfitBaseVals_3__52_
-0x0F12,0x1A24, // AfitBaseVals_3__53_
-0x0F12,0x0A05, // AfitBaseVals_3__54_
-0x0F12,0x080A, // AfitBaseVals_3__55_
-0x0F12,0x0000, // AfitBaseVals_3__56_
-0x0F12,0x0328, // AfitBaseVals_3__57_
-0x0F12,0x324C, // AfitBaseVals_3__58_
-0x0F12,0x001E, // AfitBaseVals_3__59_
-0x0F12,0x0200, // AfitBaseVals_3__60_
-0x0F12,0x0103, // AfitBaseVals_3__61_
-0x0F12,0x010C, // AfitBaseVals_3__62_
-0x0F12,0x9696, // AfitBaseVals_3__63_
-0x0F12,0x0F0F, // AfitBaseVals_3__64_
-0x0F12,0x0307, // AfitBaseVals_3__65_
-0x0F12,0x080F, // AfitBaseVals_3__66_
-0x0F12,0x0000, // AfitBaseVals_3__67_
-0x0F12,0x030F, // AfitBaseVals_3__68_
-0x0F12,0x3208, // AfitBaseVals_3__69_
-0x0F12,0x0F1E, // AfitBaseVals_3__70_
-0x0F12,0x020F, // AfitBaseVals_3__71_
-0x0F12,0x0103, // AfitBaseVals_3__72_
-0x0F12,0x010C, // AfitBaseVals_3__73_
-0x0F12,0x9696, // AfitBaseVals_3__74_
-0x0F12,0x0F0F, // AfitBaseVals_3__75_
-0x0F12,0x0307, // AfitBaseVals_3__76_
-0x0F12,0x080F, // AfitBaseVals_3__77_
-0x0F12,0x0000, // AfitBaseVals_3__78_
-0x0F12,0x030F, // AfitBaseVals_3__79_
-0x0F12,0x3208, // AfitBaseVals_3__80_
-0x0F12,0x0F1E, // AfitBaseVals_3__81_
-0x0F12,0x020F, // AfitBaseVals_3__82_
-0x0F12,0x0003, // AfitBaseVals_3__83_
-0x0F12,0x0000, // AfitBaseVals_4__0_  Brightness[4]
-0x0F12,0x0014, // 0000 AfitBaseVals_4__1_  Contrast[4]
-0x0F12,0x0000, // AfitBaseVals_4__2_
-0x0F12,0x0000, // AfitBaseVals_4__3_
-0x0F12,0x0000, // AfitBaseVals_4__4_
-0x0F12,0x0028, // AfitBaseVals_4__5_
-0x0F12,0x012C, // AfitBaseVals_4__6_
-0x0F12,0x03FF, // AfitBaseVals_4__7_
-0x0F12,0x0014, // AfitBaseVals_4__8_
-0x0F12,0x0064, // AfitBaseVals_4__9_
-0x0F12,0x000C, // AfitBaseVals_4__10_
-0x0F12,0x0010, // AfitBaseVals_4__11_
-0x0F12,0x01E6, // AfitBaseVals_4__12_
-0x0F12,0x0000, // AfitBaseVals_4__13_
-0x0F12,0x0070, // AfitBaseVals_4__14_
-0x0F12,0x0087, // AfitBaseVals_4__15_
-0x0F12,0x0073, // AfitBaseVals_4__16_
-0x0F12,0x0096, // AfitBaseVals_4__17_
-0x0F12,0x0096, // AfitBaseVals_4__18_
-0x0F12,0x0073, // AfitBaseVals_4__19_
-0x0F12,0x00B4, // AfitBaseVals_4__20_
-0x0F12,0x0028, // AfitBaseVals_4__21_
-0x0F12,0x0028, // AfitBaseVals_4__22_
-0x0F12,0x0023, // AfitBaseVals_4__23_
-0x0F12,0x0046, // AfitBaseVals_4__24_
-0x0F12,0x0028, // AfitBaseVals_4__25_
-0x0F12,0x0028, // AfitBaseVals_4__26_
-0x0F12,0x0023, // AfitBaseVals_4__27_
-0x0F12,0x0046, // AfitBaseVals_4__28_
-0x0F12,0x2B23, // AfitBaseVals_4__29_
-0x0F12,0x0601, // AfitBaseVals_4__30_
-0x0F12,0x0000, // AfitBaseVals_4__31_
-0x0F12,0x0000, // AfitBaseVals_4__32_
-0x0F12,0x0000, // AfitBaseVals_4__33_
-0x0F12,0x00FF, // AfitBaseVals_4__34_
-0x0F12,0x0B84, // AfitBaseVals_4__35_
-0x0F12,0xFFFF, // AfitBaseVals_4__36_
-0x0F12,0x0000, // AfitBaseVals_4__37_
-0x0F12,0x050D, // AfitBaseVals_4__38_
-0x0F12,0x1E80, // AfitBaseVals_4__39_
-0x0F12,0x0000, // AfitBaseVals_4__40_
-0x0F12,0x0A08, // AfitBaseVals_4__41_
-0x0F12,0x0200, // AfitBaseVals_4__42_
-0x0F12,0xFF01, // AfitBaseVals_4__43_
-0x0F12,0x180F, // AfitBaseVals_4__44_
-0x0F12,0x0001, // AfitBaseVals_4__45_
-0x0F12,0x0000, // AfitBaseVals_4__46_
-0x0F12,0x8003, // AfitBaseVals_4__47_
-0x0F12,0x0080, // AfitBaseVals_4__48_
-0x0F12,0x0080, // AfitBaseVals_4__49_
-0x0F12,0x0280, // AfitBaseVals_4__50_
-0x0F12,0x0108, // AfitBaseVals_4__51_
-0x0F12,0x1E1E, // AfitBaseVals_4__52_
-0x0F12,0x1419, // AfitBaseVals_4__53_
-0x0F12,0x0A0A, // AfitBaseVals_4__54_
-0x0F12,0x0800, // AfitBaseVals_4__55_
-0x0F12,0x0000, // AfitBaseVals_4__56_
-0x0F12,0x0328, // AfitBaseVals_4__57_
-0x0F12,0x324C, // AfitBaseVals_4__58_
-0x0F12,0x001E, // AfitBaseVals_4__59_
-0x0F12,0x0200, // AfitBaseVals_4__60_
-0x0F12,0x0103, // AfitBaseVals_4__61_
-0x0F12,0x010C, // AfitBaseVals_4__62_
-0x0F12,0x6464, // AfitBaseVals_4__63_
-0x0F12,0x0F0F, // AfitBaseVals_4__64_
-0x0F12,0x0307, // AfitBaseVals_4__65_
-0x0F12,0x080F, // AfitBaseVals_4__66_
-0x0F12,0x0000, // AfitBaseVals_4__67_
-0x0F12,0x030F, // AfitBaseVals_4__68_
-0x0F12,0x3208, // AfitBaseVals_4__69_
-0x0F12,0x0F1E, // AfitBaseVals_4__70_
-0x0F12,0x020F, // AfitBaseVals_4__71_
-0x0F12,0x0103, // AfitBaseVals_4__72_
-0x0F12,0x010C, // AfitBaseVals_4__73_
-0x0F12,0x6464, // AfitBaseVals_4__74_
-0x0F12,0x0F0F, // AfitBaseVals_4__75_
-0x0F12,0x0307, // AfitBaseVals_4__76_
-0x0F12,0x080F, // AfitBaseVals_4__77_
-0x0F12,0x0000, // AfitBaseVals_4__78_
-0x0F12,0x030F, // AfitBaseVals_4__79_
-0x0F12,0x3208, // AfitBaseVals_4__80_
-0x0F12,0x0F1E, // AfitBaseVals_4__81_
-0x0F12,0x020F, // AfitBaseVals_4__82_
-0x0F12,0x0003, // AfitBaseVals_4__83_
-0x0F12,0x7F5E,  // ConstAfitBaseVals_0_
-0x0F12,0xFEEE,  // ConstAfitBaseVals_1_
-0x0F12,0xD9B7,  // ConstAfitBaseVals_2_
-0x0F12,0x0472,  // ConstAfitBaseVals_3_
-0x0F12,0x0001,  // ConstAfitBaseVals_4_
-
-  //(0x002A ,0x0408);        chris 20130322
-  //(0x0F12 ,0x067F); //REG_TC_DBG_AutoAlgEnBits all AA are on   chris 20130322
+      //(0x002A ,0x0408);        chris 20130322
+      //(0x0F12 ,0x067F); //REG_TC_DBG_AutoAlgEnBits all AA are on   chris 20130322
 #if 0
-  //============================================================
-  // User Control
-  //============================================================
+      //============================================================
+      // User Control
+      //============================================================
       0x002A, 0x018E,
       0x0F12, 0x0000, //Brightness
       0x0F12, 0x0000, //contrast
@@ -2873,18 +2872,18 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12, 0x0000, //sharpness
 #endif
 
-  //============================================================
-  // Flicker
-  //============================================================
+      //============================================================
+      // Flicker
+      //============================================================
       0x002A, 0x0408,
       0x0F12, 0x065F,
       0x002A, 0x03F4,
       0x0F12, 0x0001,
       0x0F12, 0x0001,
 
-  //============================================================
-  // PLL
-  //============================================================
+      //============================================================
+      // PLL
+      //============================================================
       0x002A, 0x012E,
       0x0F12, S5K8AAYX_MCLK*1000, //input clock
       0x0F12, 0x0000,
@@ -2908,9 +2907,9 @@ void S5K8AAYX_Initialize_Setting(void)
       0x002A, 0x0164, //update PLL
       0x0F12, 0x0001,
 
-  //============================================================
-  // Preview config0 1280*960 10~30fps
-  //============================================================
+      //============================================================
+      // Preview config0 1280*960 15~30fps
+      //============================================================
       0x002A, 0x01BE,
       0x0F12, 0x0500, //REG_0TC_PCFG_usWidth//1280
       0x0F12, 0x03C0, //REG_0TC_PCFG_usHeight//960
@@ -2922,14 +2921,14 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12, 0x0000, //REG_0TC_PCFG_usFrTimeType
       0x0F12, 0x0002, //REG_0TC_PCFG_FrRateQualityType
       0x0F12, 0x014D, //REG_0TC_PCFG_usMinFrTimeMsecMult10
-      0x0F12, 0x0535, //REG_0TC_PCFG_usMaxFrTimeMsecMult10
+      0x0F12, 0x029A, //REG_0TC_PCFG_usMaxFrTimeMsecMult10
       0x002A, 0x01E8,
       0x0F12, 0x0000, //REG_0TC_PCFG_uPrevMirror
       0x0F12, 0x0000, //REG_0TC_PCFG_uPCaptureMirror
 
-  //============================================================
-  // Preview config1 1280*960 30fps
-  //============================================================
+      //============================================================
+      // Preview config1 1280*960 30fps
+      //============================================================
       0x002A, 0x01EE,
       0x0F12, 0x0500, //REG_0TC_PCFG_usWidth//1280
       0x0F12, 0x03C0, //REG_0TC_PCFG_usHeight//960
@@ -2947,10 +2946,9 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12, 0x0000, //REG_0TC_PCFG_uPCaptureMirror
 
 
-
-  //============================================================
-  // Capture configuration 0  7.5fps~30fps
-  //============================================================
+      //============================================================
+      // Capture configuration 0  15fps~30fps
+      //============================================================
       0x002A, 0x02AE,
       0x0F12, 0x0000, //REG_0TC_CCFG_uCaptureMode
       0x0F12, 0x0500, //REG_0TC_CCFG_usWidth
@@ -2963,11 +2961,11 @@ void S5K8AAYX_Initialize_Setting(void)
       0x0F12, 0x0000, //REG_0TC_CCFG_usFrTimeType
       0x0F12, 0x0002, //REG_0TC_CCFG_FrRateQualityType
       0x0F12, 0x014D, //REG_0TC_CCFG_usMinFrTimeMsecMult10
-      0x0F12, 0x0535, //REG_0TC_CCFG_usMaxFrTimeMsecMult10
+      0x0F12, 0x029A, //REG_0TC_CCFG_usMaxFrTimeMsecMult10
 
-  //============================================================
-  // active preview configure
-  //============================================================
+      //============================================================
+      // active preview configure
+      //============================================================
       0x002A, 0x01A8,
       0x0F12, 0x0000,  // #REG_TC_GP_ActivePrevConfig
       0x002A, 0x01AC,
@@ -3004,11 +3002,18 @@ void S5K8AAYX_SetFrameRate(MSDK_SCENARIO_ID_ENUM scen, UINT16 u2FrameRate)
        switch (scen)
        {
            default:
-           case MSDK_SCENARIO_ID_CAMERA_PREVIEW: 
-            S5K8AAYX_write_cmos_sensor(0x0028, 0x7000); 
+           case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
+            //7.5fps ~30fps
+            S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
             S5K8AAYX_write_cmos_sensor(0x002A, 0x01D6);
-            S5K8AAYX_write_cmos_sensor(0x0F12, 0x029A); //REG_xTC_PCFG_usMinFrTimeMsecMult10 //014Ah:30fps
+            S5K8AAYX_write_cmos_sensor(0x0F12, 0x014D); //REG_xTC_PCFG_usMinFrTimeMsecMult10 //014Ah:30fps
             S5K8AAYX_write_cmos_sensor(0x0F12, 0x0535); //REG_xTC_PCFG_usMaxFrTimeMsecMult10 //09C4h:4fps
+            //To make Preview/Capture with the same exposure time, 
+            //update Capture-Config here...also.
+            S5K8AAYX_write_cmos_sensor(0x002A, 0x02C8);
+            S5K8AAYX_write_cmos_sensor(0x0F12, 0x014D); //REG_0TC_CCFG_usMinFrTimeMsecMult10 //014Ah:30fps
+            S5K8AAYX_write_cmos_sensor(0x0F12, 0x0535); //REG_0TC_CCFG_usMaxFrTimeMsecMult10 //09C4h:4fps
+
             break;
            case MSDK_SCENARIO_ID_VIDEO_PREVIEW: //15fps
             S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
@@ -3023,11 +3028,18 @@ void S5K8AAYX_SetFrameRate(MSDK_SCENARIO_ID_ENUM scen, UINT16 u2FrameRate)
       switch (scen)
       {
          default:
-         case MSDK_SCENARIO_ID_CAMERA_PREVIEW: 
-            S5K8AAYX_write_cmos_sensor(0x0028, 0x7000); 
+         case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
+            //15~30fps
+            S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
             S5K8AAYX_write_cmos_sensor(0x002A, 0x01D6);
             S5K8AAYX_write_cmos_sensor(0x0F12, 0x014D); //REG_xTC_PCFG_usMinFrTimeMsecMult10 //014Ah:30fps
-            S5K8AAYX_write_cmos_sensor(0x0F12, 0x0535); //REG_xTC_PCFG_usMaxFrTimeMsecMult10 //09C4h:4fps
+            S5K8AAYX_write_cmos_sensor(0x0F12, 0x029A); //REG_xTC_PCFG_usMaxFrTimeMsecMult10 //09C4h:4fps
+
+            //To make Preview/Capture with the same exposure time, 
+            //update Capture-Config here...also.
+            S5K8AAYX_write_cmos_sensor(0x002A, 0x02C8);
+            S5K8AAYX_write_cmos_sensor(0x0F12, 0x014D); //REG_0TC_CCFG_usMinFrTimeMsecMult10 //014Ah:30fps
+            S5K8AAYX_write_cmos_sensor(0x0F12, 0x029A); //REG_0TC_CCFG_usMaxFrTimeMsecMult10 //09C4h:4fps
             break;
          case MSDK_SCENARIO_ID_VIDEO_PREVIEW: //30fps
             S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
@@ -3038,13 +3050,13 @@ void S5K8AAYX_SetFrameRate(MSDK_SCENARIO_ID_ENUM scen, UINT16 u2FrameRate)
       }
     }
 
-    S5K8AAYX_write_cmos_sensor(0x002A,0x01AC); 
+    S5K8AAYX_write_cmos_sensor(0x002A,0x01AC);
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001); // #REG_TC_GP_PrevOpenAfterChange
-    S5K8AAYX_write_cmos_sensor(0x002A,0x01A6); 
+    S5K8AAYX_write_cmos_sensor(0x002A,0x01A6);
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001); // #REG_TC_GP_NewConfigSync // Update preview configuration
-    S5K8AAYX_write_cmos_sensor(0x002A,0x01AA); 
+    S5K8AAYX_write_cmos_sensor(0x002A,0x01AA);
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001); // #REG_TC_GP_PrevConfigChanged
-    S5K8AAYX_write_cmos_sensor(0x002A,0x019E); 
+    S5K8AAYX_write_cmos_sensor(0x002A,0x019E);
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001); // #REG_TC_GP_EnablePreview // Start preview
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001); // #REG_TC_GP_EnablePreviewChanged
     return;
@@ -3081,7 +3093,7 @@ void S5K8AAYX_PV_Mode(unsigned int config_num)
 
     S5K8AAYX_write_cmos_sensor(0x002A, 0x0164);
     S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001); // REG_TC_IPRM_InitParamsUpdated
-
+    return;
 }
 
 
@@ -3107,10 +3119,10 @@ S5K8AAYX_GetAutoISOValue(void)
 {
     // Cal. Method : ((A-Gain*D-Gain)/100h)/2
     // A-Gain , D-Gain Read value is hex value.
-    //   ISO 50  : 100(HEX) 
+    //   ISO 50  : 100(HEX)
     //   ISO 100 : 100 ~ 1FF(HEX)
     //   ISO 200 : 200 ~ 37F(HEX)
-    //   ISO 400 : over 380(HEX) 
+    //   ISO 400 : over 380(HEX)
     unsigned int A_Gain, D_Gain, ISOValue;
     S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000);
     S5K8AAYX_write_cmos_sensor(0x002C, 0x7000);
@@ -3123,24 +3135,24 @@ S5K8AAYX_GetAutoISOValue(void)
 #if 0
     if (ISOValue == 256)
     {
-       S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_50;
+        S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_50;
     }
     else if ((ISOValue >= 257) && (ISOValue <= 511 ))
     {
-       S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_100;
+        S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_100;
     }
 #endif
     if ((ISOValue >= 2) && (ISOValue < 4 ))
     {
-       S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_200;
+        S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_200;
     }
     else if (ISOValue >= 4)
     {
-       S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_400;
+        S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_400;
     }
     else
     {
-       S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_100;
+        S5K8AAYXCurrentStatus.isoSpeed = AE_ISO_100;
     }
     spin_unlock(&s5k8aayx_drv_lock);
 
@@ -3259,7 +3271,9 @@ void S5K8AAYX_night_mode(kal_bool enable)
 
         S5K8AAYX_night_mode_enable = KAL_FALSE;
     }
-
+    
+#if 0
+    //move to  S5K8AAYX_SetFrameRate(~)
     // active preview configure
     //============================================================
     S5K8AAYX_write_cmos_sensor(0x002A,0x01A8);
@@ -3273,6 +3287,7 @@ void S5K8AAYX_night_mode(kal_bool enable)
     S5K8AAYX_write_cmos_sensor(0x002A,0x019E);
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001);  // #REG_TC_GP_EnablePreview // Start preview
     S5K8AAYX_write_cmos_sensor(0x0F12,0x0001);  // #REG_TC_GP_EnablePreviewChanged
+#endif
 
     S5K8AAYXCurrentStatus.iNightMode = enable;
 
@@ -3348,8 +3363,8 @@ UINT32 S5K8AAYXOpen(void)
     S5K8AAYX_GetSensorID(&sensor_id);
     S5K8AAYXInitialPara();
     S5K8AAYX_Initialize_Setting();
- 
-    S5K8AAYX_set_mirror(IMAGE_HV_MIRROR); 
+
+    S5K8AAYX_set_mirror(IMAGE_HV_MIRROR);
     return ERROR_NONE;
 }
 
@@ -3371,8 +3386,8 @@ UINT32 S5K8AAYXOpen(void)
 *************************************************************************/
 UINT32 S5K8AAYXClose(void)
 {
-     return ERROR_NONE;
-}        /* S5K8AAYXClose() */
+    return ERROR_NONE;
+} /* S5K8AAYXClose() */
 
 /*************************************************************************
 * FUNCTION
@@ -3415,7 +3430,7 @@ UINT32 S5K8AAYXPreview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
     spin_unlock(&s5k8aayx_drv_lock);
 
 
-    if (MSDK_SCENARIO_ID_CAMERA_PREVIEW == S5K8AAYXCurrentScenarioId) 
+    if (MSDK_SCENARIO_ID_CAMERA_PREVIEW == S5K8AAYXCurrentScenarioId)
     {
         S5K8AAYX_PV_Mode(S5K8AAYX_PREVIEW_MODE);
     }
@@ -3557,11 +3572,11 @@ UINT32 S5K8AAYXGetInfo(MSDK_SCENARIO_ID_ENUM ScenarioId,
              pSensorInfo->SensorDataLatchCount=2;
              pSensorInfo->SensorGrabStartX = 2;
              pSensorInfo->SensorGrabStartY = 2;
-              break;
+             break;
     }
     memcpy(pSensorConfigData, &S5K8AAYXSensorConfigData, sizeof(MSDK_SENSOR_CONFIG_STRUCT));
     return ERROR_NONE;
-}        /* S5K8AAYXGetInfo() */
+}/* S5K8AAYXGetInfo() */
 
 
 UINT32 S5K8AAYXControl(MSDK_SCENARIO_ID_ENUM ScenarioId,
@@ -3597,111 +3612,9 @@ UINT32 S5K8AAYXControl(MSDK_SCENARIO_ID_ENUM ScenarioId,
 
 
 /* [TC] YUV sensor */
-#if 0
-#if WINMO_USE
-void S5K8AAYXQuery(PMSDK_FEATURE_INFO_STRUCT pSensorFeatureInfo)
-{
-    SENSORDB("Enter S5K8AAYXQuery\n");
-    MSDK_FEATURE_TYPE_RANGE_STRUCT *pFeatureRange;
-    MSDK_FEATURE_TYPE_MULTI_SELECTION_STRUCT *pFeatureMultiSelection;
-    switch (pSensorFeatureInfo->FeatureId)
-    {
-       case ISP_FEATURE_DSC_MODE:
-            pSensorFeatureInfo->FeatureType = MSDK_FEATURE_TYPE_MULTI_SELECTION;
-            pSensorFeatureInfo->FeatureSupported = (UINT8)(MSDK_SET_GET_FEATURE_SUPPORTED|MSDK_QUERY_CAMERA_SUPPORTED);
-            pFeatureMultiSelection = (PMSDK_FEATURE_TYPE_MULTI_SELECTION_STRUCT)(&pSensorFeatureInfo->FeatureInformation.FeatureMultiSelection);
-            pFeatureMultiSelection->TotalSelection = CAM_NO_OF_SCENE_MODE_MAX-2;
-            pFeatureMultiSelection->DefaultSelection = CAM_AUTO_DSC_MODE;
-            pFeatureMultiSelection->SupportedSelection =
-                  (CAMERA_FEATURE_SUPPORT(CAM_AUTO_DSC_MODE)|
-                  CAMERA_FEATURE_SUPPORT(CAM_NIGHTSCENE_MODE));
-            break;
-       case ISP_FEATURE_WHITEBALANCE:
-            pSensorFeatureInfo->FeatureType = MSDK_FEATURE_TYPE_MULTI_SELECTION;
-            pSensorFeatureInfo->FeatureSupported = (UINT8)(MSDK_SET_GET_FEATURE_SUPPORTED|MSDK_QUERY_CAMERA_VIDEO_SUPPORTED);
-            pFeatureMultiSelection = (PMSDK_FEATURE_TYPE_MULTI_SELECTION_STRUCT)(&pSensorFeatureInfo->FeatureInformation.FeatureMultiSelection);
-            pFeatureMultiSelection->TotalSelection = CAM_NO_OF_WB;
-            pFeatureMultiSelection->DefaultSelection = CAM_WB_AUTO;
-            pFeatureMultiSelection->SupportedSelection =
-                     (CAMERA_FEATURE_SUPPORT(CAM_WB_AUTO)|
-                     CAMERA_FEATURE_SUPPORT(CAM_WB_CLOUD)|
-                     CAMERA_FEATURE_SUPPORT(CAM_WB_DAYLIGHT)|
-                     CAMERA_FEATURE_SUPPORT(CAM_WB_INCANDESCENCE)|
-                     CAMERA_FEATURE_SUPPORT(CAM_WB_FLUORESCENT));
-            break;
-       case ISP_FEATURE_IMAGE_EFFECT:
-            pSensorFeatureInfo->FeatureType = MSDK_FEATURE_TYPE_MULTI_SELECTION;
-            pSensorFeatureInfo->FeatureSupported = (UINT8)(MSDK_SET_GET_FEATURE_SUPPORTED|MSDK_QUERY_CAMERA_VIDEO_SUPPORTED);
-            pFeatureMultiSelection = (PMSDK_FEATURE_TYPE_MULTI_SELECTION_STRUCT)(&pSensorFeatureInfo->FeatureInformation.FeatureMultiSelection);
-            pFeatureMultiSelection->TotalSelection = CAM_NO_OF_EFFECT_ENC;
-            pFeatureMultiSelection->DefaultSelection = CAM_EFFECT_ENC_NORMAL;
-            pFeatureMultiSelection->SupportedSelection =
-                     (CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_NORMAL)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_GRAYSCALE)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_COLORINV)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_GRAYINV)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_SEPIABLUE)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_SKETCH)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_EMBOSSMENT)|
-                     CAMERA_FEATURE_SUPPORT(CAM_EFFECT_ENC_SEPIA));
-            break;
-       case ISP_FEATURE_AE_METERING_MODE:
-            pSensorFeatureInfo->FeatureSupported = MSDK_FEATURE_NOT_SUPPORTED;
-            break;
-       case ISP_FEATURE_BRIGHTNESS:
-            pSensorFeatureInfo->FeatureType = MSDK_FEATURE_TYPE_RANGE;
-            pSensorFeatureInfo->FeatureSupported = (UINT8)(MSDK_SET_GET_FEATURE_SUPPORTED|MSDK_QUERY_CAMERA_VIDEO_SUPPORTED);
-            pFeatureRange = (PMSDK_FEATURE_TYPE_RANGE_STRUCT)(&pSensorFeatureInfo->FeatureInformation.FeatureRange);
-            pFeatureRange->MinValue = CAM_EV_NEG_4_3;
-            pFeatureRange->MaxValue = CAM_EV_POS_4_3;
-            pFeatureRange->StepValue = CAMERA_FEATURE_ID_EV_STEP;
-            pFeatureRange->DefaultValue = CAM_EV_ZERO;
-            break;
-       case ISP_FEATURE_BANDING_FREQ:
-            pSensorFeatureInfo->FeatureType = MSDK_FEATURE_TYPE_MULTI_SELECTION;
-            pSensorFeatureInfo->FeatureSupported = (UINT8)(MSDK_SET_GET_FEATURE_SUPPORTED|MSDK_QUERY_CAMERA_VIDEO_SUPPORTED);
-            pFeatureMultiSelection = (PMSDK_FEATURE_TYPE_MULTI_SELECTION_STRUCT)(&pSensorFeatureInfo->FeatureInformation.FeatureMultiSelection);
-            pFeatureMultiSelection->TotalSelection = CAM_NO_OF_BANDING;
-            pFeatureMultiSelection->DefaultSelection = CAM_BANDING_50HZ;
-            pFeatureMultiSelection->SupportedSelection =
-                     (CAMERA_FEATURE_SUPPORT(CAM_BANDING_50HZ)|
-                     CAMERA_FEATURE_SUPPORT(CAM_BANDING_60HZ));
-            break;
-       case ISP_FEATURE_AF_OPERATION:
-            pSensorFeatureInfo->FeatureSupported = MSDK_FEATURE_NOT_SUPPORTED;
-            break;
-       case ISP_FEATURE_AF_RANGE_CONTROL:
-            pSensorFeatureInfo->FeatureSupported = MSDK_FEATURE_NOT_SUPPORTED;
-            break;
-       case ISP_FEATURE_FLASH:
-            pSensorFeatureInfo->FeatureSupported = MSDK_FEATURE_NOT_SUPPORTED;
-            break;
-       case ISP_FEATURE_VIDEO_SCENE_MODE:
-            pSensorFeatureInfo->FeatureType = MSDK_FEATURE_TYPE_MULTI_SELECTION;
-            pSensorFeatureInfo->FeatureSupported = (UINT8)(MSDK_SET_GET_FEATURE_SUPPORTED|MSDK_QUERY_VIDEO_SUPPORTED);
-            pFeatureMultiSelection = (PMSDK_FEATURE_TYPE_MULTI_SELECTION_STRUCT)(&pSensorFeatureInfo->FeatureInformation.FeatureMultiSelection);
-            pFeatureMultiSelection->TotalSelection = 2;
-            pFeatureMultiSelection->DefaultSelection = CAM_VIDEO_AUTO_MODE;
-            pFeatureMultiSelection->SupportedSelection =
-                     (CAMERA_FEATURE_SUPPORT(CAM_VIDEO_AUTO_MODE)|
-                     CAMERA_FEATURE_SUPPORT(CAM_VIDEO_NIGHT_MODE));
-            break;
-       case ISP_FEATURE_ISO:
-            pSensorFeatureInfo->FeatureSupported = MSDK_FEATURE_NOT_SUPPORTED;
-            break;
-       default:
-            pSensorFeatureInfo->FeatureSupported = MSDK_FEATURE_NOT_SUPPORTED;
-            break;
-    }
-}
-#endif
-#endif
 
 
 
-
-
-#if 1
 BOOL S5K8AAYX_set_param_wb(UINT16 para)
 {
     kal_uint16 AWB_uGainsOut0,AWB_uGainsOut1,AWB_uGainsOut2;
@@ -3804,116 +3717,7 @@ BOOL S5K8AAYX_set_param_wb(UINT16 para)
     spin_unlock(&s5k8aayx_drv_lock);
     return TRUE;
 }
-#else
 
-BOOL S5K8AAYX_set_param_wb(UINT16 para)
-{
-  if(S5K8AAYXCurrentStatus.iWB == para)
-    return TRUE;
-  SENSORDB("[Enter]S5K8AAYX_ set_param_wb func:para = %d\n",para);
-
-  S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000); // Set page
-  S5K8AAYX_write_cmos_sensor(0x0028, 0x7000); // Set address
-
-  switch (para)
-  {
-    case AWB_MODE_AUTO:
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x0408); //bit[3]:AWB Auto:1 menual:0
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x067F);
-      break;
-
-    case AWB_MODE_CLOUDY_DAYLIGHT:
-      //======================================================================
-      //  MWB : Cloudy_D65
-      //======================================================================
-      S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000);
-      S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x0408);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0677);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x03DA);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0740);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0400);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0460);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      break;
-
-    case AWB_MODE_DAYLIGHT:
-      //==============================================
-      //  MWB : sun&daylight_D50
-      //==============================================
-      S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000);
-      S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x0408);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0677);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x03DA);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x05E0);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0400);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0530);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      break;
-
-    case AWB_MODE_INCANDESCENT:
-      //==============================================
-      //  MWB : Incand_Tungsten
-      //==============================================
-      S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000);
-      S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x0408);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0677);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x03DA);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x05C0); //Reg_sf_user_Rgain
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_RgainChanged update
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0400); //Reg_sf_user_Ggain
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_GgainChanged
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x08B0); //Reg_sf_user_Bgain
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001); //Reg_sf_user_BgainChanged
-      break;
-
-    case AWB_MODE_FLUORESCENT:
-      //==================================================================
-      //  MWB : Florescent_TL84
-      //==================================================================
-      S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000);
-      S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x0408);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0677);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x03DA);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0575);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0400);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0800);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      break;
-
-    case AWB_MODE_TUNGSTEN:
-      S5K8AAYX_write_cmos_sensor(0xFCFC, 0xD000);
-      S5K8AAYX_write_cmos_sensor(0x0028, 0x7000);
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x0408);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0677);
-
-      S5K8AAYX_write_cmos_sensor(0x002A, 0x03DA);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0400);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0400);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0940);
-      S5K8AAYX_write_cmos_sensor(0x0F12, 0x0001);
-      break;
-    default:
-      return KAL_FALSE;
-
-    }
-    spin_lock(&s5k8aayx_drv_lock);
-    S5K8AAYXCurrentStatus.iWB = para;
-    spin_unlock(&s5k8aayx_drv_lock);
-return TRUE;
-}
-#endif
 
 
 
@@ -4246,31 +4050,31 @@ UINT32 S5K8AAYXYUVSetTestPatternMode(kal_bool bEnable)
 {
     SENSORDB("[S5K8AAYXYUVSetTestPatternMode] Test pattern enable:%d\n", bEnable);
 
-	if(bEnable) 
-	{
-        //Address: D0003600
-        //0x0000 -- bypass
-        //0x0002 - solid color
-        //0x0004 - gradient
-        //0x0006 - address dependent noise
-        //0x0008 - random
-        //0x000A - gradient + address dependent noise
-        //0x000C - gradient + random
-        //0x000E - out pixel attributes
-        S5K8AAYX_write_cmos_sensor(0x3600,0x0004);
-        //0x0002 - solid color
-        S5K8AAYX_write_cmos_sensor(0x3602,0x1F40);
-        S5K8AAYX_write_cmos_sensor(0x3604,0x1A40);
-        S5K8AAYX_write_cmos_sensor(0x3606,0x1A40);
-        S5K8AAYX_write_cmos_sensor(0x3608,0x1040);
-        //0x0004 - gradient
-        S5K8AAYX_write_cmos_sensor(0x360a,0x0383);
+  if(bEnable)
+  {
+      //Address: D0003600
+      //0x0000 -- bypass
+      //0x0002 - solid color
+      //0x0004 - gradient
+      //0x0006 - address dependent noise
+      //0x0008 - random
+      //0x000A - gradient + address dependent noise
+      //0x000C - gradient + random
+      //0x000E - out pixel attributes
+      S5K8AAYX_write_cmos_sensor(0x3600,0x0004);
+      //0x0002 - solid color
+      S5K8AAYX_write_cmos_sensor(0x3602,0x1F40);
+      S5K8AAYX_write_cmos_sensor(0x3604,0x1A40);
+      S5K8AAYX_write_cmos_sensor(0x3606,0x1A40);
+      S5K8AAYX_write_cmos_sensor(0x3608,0x1040);
+      //0x0004 - gradient
+      S5K8AAYX_write_cmos_sensor(0x360a,0x0383);
 
-	}
-	else        
-	{
-		S5K8AAYX_write_cmos_sensor(0x3600,0x0000);	
-	}
+  }
+  else
+  {
+    S5K8AAYX_write_cmos_sensor(0x3600,0x0000);
+  }
     return ERROR_NONE;
 }
 
@@ -4396,9 +4200,9 @@ UINT32 S5K8AAYXFeatureControl(MSDK_SENSOR_FEATURE_ENUM FeatureId,
        case SENSOR_FEATURE_SET_TEST_PATTERN:
             S5K8AAYXYUVSetTestPatternMode((BOOL)*pFeatureData16);
             break;
-        case SENSOR_FEATURE_GET_TEST_PATTERN_CHECKSUM_VALUE://for factory mode auto testing             
-            *pFeatureReturnPara32= S5K8AAYXYUV_TEST_PATTERN_CHECKSUM;           
-            *pFeatureParaLen=4;                             
+        case SENSOR_FEATURE_GET_TEST_PATTERN_CHECKSUM_VALUE://for factory mode auto testing
+            *pFeatureReturnPara32= S5K8AAYXYUV_TEST_PATTERN_CHECKSUM;
+            *pFeatureParaLen=4;
             break;
 
         default:

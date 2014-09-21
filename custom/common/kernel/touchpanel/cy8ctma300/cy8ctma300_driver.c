@@ -60,17 +60,8 @@ static int tpd_def_calmat_local[8] = TPD_CALIBRATION_MATRIX;
 static void tpd_eint_interrupt_handler(void);
 static int touch_event_handler(void *unused);
 static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id);
-static int tpd_i2c_detect(struct i2c_client *client, int kind, struct i2c_board_info *info);
+static int tpd_i2c_detect(struct i2c_client *client, struct i2c_board_info *info);
 static int tpd_i2c_remove(struct i2c_client *client);
-#if 0
-extern void mt65xx_eint_unmask(unsigned int line);
-extern void mt65xx_eint_mask(unsigned int line);
-extern void mt65xx_eint_set_hw_debounce(unsigned int eintno, unsigned int ms);
-extern unsigned int mt65xx_eint_set_sens(unsigned int eintno,unsigned int sens);
-extern void mt65xx_eint_registration(unsigned int eintno, unsigned int Dbounce_En,
-                                     unsigned int ACT_Polarity, void (EINT_FUNC_PTR)(void),
-                                     unsigned int auto_umask);
-#endif
 extern void i2c_del_driver(struct i2c_driver *);
 
 static struct i2c_client *i2c_client = NULL;
@@ -89,7 +80,7 @@ struct i2c_driver tpd_i2c_driver = {
        .address_list = (const unsigned short*) forces,                   
 }; 
 
-static int tpd_i2c_detect(struct i2c_client *client, int kind, struct i2c_board_info *info) {
+static int tpd_i2c_detect(struct i2c_client *client, struct i2c_board_info *info){
     strcpy(info->type, "mtk-tpd");
     return 0;
 }
@@ -98,8 +89,6 @@ static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *
     int err = 0;
     char buffer[2];
     int status=0;
-    i2c_client = client;    
-    TPD_DMESG("[mtk-tpd], cy8ctma300 tpd_i2c_probe ++++\n");
     #ifdef TPD_NO_GPIO
     u32 temp;
     
@@ -122,6 +111,9 @@ static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *
     printk("TPD_GPIO_OE_ADDR:0x%x\n", *(volatile u32 *) TPD_GPIO_OE_ADDR);
     #endif
     
+    i2c_client = client;    
+    TPD_DMESG("[mtk-tpd], cy8ctma300 tpd_i2c_probe ++++\n");
+	
     #ifndef TPD_NO_GPIO 
     mt_set_gpio_mode(GPIO_CTP_RST_PIN, GPIO_CTP_RST_PIN_M_GPIO);
     mt_set_gpio_dir(GPIO_CTP_RST_PIN, GPIO_DIR_OUT);
@@ -185,8 +177,8 @@ static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *
     }    
 #ifndef POLL_MODE //mt6575t fpga debug 0: enable polling mode
     //mt_eint_set_sens(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_SENSITIVE);
-    mt_eint_set_hw_debounce(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_DEBOUNCE_DISABLE);
-    mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, EINTF_TRIGGER_FALLING, tpd_eint_interrupt_handler, 1);
+    //mt_eint_set_hw_debounce(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_DEBOUNCE_DISABLE);
+    mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_TYPE, tpd_eint_interrupt_handler, 1);
     mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
     TPD_DMESG("EINT num=%d\n",CUST_EINT_TOUCH_PANEL_NUM);
 #endif 
@@ -243,7 +235,7 @@ static int touch_event_handler(void *unused) {
     static char toggle;
     static char buffer[32];//[16];
 //    int pending = 0;
-	u32 temp;
+	//u32 temp;
     sched_setscheduler(current, SCHED_RR, &param); 
     g_temptimerdiff=get_jiffies_64();//jiffies;
     do {

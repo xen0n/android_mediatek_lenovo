@@ -46,7 +46,12 @@ typedef struct
 typedef enum {
     SENSOR_MODE_INIT = 0,
     SENSOR_MODE_PREVIEW,
-    SENSOR_MODE_CAPTURE
+    SENSOR_MODE_VIDEO,
+    SENSOR_MODE_VIDEO_NIGHT,
+    SENSOR_MODE_SMALL_SIZE_END=SENSOR_MODE_VIDEO_NIGHT,
+    SENSOR_MODE_ZSD_PREVIEW,
+    SENSOR_MODE_CAPTURE,
+    SENSOR_MODE_FULL_SIZE_END=SENSOR_MODE_CAPTURE
 } S5K4E1GA_SENSOR_MODE;
 
 typedef struct
@@ -68,6 +73,9 @@ typedef struct
 	kal_int16 imgMirror;
 	kal_bool  S5K4E1GAAutoFlickerMode;
 
+	kal_uint16 m_Linelength;
+	kal_uint16 m_Framelength;
+
 	S5K4E1GA_SENSOR_MODE sensorMode;
 	
 }S5K4E1GA_PARA_STRUCT,*PS5K4E1GA_PARA_STRUCT;
@@ -80,16 +88,19 @@ typedef struct
 	#define S5K4E1GA_IMAGE_SENSOR_PV_WIDTH						(1280)//(1280-4)
 	#define S5K4E1GA_IMAGE_SENSOR_PV_HEIGHT						(960)//(960-4)
 
+	#define S5K4E1GA_IMAGE_SENSOR_VIDEO_WIDTH					S5K4E1GA_IMAGE_SENSOR_PV_WIDTH
+	#define S5K4E1GA_IMAGE_SENSOR_VIDEO_HEIGHT					S5K4E1GA_IMAGE_SENSOR_PV_HEIGHT
+
 	/* SENSOR SCALER FACTOR */
 	#define S5K4E1GA_PV_SCALER_FACTOR					    	3
 	#define S5K4E1GA_FULL_SCALER_FACTOR					    	1
 	                                        	
 	/* SENSOR START/EDE POSITION */         	
-	#define S5K4E1GA_FULL_X_START						    		(2)
+	#define S5K4E1GA_FULL_X_START						    		(2+1)
 	#define S5K4E1GA_FULL_Y_START						    		(2)
 	#define S5K4E1GA_FULL_X_END						        		2607 //2601
 	#define S5K4E1GA_FULL_Y_END						        		1959 //1953
-	#define S5K4E1GA_PV_X_START						    			(2)
+	#define S5K4E1GA_PV_X_START						    			(2+1)
 	#define S5K4E1GA_PV_Y_START						    			(2)
 	#define S5K4E1GA_PV_X_END						    			2607 //2597//2597
 	#define S5K4E1GA_PV_Y_END						    			1959 //1953//1949
@@ -115,10 +126,10 @@ typedef struct
 	//#define S5K4E1GA_DIGITAL_GAIN_1X					(0x0100)
 
 
-	#define S5K4E1GA_FULL_PERIOD_PIXEL_NUMS					0x0AB2  //2738
+	#define S5K4E1GA_FULL_PERIOD_PIXEL_NUMS					0x0B5C //0x0B5C=2908      0x0AB2=2738
 	#define S5K4E1GA_FULL_PERIOD_LINE_NUMS					0x07B4  //1972
 	
-	#define S5K4E1GA_PV_PERIOD_PIXEL_NUMS					0x0AB2	//2738
+	#define S5K4E1GA_PV_PERIOD_PIXEL_NUMS					0x0B5C //0x0B5C=2908      0x0AB2=2738
 	#define S5K4E1GA_PV_PERIOD_LINE_NUMS					0x03E0	//992
 
 	#define S5K4E1GA_MIN_LINE_LENGTH						0x0AA4  //2724
@@ -135,8 +146,8 @@ typedef struct
 	#define S5K4E1GA_IMAGE_SENSOR_FULL_INSERTED_PIXELS		4
 	#define S5K4E1GA_IMAGE_SENSOR_FULL_INSERTED_LINES		4
 
-#define S5K4E1GAMIPI_WRITE_ID 	(0x6E)	//(0x20)   //(0x6E)
-#define S5K4E1GAMIPI_READ_ID	(0x6F)
+#define S5K4E1GAMIPI_WRITE_ID 	(0x20)//(0x6E)	//(0x20)   //(0x6E)
+#define S5K4E1GAMIPI_READ_ID	(0x21)//(0x6F)
 
 // SENSOR CHIP VERSION
 

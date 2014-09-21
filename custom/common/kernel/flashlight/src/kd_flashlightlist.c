@@ -19,6 +19,24 @@
 #include <asm/uaccess.h>
 #include "kd_camera_hw.h"
 
+#ifdef MT6582
+#include <mach/pmic_mt6323_sw.h>
+#endif
+
+#ifdef MT6592
+#include <mach/pmic_sw.h>
+#endif
+
+
+#ifdef MT6582
+    #define DEF_HAS_LOW_POWER_KERNEL 1
+#elif defined MT6592
+    #define DEF_HAS_LOW_POWER_KERNEL 1
+#else
+    #define DEF_HAS_LOW_POWER_KERNEL 0
+#endif
+
+
 #define USE_UNLOCKED_IOCTL
 
 //s_add new flashlight driver here
@@ -30,25 +48,31 @@ MUINT32 torchFlashlightInit(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc);
 MUINT32 constantFlashlightInit(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc);
 
 
+int strobe_getPartId(int sensorDev);
+MUINT32 subStrobeInit(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc);
+MUINT32 subStrobeInit_2ndPart_2(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc);
+MUINT32 mainStrobeInit_2ndPart_2(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc);
+
 KD_FLASHLIGHT_INIT_FUNCTION_STRUCT kdFlashlightList[] =
 {
-    {KD_DEFAULT_FLASHLIGHT_ID, defaultFlashlightInit},
+    {defaultFlashlightInit},
 #if defined(DUMMY_FLASHLIGHT)
-	{KD_DUMMY_FLASHLIGHT_ID, dummyFlashlightInit},
+	{dummyFlashlightInit},
 #endif
 #if defined(PEAK_FLASHLIGHT)
-	{KD_PEAK_FLASHLIGHT_ID, peakFlashlightInit},
+	{peakFlashlightInit},
 #endif
 #if defined(TORCH_FLASHLIGHT)
-	{KD_TORCH_FLASHLIGHT_ID, torchFlashlightInit},
+	{torchFlashlightInit},
 #endif
 #if defined(CONSTANT_FLASHLIGHT)
-	{KD_CONSTANT_FLASHLIGHT_ID, constantFlashlightInit},
+	{constantFlashlightInit},
 #endif
 
 
+	{subStrobeInit},
 /*  ADD flashlight driver before this line */
-    {0,NULL}, //end of list
+    {NULL}, //end of list
 };
 //e_add new flashlight driver here
 /******************************************************************************
@@ -106,9 +130,32 @@ KD_FLASHLIGHT_INIT_FUNCTION_STRUCT kdFlashlightList[] =
 
 *****************************************************************************/
 static FLASHLIGHT_FUNCTION_STRUCT *g_pFlashlightFunc = NULL;
+static int g_strobePartIdMain=1;
+static int g_strobePartIdSub=1;
+static int g_strobePartIdMainSecond=1;
+static int g_lowBatDuty=0;
+static int g_lowPowerProtect=0;
+
+
+
 /*****************************************************************************
 
 *****************************************************************************/
+static int sensorIdToListId(int sensorId)
+{
+	int id;
+	if(sensorId==e_CAMERA_MAIN_SENSOR)
+		id=1;
+	else if(sensorId==e_CAMERA_SUB_SENSOR)
+		id=2;
+	else if(sensorId==e_CAMERA_MAIN_2_SENSOR)
+		id=3;
+	else
+		id=0;
+	return id;
+}
+
+
 MINT32 default_flashlight_open(void *pArg) {
     PK_DBG("[default_flashlight_open] E\n");
     return 0;
@@ -145,7 +192,7 @@ FLASHLIGHT_FUNCTION_STRUCT	defaultFlashlightFunc=
 	default_flashlight_ioctl,
 };
 
-UINT32 defaultFlashlightInit(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc) { 
+UINT32 defaultFlashlightInit(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc) {
     if (pfFunc!=NULL) {
         *pfFunc=&defaultFlashlightFunc;
     }
@@ -154,11 +201,51 @@ UINT32 defaultFlashlightInit(PFLASHLIGHT_FUNCTION_STRUCT *pfFunc) {
 /*******************************************************************************
 * kdSetDriver
 ********************************************************************************/
-int kdSetFlashlightDrv(unsigned int *pFlashlightIdx)
+int kdSetFlashlightDrv(unsigned int *pSensorId)
 {
-unsigned int flashlightIdx = *pFlashlightIdx;
-    PK_DBG("[kdSetFlashlightDrv] flashlightIdx: %d \n",flashlightIdx);
-    
+	int partId;
+	if(*pSensorId==e_CAMERA_MAIN_SENSOR)
+		partId = g_strobePartIdMain;
+	else if(*pSensorId==e_CAMERA_SUB_SENSOR)
+		partId = g_strobePartIdSub;
+	else
+		partId=1;
+    g_lowPowerProtect=0;
+	PK_DBG("sensorDev=%d, strobePartIdaa= %d\n",*pSensorId, partId);
+
+
+	if(*pSensorId==e_CAMERA_MAIN_SENSOR)
+	{
+
+#if defined(DUMMY_FLASHLIGHT)
+		defaultFlashlightInit(&g_pFlashlightFunc);
+
+#else
+		if(partId==1)
+			constantFlashlightInit(&g_pFlashlightFunc);
+		else //if(partId==2)
+			mainStrobeInit_2ndPart_2(&g_pFlashlightFunc);
+#endif
+	}
+	else if(*pSensorId==e_CAMERA_SUB_SENSOR && partId==1)
+	{
+		subStrobeInit(&g_pFlashlightFunc);
+	}
+	else if(*pSensorId==e_CAMERA_SUB_SENSOR && partId==2)
+	{
+		subStrobeInit_2ndPart_2(&g_pFlashlightFunc);
+	}
+	else
+	{
+		defaultFlashlightInit(&g_pFlashlightFunc);
+	}
+
+
+
+
+/*
+    PK_DBG("[kdSetFlashlightDrv] flashlightIdx: %d, seonsorId %d\n",flashlightIdx, (int)(*pSensorId));
+
     if (NULL != kdFlashlightList[flashlightIdx].flashlightInit) {
         kdFlashlightList[flashlightIdx].flashlightInit(&g_pFlashlightFunc);
         if (NULL == g_pFlashlightFunc) {
@@ -171,7 +258,7 @@ unsigned int flashlightIdx = *pFlashlightIdx;
                 }
             }
         }
-    }
+    }*/
 
     //open flashlight driver
     if (g_pFlashlightFunc) {
@@ -183,21 +270,148 @@ unsigned int flashlightIdx = *pFlashlightIdx;
 /*****************************************************************************
 
 *****************************************************************************/
+#if DEF_HAS_LOW_POWER_KERNEL
+    static int g_lowPowerLevel=LOW_BATTERY_LEVEL_0;
+    static void lowPowerCB(LOW_BATTERY_LEVEL lev)
+    {
+    	g_lowPowerLevel=lev;
+    	PK_DBG(" lowPowerCB line=%d low=%d isProtect=%d func=%d\n",__LINE__,g_lowPowerLevel,g_lowPowerProtect,(int)g_pFlashlightFunc);
+        if (g_pFlashlightFunc && g_lowPowerProtect==1)
+        {
+            g_pFlashlightFunc->flashlight_ioctl(FLASH_IOC_SET_DUTY,g_lowBatDuty);
+        }
+    }
+    static int FL_hasLowPowerDetect()
+    {
+    	return 1;
+    }
+    static int detLowPowerStart()
+    {
+    }
+    static int detLowPowerEnd()
+    {
+        PK_DBG(" g_lowPowerLevel = %d \n", g_lowPowerLevel);
+    	if(g_lowPowerLevel!=LOW_BATTERY_LEVEL_0)
+    	{
+    	    PK_DBG("isLow=yes\n ");
+    		return 1;
+    	}
+    	else
+    	{
+    	    PK_DBG("isLow=no\n ");
+    		return 0;
+    	}
+    }
+#else
+    static int FL_hasLowPowerDetect()
+    {
+    	return 0;
+    }
+    static int detLowPowerStart()
+    {
+    }
+    static int detLowPowerEnd()
+    {
+    	return 0;
+    }
+#endif
+
+
+
+
+
+
+
 #ifdef USE_UNLOCKED_IOCTL
 static long flashlight_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 #else
 static int flashlight_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
 #endif
 {
+    int temp;
+	int partId;
     int i4RetValue = 0;
 
-    //PK_DBG("%x, %x \n",cmd,arg);
+    PK_DBG("XXflashlight_ioctl cmd,arg= %x, %x +\n",cmd,(unsigned int)arg);
+
+    static int bInit=1;
+    if(bInit==1)
+    {
+#if DEF_HAS_LOW_POWER_KERNEL
+        register_low_battery_notify(&lowPowerCB, LOW_BATTERY_PRIO_FLASHLIGHT);
+#endif
+        bInit=0;
+    }
 
     switch(cmd)
     {
         case FLASHLIGHTIOC_X_SET_DRIVER:
             i4RetValue = kdSetFlashlightDrv((unsigned int*)&arg);
             break;
+
+
+       	case FLASH_IOC_GET_MAIN_PART_ID:
+       		partId = strobe_getPartId(e_CAMERA_MAIN_SENSOR);
+       		g_strobePartIdMain = partId;
+       		if(copy_to_user((void __user *) arg , (void*)&partId , 4))
+			{
+			    PK_DBG("[FLASH_IOC_GET_MAIN_PART_ID] ioctl copy to user failed\n");
+			    return -EFAULT;
+			}
+          	break;
+		case FLASH_IOC_GET_SUB_PART_ID:
+       		partId = strobe_getPartId(e_CAMERA_SUB_SENSOR);
+       		g_strobePartIdSub = partId;
+       		if(copy_to_user((void __user *) arg , (void*)&partId , 4))
+			{
+			    PK_DBG("[FLASH_IOC_GET_SUB_PART_ID] ioctl copy to user failed\n");
+			    return -EFAULT;
+			}
+          	break;
+		case FLASH_IOC_GET_MAIN2_PART_ID:
+       		partId = strobe_getPartId(e_CAMERA_MAIN_2_SENSOR);
+       		g_strobePartIdMainSecond = partId;
+       		if(copy_to_user((void __user *) arg , (void*)&partId , 4))
+			{
+			    PK_DBG("[FLASH_IOC_GET_MAIN2_PART_ID] ioctl copy to user failed\n");
+			    return -EFAULT;
+			}
+          	break;
+        case FLASH_IOC_HAS_LOW_POWER_DETECT:
+    		PK_DBG("FLASH_IOC_HAS_LOW_POWER_DETECT");
+    		temp=FL_hasLowPowerDetect();
+    		if(copy_to_user((void __user *) arg , (void*)&temp , 4))
+            {
+                PK_DBG(" ioctl copy to user failed\n");
+                return -1;
+            }
+    		break;
+    	case FLASH_IOC_LOW_POWER_DETECT_START:
+    	    PK_DBG("FLASH_IOC_LOW_POWER_DETECT_START");
+    		detLowPowerStart();
+    		break;
+    	case FLASH_IOC_LOW_POWER_DETECT_END:
+    	    PK_DBG("FLASH_IOC_LOW_POWER_DETECT_END");
+    		temp = detLowPowerEnd();
+    		if(copy_to_user((void __user *) arg , (void*)&temp , 4))
+            {
+                PK_DBG(" ioctl copy to user failed %d\n", __LINE__);
+                return -1;
+            }
+    		break;
+        case FLASH_IOC_LOW_POWER_DUTY:
+            PK_DBG("FLASH_IOC_LOW_POWER_DUTY %d",g_lowBatDuty);
+            g_lowBatDuty = arg;
+            break;
+        case FLASH_IOC_LOW_POWER_PROTECT_START:
+            PK_DBG("FLASH_IOC_LOW_POWER_PROTECT_START");
+            g_lowPowerProtect=1;
+            break;
+        case FLASH_IOC_LOW_POWER_PROTECT_END:
+            PK_DBG("FLASH_IOC_LOW_POWER_PROTECT_END");
+            g_lowPowerProtect=0;
+            break;
+
     	default :
     	    if (g_pFlashlightFunc) {
     	        i4RetValue = g_pFlashlightFunc->flashlight_ioctl(cmd,arg);
@@ -211,6 +425,7 @@ static int flashlight_ioctl(struct inode *inode, struct file *file, unsigned int
 static int flashlight_open(struct inode *inode, struct file *file)
 {
     int i4RetValue = 0;
+    g_lowPowerProtect=0;
     PK_DBG("[flashlight_open] E\n");
     return i4RetValue;
 }
@@ -218,7 +433,7 @@ static int flashlight_open(struct inode *inode, struct file *file)
 static int flashlight_release(struct inode *inode, struct file *file)
 {
     PK_DBG("[flashlight_release] E\n");
-
+    g_lowPowerProtect=0;
     if (g_pFlashlightFunc) {
         g_pFlashlightFunc->flashlight_release(0);
         g_pFlashlightFunc = NULL;

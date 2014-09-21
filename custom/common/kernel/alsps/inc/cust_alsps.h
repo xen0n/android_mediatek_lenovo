@@ -4,6 +4,9 @@
 #define C_CUST_ALS_LEVEL    16
 #define C_CUST_I2C_ADDR_NUM 4
 
+#define MAX_THRESHOLD_HIGH 0xffff
+#define MIN_THRESHOLD_LOW 0x0
+
 struct alsps_hw {
     int i2c_num;                                    /*!< the i2c bus used by ALS/PS */
     int power_id;                                   /*!< the power id of the chip */
@@ -23,4 +26,6 @@ struct alsps_hw {
 };
 
 extern struct alsps_hw* get_cust_alsps_hw(void);
+
+__weak int pmic_ldo_suspend_enable(int enable);
 #endif

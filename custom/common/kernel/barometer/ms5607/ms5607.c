@@ -34,24 +34,24 @@
 #include <linux/sensors_io.h>
 #include "ms5607.h"
 #include <linux/hwmsen_helper.h>
-#ifdef MT6516
-#include <mach/mt6516_devs.h>
-#include <mach/mt6516_typedefs.h>
-#include <mach/mt6516_gpio.h>
-#include <mach/mt6516_pll.h>
+#ifdef MT_6516                     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6516_devs.h>     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6516_typedefs.h> ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6516_gpio.h>     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6516_pll.h>      ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
 #endif
 
-#ifdef MT6573
-#include <mach/mt6573_devs.h>
-#include <mach/mt6573_typedefs.h>
-#include <mach/mt6573_gpio.h>
-#include <mach/mt6573_pll.h>
+#ifdef MT_6573                     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6573_devs.h>     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6573_typedefs.h> ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6573_gpio.h>     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
+#include <mach/mt_6573_pll.h>      ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
 #endif
-#ifdef MT6516
+#ifdef MT_6516                     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
 #define POWER_NONE_MACRO MT6516_POWER_NONE
 #endif
 
-#ifdef MT6573
+#ifdef MT_6573                     ///< due to HAL, and if this driver needs to be ported to newer chips, the maintainer have to fix it to compliant with HAL
 #define POWER_NONE_MACRO MT65XX_POWER_NONE
 #endif
 /*----------------------------------------------------------------------------*/

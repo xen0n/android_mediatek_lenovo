@@ -19,7 +19,26 @@
 /*******************************************************************************
 *
 ********************************************************************************/
-
+#define YUV_INFO(_id, name, getCalData)\
+    { \
+    _id, name, \
+    NSFeature::YUVSensorInfo<_id>::createInstance(name, #name), \
+    (NSFeature::SensorInfoBase*(*)()) \
+    NSFeature::YUVSensorInfo<_id>::getInstance, \
+    NSFeature::YUVSensorInfo<_id>::getDefaultData, \
+    getCalData, \
+	NSFeature::YUVSensorInfo<_id>::getNullFlickerPara \
+    }
+#define RAW_INFO(_id, name, getCalData)\
+    { \
+    _id, name, \
+    NSFeature::RAWSensorInfo<_id>::createInstance(name, #name), \
+    (NSFeature::SensorInfoBase*(*)()) \
+    NSFeature::RAWSensorInfo<_id>::getInstance, \
+    NSFeature::RAWSensorInfo<_id>::getDefaultData, \
+    getCalData, \
+	NSFeature::RAWSensorInfo<_id>::getFlickerPara \
+    }
 /*******************************************************************************
 *
 ********************************************************************************/
@@ -52,13 +71,18 @@
 #define KDIMGSENSORIOC_X_SET_I2CBUS     _IOWR(IMGSENSORMAGIC,45,u32)
 //set I2C bus 
 #define KDIMGSENSORIOC_X_RELEASE_I2C_TRIGGER_LOCK     _IO(IMGSENSORMAGIC,50)
-
-
+//Set Shutter Gain Wait Done
+#define KDIMGSENSORIOC_X_SET_SHUTTER_GAIN_WAIT_DONE   _IOWR(IMGSENSORMAGIC,55,u32)//HDR
+//set mclk
+#define KDIMGSENSORIOC_X_SET_MCLK_PLL         _IOWR(IMGSENSORMAGIC,60,ACDK_SENSOR_MCLK_STRUCT)
+//set GPIO
+#define KDIMGSENSORIOC_X_SET_GPIO             _IOWR(IMGSENSORMAGIC,65,ACDK_SENSOR_GPIO_STRUCT)
+ 
 /*******************************************************************************
 *
 ********************************************************************************/
 /* SENSOR CHIP VERSION */
-#define OV5645MIPI_SENSOR_ID                    0x5645
+#define OV2722MIPI_SENSOR_ID                    0x2722
 #define MC501CB_SENSOR_ID                       0x0062
 #define MC501CC_SENSOR_ID                       0x0074
 #define MC501CA_SENSOR_ID                       0x0011
@@ -120,7 +144,10 @@
 #define OV5647MIPI_SENSOR_ID                        0x5647
 #define OV8825_SENSOR_ID            			0x8825
 #define OV12830_SENSOR_ID			  0xC830
+//lenovo_sw liaohj add for alston 2014-03-10
+#define OV13850_SENSOR_ID			  0xD850
 #define OV5648MIPI_SENSOR_ID                    0x5648
+#define OV5693_SENSOR_ID                        0x5690
 
 #define PO6030K_SENSOR_ID                       0x0060
 #define PO4010K_SENSOR_ID                       0x0040
@@ -152,6 +179,7 @@
 #define S5K8AAYX_SENSOR_ID			0x08aa
 
 #define S5K3H7Y_SENSOR_ID               	0x3087
+#define S5K3H2YX_SENSOR_ID                      0x382b
 
 #define PAS105_SENSOR_ID                        0x0065
 #define PAS302_SENSOR_ID                        0x0064
@@ -187,14 +215,22 @@
 #define IMX105_SENSOR_ID                        0x0105
 #define OV8830_SENSOR_ID			  0x8830
 #define OV9726_SENSOR_ID                          0x9726
+#define OV9726MIPI_SENSOR_ID                          0x9726
+#define OV9760MIPI_SENSOR_ID                          0x9760
 #define A5141MIPI_SENSOR_ID                     0x4800
+#define SP0A19_YUV_SENSOR_ID				0xA6
 #define A5142MIPI_SENSOR_ID                     0x4800
+#define GC0313MIPI_YUV_SENSOR_ID                0xD0
+#define IMX135_SENSOR_ID                        0x0135  
+#define OV16825MIPI_SENSOR_ID                       0x0168
 
+#define GC2035_SENSOR_ID			0x2035
+#define GC2235_SENSOR_ID			0x2235
 /* CAMERA DRIVER NAME */
 #define CAMERA_HW_DEVNAME            "kd_camera_hw"
 
 /* SENSOR DEVICE DRIVER NAME */
-#define SENSOR_DRVNAME_OV5645_MIPI_YUV "ov5645_mipi_yuv"
+#define SENSOR_DRVNAME_OV2722_MIPI_RAW  "ov2722mipiraw"
 #define SENSOR_DRVNAME_MT9P012_RAW  "mt9p012"
 #define SENSOR_DRVNAME_MT9P015_RAW  "mt9p015"
 #define SENSOR_DRVNAME_MT9P017_RAW  "mt9p017"
@@ -216,6 +252,7 @@
 
 #define SENSOR_DRVNAME_OV5647_RAW   	"ov5647"
 #define SENSOR_DRVNAME_OV5648_MIPI_RAW   	"ov5648mipi"
+#define SENSOR_DRVNAME_OV5693_MIPI_RAW     "ov5693mipi"
 #define SENSOR_DRVNAME_OV5642_MIPI_YUV    "ov5642mipiyuv"
 #define SENSOR_DRVNAME_OV5642_MIPI_RGB    "ov5642mipirgb"
 #define SENSOR_DRVNAME_OV5642_MIPI_JPG     "ov5642mipijpg"
@@ -239,6 +276,8 @@
 #define SENSOR_DRVNAME_IMX105_MIPI_RAW   "imx105mipiraw"
 #define SENSOR_DRVNAME_OV8830_RAW   	       "ov8830"
 #define SENSOR_DRVNAME_0V9726_RAW		"ov9726raw"
+#define SENSOR_DRVNAME_OV9726_MIPI_RAW		"ov9726mipiraw"
+#define SENSOR_DRVNAME_OV9760_MIPI_RAW		"ov9760mipiraw"
 #define SENSOR_DRVNAME_S5K4E1GA_MIPI_RAW   "s5k4e1gamipiraw"
 #define SENSOR_DRVNAME_S5K4ECGX_MIPI_YUV   "s5k4ecgxmipiyuv"
 #define SENSOR_DRVNAME_A5141_MIPI_RAW   "a5141mipiraw"
@@ -249,8 +288,17 @@
 #define SENSOR_DRVNAME_S5K3H7Y_MIPI_RAW   "s5k3h7ymipiraw"
 #define SENSOR_DRVNAME_OV8825_MIPI_RAW   "ov8825mipiraw"
 #define SENSOR_DRVNAME_OV12830_MIPI_RAW   "ov12830mipiraw"
+//lenovo_sw liaohj add for alston 2014-03-10
+#define SENSOR_DRVNAME_OV13850_MIPI_RAW   "ov13850mipiraw"
+#define SENSOR_DRVNAME_GC2035_YUV   "gc2035_yuv"
+#define SENSOR_DRVNAME_GC2235_RAW		"gc2235raw"
 
 #define SENSOR_DRVNAME_OV9740_MIPI_YUV     "ov9740mipiyuv"
+#define SENSOR_DRVNAME_S5K3H2YX_MIPI_RAW   "s5k3h2yxmipiraw"
+#define SENSOR_DRVNAME_SP0A19_YUV   "sp0a19yuv"
+#define SENSOR_DRVNAME_IMX135_MIPI_RAW   "imx135mipiraw"
+#define SENSOR_DRVNAME_GC0313MIPI_YUV      "gc0313mipiyuv"
+#define SENSOR_DRVNAME_OV16825_MIPI_RAW   "OV16825mipiraw"
 /*******************************************************************************
 *
 ********************************************************************************/

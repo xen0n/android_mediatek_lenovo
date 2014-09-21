@@ -38,7 +38,7 @@
 //Feature Option Definition
 #define MIPI_INTERFACE
 //#define FPGA_TEST
-//#define __JPEG_OUTPUT_ENABLE__
+//#define __CAPTURE_JPEG_OUTPUT__
 
 
 
@@ -70,10 +70,18 @@ typedef enum S5K4ECGX_CAMCO_MODE
 #define S5K4ECGX_IMAGE_SENSOR_VDO_HEIGHT_DRV    960
 
 /* SENSOR START/END POSITION */
+#if !defined(__CAPTURE_JPEG_OUTPUT__)
 #define S5K4ECGX_PV_X_START                     0    // 2
 #define S5K4ECGX_PV_Y_START                     1    // 2
 #define S5K4ECGX_FULL_X_START                   0
 #define S5K4ECGX_FULL_Y_START                   1
+#else
+#define S5K4ECGX_PV_X_START                     0    
+#define S5K4ECGX_PV_Y_START                     0    
+#define S5K4ECGX_FULL_X_START                   0
+#define S5K4ECGX_FULL_Y_START                   0
+#endif
+
 #define S5K4ECGX_MCLK                           24
 
 
@@ -228,6 +236,8 @@ struct S5K4ECGX_MIPI_sensor_struct
     //AF related
     S5K4ECGX_MIPI_AF_WIN_T  afWindows;
     S5K4ECGX_MIPI_AF_WIN_T  orignalAfWindows;
+    unsigned int            prevAfWinWidth;
+    unsigned int            prevAfWinHeight;
 
     kal_bool                afStateOnOriginalSet; //keep the AF on original setting
     kal_bool                aeStateOnOriginalSet; //keep the AF on original setting
@@ -261,6 +271,11 @@ struct S5K4ECGX_MIPI_sensor_struct
     unsigned char           isoSpeed;
     unsigned char           awbMode;
     unsigned int            capExposureTime;
+
+    ACDK_SENSOR_JPEG_OUTPUT_PARA jpegSensorPara;
+    ACDK_SENSOR_JPEG_INFO        jpegSensorInfo;
+    unsigned int                 jpegSensorHDRDelayFrmCnt;
+
 
 };
 

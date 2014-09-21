@@ -1,5 +1,4 @@
 #define FPGA_PORTING
-#define TPD_NO_GPIO
 
 #include <linux/init.h>
 #include <linux/module.h>
@@ -28,18 +27,10 @@
 #include <mach/mt_pm_ldo.h>
 #include <mach/mt_typedefs.h>
 #include <mach/mt_boot.h>
-#ifdef MT6575
 #include "tpd_custom_GT818B.h"
-#include <mach/mt6575_pm_ldo.h>
-#include <mach/mt6575_typedefs.h>
-#include <mach/mt6575_boot.h>
-#endif
-#ifdef MT6577
-#include "tpd_custom_GT818B.h"
-#include <mach/mt6577_pm_ldo.h>
-#include <mach/mt6577_typedefs.h>
-#include <mach/mt6577_boot.h>
-#endif
+#include <mach/mt_pm_ldo.h>
+#include <mach/mt_typedefs.h>
+#include <mach/mt_boot.h>
 #include "tpd.h"
 #include <cust_eint.h>
 #include <linux/jiffies.h>
@@ -47,8 +38,6 @@
 #ifndef TPD_NO_GPIO 
 #include "cust_gpio_usage.h"
 #endif
-
-#include "gt818_fw.h"
 
 extern struct tpd_device *tpd;
 
@@ -76,21 +65,17 @@ static int touch_event_handler(void *unused);
 static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id);
 static int tpd_i2c_detect(struct i2c_client *client, struct i2c_board_info *info);
 static int tpd_i2c_remove(struct i2c_client *client);
-#if 0
-extern void mt65xx_eint_unmask(unsigned int line);
-extern void mt65xx_eint_mask(unsigned int line);
-extern void mt65xx_eint_set_hw_debounce(kal_uint8 eintno, kal_uint32 ms);
-extern kal_uint32 mt65xx_eint_set_sens(kal_uint8 eintno, kal_bool sens);
-extern void mt65xx_eint_registration(kal_uint8 eintno, kal_bool Dbounce_En,
-                                     kal_bool ACT_Polarity, void (EINT_FUNC_PTR)(void),
-                                     kal_bool auto_umask);
-#endif
+
+
 #ifdef CREATE_WR_NODE
 extern s32 init_wr_node(struct i2c_client*);
 extern void uninit_wr_node(void);
 #endif
 
+#ifdef AUTOUPDATE_FIRMWARE
+#include "gt818_fw.h"
 extern int  gt818_downloader( struct i2c_client *client, unsigned short ver, unsigned char * data );
+#endif
 //#define TPD_DITO_SENSOR
 //#define TPD_CONDITION_SWITCH
 #define TPD_RESET_ISSUE_WORKAROUND
@@ -129,19 +114,9 @@ int esd_checked_time = 0;
 //#define TPD_X_RES 480
 //#define TPD_Y_RES 800
 
-
-
-#ifdef MT6573
-#define CHR_CON0        (0xF7000000+0x2FA00)
-#endif
-#ifdef MT6575
+#ifdef TPD_CONDITION_SWITCH
 extern kal_bool upmu_is_chr_det(void);
 #endif
-#ifdef MT6577
-extern kal_bool upmu_is_chr_det(void);
-#endif
-
-extern kal_bool upmu_is_chr_det(void);
 
 #define MAX_I2C_TRANSFER_SIZE (MAX_TRANSACTION_LENGTH - I2C_DEVICE_ADDRESS_LEN)
 
@@ -312,7 +287,6 @@ static int gt818_config_read_proc(char *page, char **start, off_t off, int count
     char *ptr = page;
     char temp_data[CONFIG_LEN] = {0};
     int i;
-
     ptr += sprintf( ptr, "==== GT818 config init value====\n" );
 
     for ( i = 0 ; i < CONFIG_LEN ; i++ )
@@ -351,19 +325,9 @@ static int gt818_config_read_proc(char *page, char **start, off_t off, int count
 
 static int gt818_config_write_proc(struct file *file, const char *buffer, unsigned long count, void *data)
 {
-    #ifdef MT6573
-    u32 temp = *(volatile u32 *)CHR_CON0;
-        
-    temp &= (1<<13);
-    #endif   
-    #ifdef MT6575
+#ifdef TPD_CONDITION_SWITCH
     kal_bool temp = upmu_is_chr_det();
-    #endif 
-	#ifdef MT6577
-    kal_bool temp = upmu_is_chr_det();
-	#endif 
-    kal_bool temp = upmu_is_chr_det();
-
+#endif
     TPD_DEBUG("write count %ld\n", count );
 
     if ( count != (CONFIG_LEN*2 ) )
@@ -385,10 +349,14 @@ static int gt818_config_write_proc(struct file *file, const char *buffer, unsign
     }
     i2c_write_dummy( i2c_client, TPD_HANDSHAKING_START_REG );
 
+#ifdef TPD_CONDITION_SWITCH
     if ( temp )
         i2c_write_bytes( i2c_client, TPD_CONFIG_REG_BASE, cfg_data_with_charger, CONFIG_LEN );
     else
         i2c_write_bytes( i2c_client, TPD_CONFIG_REG_BASE, cfg_data, CONFIG_LEN );
+#else
+    i2c_write_bytes( i2c_client, TPD_CONFIG_REG_BASE, cfg_data, CONFIG_LEN );
+#endif
 
     i2c_write_dummy( i2c_client, TPD_HANDSHAKING_END_REG );
     return count;
@@ -666,14 +634,15 @@ void tpd_reset_fuc(struct i2c_client *client)
 	TPD_DMESG("[mtk-tpd] tpd_reset_fuc: done\n");
 }
 //
+static int tpd_version_b=0;
 static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {             
     int err = 0;
-    u8 buffer[8] = {0};
-    int res =0;
+    //u8 buffer[8] = {0};
+    //int res =0;
 	 u32 temp;
-	 char temp_data[CONFIG_LEN] = {0};
-	 int i =0;
+	 //char temp_data[CONFIG_LEN] = {0};
+	 //int i =0;
 #ifdef HAVE_TOUCH_KEY
 	int retry = 0;
 #endif
@@ -683,37 +652,15 @@ static int tpd_i2c_probe(struct i2c_client *client, const struct i2c_device_id *
 	char cpf = 0;
 	char i;
 #endif	
-	int ret = 0;
+	//int ret = 0;
 	char int_type = 0;
 #ifdef TPD_RESET_ISSUE_WORKAROUND
     int reset_count = 0;
     TPD_DMESG(TPD_DEVICE " gt818b prob+++\n" );
 	
 reset_proc:   
-#ifdef MT6573	
-    // power on CTP
-    mt_set_gpio_mode(GPIO_CTP_EN_PIN, GPIO_CTP_EN_PIN_M_GPIO);
-    mt_set_gpio_dir(GPIO_CTP_EN_PIN, GPIO_DIR_OUT);
-    mt_set_gpio_out(GPIO_CTP_EN_PIN, GPIO_OUT_ONE);
-#endif
-#ifdef MT6575
-    //power on, need confirm with SA
-    hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-    hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP");      
-#endif
-#ifdef MT6577
-		//power on, need confirm with SA
-		hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-		hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP");	  
-#endif
-#ifdef MT6583
-			//power on, need confirm with SA
-			//hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-			//hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP");	  
-#endif
 
 #ifdef TPD_NO_GPIO
- #if 1
 	
     temp = *(volatile u32 *) TPD_GPIO_OE_ADDR;
     //temp = temp | 0x40;
@@ -744,7 +691,6 @@ reset_proc:
     //mt65xx_reg_sync_write(TPD_GPIO_GPO_ADDR, temp);
     *(volatile u32 *) TPD_GPIO_GPO_ADDR = temp;
     printk("TPD_GPIO_GPO_ADDR:0x%x\n", *(volatile u32 *) TPD_GPIO_GPO_ADDR);
-   #endif
     #endif
 	
 
@@ -765,40 +711,12 @@ reset_proc:
     msleep(50);
 #endif
 #else
-#ifdef MT6583
-		//power on, need confirm with SA
-		hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-		hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP");  
-#endif
 
-#ifdef MT6577
-		//power on, need confirm with SA
-		hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-		hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP");  
-#endif
-#ifdef MT6575
-    //power on, need confirm with SA
-    hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-    hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP");  
-#endif
     // set deep sleep off
     mt_set_gpio_mode(GPIO_CTP_RST_PIN, GPIO_CTP_RST_PIN_M_GPIO);
     mt_set_gpio_dir(GPIO_CTP_RST_PIN, GPIO_DIR_OUT);
     mt_set_gpio_out(GPIO_CTP_RST_PIN, GPIO_OUT_ONE);  
     msleep(10);  
-#ifdef MT6573
-    // power down CTP
-    mt_set_gpio_mode(GPIO_CTP_EN_PIN, GPIO_CTP_EN_PIN_M_GPIO);
-    mt_set_gpio_dir(GPIO_CTP_EN_PIN, GPIO_DIR_OUT);
-    mt_set_gpio_out(GPIO_CTP_EN_PIN, GPIO_OUT_ZERO);
-    msleep(10);
-
-    // power on CTP
-    mt_set_gpio_mode(GPIO_CTP_EN_PIN, GPIO_CTP_EN_PIN_M_GPIO);
-    mt_set_gpio_dir(GPIO_CTP_EN_PIN, GPIO_DIR_OUT);
-    mt_set_gpio_out(GPIO_CTP_EN_PIN, GPIO_OUT_ONE);
-    msleep(50);
-#endif    
 #endif
 
 //test i2c
@@ -893,7 +811,9 @@ reset_proc:
 	#endif
 
     i2c_client = client;
-   
+
+//FIX-ME: linux-3.10 procfs API changed
+/*
     // Create proc file system
     gt818_config_proc = create_proc_entry( GT818_CONFIG_PROC_FILE, 0666, NULL);
 
@@ -906,7 +826,7 @@ reset_proc:
         gt818_config_proc->read_proc = gt818_config_read_proc;
         gt818_config_proc->write_proc = gt818_config_write_proc;
     }
-  
+*/  
 #ifdef CREATE_WR_NODE
   	
     init_wr_node(client);
@@ -918,6 +838,7 @@ reset_proc:
 		TPD_DMESG(TPD_DEVICE " B version: 0x4B~0x59, C version 0x5A~0x79\n" );
         cfg_data = cfg_data_version_b;
         cfg_data_with_charger = cfg_data_version_b;
+	tpd_version_b=1;
     }
     else if ( tpd_info.version_1 < 0xA0 ) 
     {
@@ -925,6 +846,7 @@ reset_proc:
 		TPD_DMESG(TPD_DEVICE "  D version: 0x7A~0x99, E version 0x9A~0xB9\n" );
         cfg_data = cfg_data_version_d;
         cfg_data_with_charger = cfg_data_with_charger_version_d;
+	tpd_version_b=0;
     }
     else
     {
@@ -985,17 +907,24 @@ reset_proc:
     msleep(50);
 #endif
     //mt_eint_set_sens(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_SENSITIVE);
-    mt_eint_set_hw_debounce(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_DEBOUNCE_DISABLE);
+    //mt_eint_set_hw_debounce(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_DEBOUNCE_DISABLE);
     //mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_DEBOUNCE_EN, CUST_EINT_TOUCH_PANEL_POLARITY, tpd_eint_interrupt_handler, 1);
-
+#if 1
 	if(int_type)
-	{
+	{		
+		TPD_DMESG("RISING EINT!\n");
     		mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, EINTF_TRIGGER_RISING, tpd_eint_interrupt_handler, 1);
     	}
 	else
 	{
+		TPD_DMESG("FALLING EINT!\n");
     		mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, EINTF_TRIGGER_FALLING, tpd_eint_interrupt_handler, 1);	
 	}
+#else	
+	TPD_DMESG("LOW EINT!\n");
+	mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, EINTF_TRIGGER_LOW, tpd_eint_interrupt_handler, 1);
+#endif
+	
     mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
 
 #ifndef TPD_RESET_ISSUE_WORKAROUND
@@ -1058,15 +987,6 @@ static force_reset_guitar()
 {
 	int i;
 	
-#ifdef MT6575
-//Power off TP
-	hwPowerDown(MT65XX_POWER_LDO_VGP2, "TP");
-	msleep(30);
-//Power on TP
-	hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-	msleep(30);
-#endif
-
 	for ( i = 0; i < 5; i++)
 	{ 
 	//Reset Guitar
@@ -1123,7 +1043,7 @@ static void tpd_esd_check_func(struct work_struct *work)
 
 	if(tpd_halt)
 	{
-		mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
+		//mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
 	}
 	else	
 	{
@@ -1136,7 +1056,7 @@ static void tpd_esd_check_func(struct work_struct *work)
 
 static void tpd_down(int x, int y, int size, int id)
 {
-    TPD_DMESG( "TPD downx:%d,y:%d] id=%d\n",x, y,id-1);
+    //TPD_DMESG( "TPD down[x:%d,y:%d] id=%d\n",x, y,id-1);
     input_report_abs(tpd->dev, ABS_PRESSURE, size/100);
     input_report_key(tpd->dev, BTN_TOUCH, 1);
     input_report_abs(tpd->dev, ABS_MT_TOUCH_MAJOR, size/100);
@@ -1159,7 +1079,7 @@ static void tpd_down(int x, int y, int size, int id)
 
 static void tpd_up(int x, int y, int id)
 {
-    TPD_DMESG( "TPD up [x:%d,y:%d] id=%d\n",x,y,id-1);
+    //TPD_DMESG( "TPD up [x:%d,y:%d] id=%d\n",x,y,id-1);
    
     //input_report_abs(tpd->dev, ABS_PRESSURE, 0);
     input_report_key(tpd->dev, BTN_TOUCH, 0);
@@ -1220,9 +1140,12 @@ static int touch_event_handler(void *unused)
             tpd_flag = 0;
             msleep(20);
         }
-
+#ifdef TPD_POLLING_MODE
+	msleep(200);
+#else
         wait_event_interruptible(waiter, tpd_flag != 0);
         tpd_flag = 0;
+#endif
         TPD_DEBUG_SET_TIME;
         set_current_state(TASK_RUNNING); 
         
@@ -1230,18 +1153,6 @@ static int touch_event_handler(void *unused)
 
 #ifdef TPD_CONDITION_SWITCH
         /* Workaround for common mode noise */
-#ifdef MT6573        
-        temp = *(volatile u32 *)CHR_CON0;
-        temp &= (1<<13);
-#endif
-#ifdef MT6575
-        temp = upmu_is_chr_det();
-        //TPD_DMESG("check charge, status:%d \n", upmu_is_chr_det());
-#endif
-#ifdef MT6577
-		temp = upmu_is_chr_det();
-		//TPD_DMESG("check charge, status:%d \n", upmu_is_chr_det());
-#endif        
 				temp = upmu_is_chr_det();
 				//TPD_DMESG("check charge, status:%d \n", upmu_is_chr_det());
 
@@ -1384,9 +1295,14 @@ static int touch_event_handler(void *unused)
                 y = ptr[3] + (((int)ptr[4]) << 8);
                 size = ptr[5] + (((int)ptr[6]) << 8);
 
-                wrap_x = TPD_WARP_X(x);
-				wrap_y = TPD_WARP_Y(y);
-				
+                if(tpd_version_b){
+			wrap_x = TPD_WARP_X(x);
+			wrap_y = TPD_WARP_Y(y);
+                }else{
+                	wrap_x=x;
+			wrap_y=y;		
+                }
+#if 0				
                 if(TPD_X_RES== TPD_WARP_X(x))
                 {
 				  wrap_x = wrap_x-1;
@@ -1403,7 +1319,7 @@ static int touch_event_handler(void *unused)
 				{
 				  wrap_y=wrap_y-1;
 				}
-
+#endif
                 tpd_down( wrap_x, wrap_y, size, id);
 
                 cur_mask |= ( 1 << id );
@@ -1539,20 +1455,7 @@ static void tpd_suspend( struct early_suspend *h )
     i2c_write_dummy( i2c_client, TPD_HANDSHAKING_START_REG );
     i2c_write_bytes( i2c_client, TPD_POWER_MODE_REG, &mode, 1 );
     i2c_write_dummy( i2c_client, TPD_HANDSHAKING_END_REG );    
-    mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
-#if 0//#ifdef MT6575, using PMIC Power off leakage 0.3mA, sleep mode: 0.1mA    
-    hwPowerDown(MT65XX_POWER_LDO_VGP2, "TP");
-    hwPowerDown(MT65XX_POWER_LDO_VGP, "TP");
-    /* Pull down EINT PIN and RST PIN */    
-    mt_set_gpio_mode(GPIO_CTP_EINT_PIN, GPIO_CTP_EINT_PIN_M_GPIO);
-    mt_set_gpio_dir(GPIO_CTP_EINT_PIN, GPIO_DIR_IN);
-    mt_set_gpio_pull_enable(GPIO_CTP_EINT_PIN, GPIO_PULL_DISABLE);
-    mt_set_gpio_pull_select(GPIO_CTP_EINT_PIN, GPIO_PULL_DOWN);  
-    mt_set_gpio_mode(GPIO_CTP_RST_PIN, GPIO_CTP_EINT_PIN_M_GPIO);
-    mt_set_gpio_dir(GPIO_CTP_RST_PIN, GPIO_DIR_IN);
-    mt_set_gpio_pull_enable(GPIO_CTP_RST_PIN, GPIO_PULL_DISABLE);
-    mt_set_gpio_pull_select(GPIO_CTP_RST_PIN, GPIO_PULL_DOWN);      
-#endif    
+    //mt_eint_mask(CUST_EINT_TOUCH_PANEL_NUM);
     //mt_set_gpio_out(GPIO_CTP_RST_PIN, GPIO_OUT_ZERO);
     //return 0;
     TPD_DMESG("tpd_suspend ok\n"); 
@@ -1568,13 +1471,9 @@ static void tpd_resume( struct early_suspend *h )
 		
 #endif
     TPD_DMESG(TPD_DEVICE " tpd_resume start \n"); 	
-#if 0 //#ifdef MT6575, using PMIC Power off leakage 0.3mA, sleep mode: 0.1mA   
-    hwPowerOn(MT65XX_POWER_LDO_VGP2, VOL_2800, "TP");
-    hwPowerOn(MT65XX_POWER_LDO_VGP, VOL_1800, "TP"); 
-#endif    
 #ifdef TPD_RESET_ISSUE_WORKAROUND
     
-#if 1 //#ifdef MT6573, using PMIC Power off leakage 0.3mA, sleep mode: 0.1mA      
+#if 1       
     // use raising edge of INT to wakeup
  #ifndef TPD_NO_GPIO    
     mt_set_gpio_mode(GPIO_CTP_EINT_PIN, GPIO_CTP_EINT_PIN_M_GPIO);
@@ -1589,7 +1488,7 @@ static void tpd_resume( struct early_suspend *h )
     mt_set_gpio_dir(GPIO_CTP_EINT_PIN, GPIO_DIR_IN);
 	#endif
  #endif
-#if 0 //#ifdef MT6575, using PMIC Power off leakage 0.3mA, sleep mode: 0.1mA 
+#if 0  
      // set INT mode
     mt_set_gpio_mode(GPIO_CTP_EINT_PIN, GPIO_CTP_EINT_PIN_M_GPIO);
     mt_set_gpio_dir(GPIO_CTP_EINT_PIN, GPIO_DIR_IN);
@@ -1612,7 +1511,7 @@ static void tpd_resume( struct early_suspend *h )
 #endif   
 #endif
 
-    mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM); 
+    //mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM); 
     //mt_set_gpio_out(GPIO_CTP_RST_PIN, GPIO_OUT_ONE);
 
 #ifdef TPD_RESET_ISSUE_WORKAROUND

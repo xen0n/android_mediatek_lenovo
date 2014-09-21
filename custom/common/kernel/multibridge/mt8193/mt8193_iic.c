@@ -18,7 +18,7 @@
 /*****************************************************************************/
 #if defined(MTK_MULTIBRIDGE_SUPPORT)
 
-#include <linux/autoconf.h>
+#include <generated/autoconf.h>
 #include <linux/mm.h>
 #include <linux/init.h>
 #include <linux/fb.h>
@@ -53,7 +53,7 @@
 #include <asm/uaccess.h>
 #include <linux/slab.h>
 
-#include <linux/autoconf.h>
+#include <generated/autoconf.h>
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/init.h>
@@ -275,7 +275,7 @@ static int __init mt8193_mb_init(void)
 {
     MT8193_IIC_FUNC();
     
-    i2c_register_board_info(2, &i2c_mt8193, 1);
+    i2c_register_board_info(0, &i2c_mt8193, 1);
     if(platform_driver_register(&mt8193_mb_driver))
     {
         MT8193_IIC_LOG("failed to register mt8193 driver");

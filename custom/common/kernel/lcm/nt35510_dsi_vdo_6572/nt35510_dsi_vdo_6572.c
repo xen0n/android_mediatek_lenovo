@@ -1,4 +1,5 @@
 #ifdef BUILD_LK
+    #include <string.h>
 #else
     #include <linux/string.h>
     #if defined(BUILD_UBOOT)
@@ -24,7 +25,7 @@
 //  Local Variables
 // ---------------------------------------------------------------------------
 
-static LCM_UTIL_FUNCS lcm_util = {0};
+static LCM_UTIL_FUNCS lcm_util;
 
 #define SET_RESET_PIN(v)    (lcm_util.set_reset_pin((v)))
 
@@ -150,7 +151,7 @@ static void lcm_get_params(LCM_PARAMS *params)
 
     params->dsi.vertical_sync_active				= 3;
     params->dsi.vertical_backporch					= 20;
-    params->dsi.vertical_frontporch					= 20;	
+    params->dsi.vertical_frontporch					= 20;
     params->dsi.vertical_active_line				= FRAME_HEIGHT;
     
     params->dsi.horizontal_sync_active				= 10;
@@ -161,15 +162,7 @@ static void lcm_get_params(LCM_PARAMS *params)
     params->dsi.compatibility_for_nvk = 0;		// this parameter would be set to 1 if DriverIC is NTK's and when force match DSI clock for NTK's
     
     // Bit rate calculation
-#ifdef CONFIG_MT6589_FPGA
-    params->dsi.pll_div1=2;		// div1=0,1,2,3;div1_real=1,2,4,4
-    params->dsi.pll_div2=2;		// div2=0,1,2,3;div1_real=1,2,4,4
-    params->dsi.fbk_div =8;		// fref=26MHz, fvco=fref*(fbk_div+1)*2/(div1_real*div2_real)
-#else
-    params->dsi.pll_div1=1;		// div1=0,1,2,3;div1_real=1,2,4,4
-    params->dsi.pll_div2=0;		// div2=0,1,2,3;div2_real=1,2,4,4
-    params->dsi.fbk_div =16;		// fref=26MHz, fvco=fref*(fbk_div+1)*2/(div1_real*div2_real)		
-#endif
+    params->dsi.PLL_CLOCK = 208; //dsi clock customization: should config clock value directly
 }
 
 

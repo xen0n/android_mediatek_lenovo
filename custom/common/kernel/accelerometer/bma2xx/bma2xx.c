@@ -30,39 +30,9 @@
 #include <linux/mutex.h>
 #include <linux/module.h>
 
-#ifdef MT6516
-#include <mach/mt6516_devs.h>
-#include <mach/mt6516_typedefs.h>
-#include <mach/mt6516_gpio.h>
-#include <mach/mt6516_pll.h>
-#endif
-
-#ifdef MT6573
-#include <mach/mt6573_devs.h>
-#include <mach/mt6573_typedefs.h>
-#include <mach/mt6573_gpio.h>
-#include <mach/mt6573_pll.h>
-#endif
-
-#ifdef MT6575
-#include <mach/mt6575_devs.h>
-#include <mach/mt6575_typedefs.h>
-#include <mach/mt6575_gpio.h>
-#include <mach/mt6575_pm_ldo.h>
-#endif
-
-#ifdef MT6577
-#include <mach/mt6577_devs.h>
-#include <mach/mt6577_typedefs.h>
-#include <mach/mt6577_gpio.h>
-#include <mach/mt6577_pm_ldo.h>
-#endif
-
-#if defined(MT6573) || defined(MT6575) || defined(MT6577)
-#define POWER_NONE_MACRO MT65XX_POWER_NONE
-#elif defined(MT6516)
-#define POWER_NONE_MACRO MT6516_POWER_NONE
-#endif
+#include <mach/devs.h>
+#include <mach/mt_typedefs.h>
+#include <mach/mt_gpio.h>
 
 #include <cust_acc.h>
 #include <linux/hwmsensor.h>

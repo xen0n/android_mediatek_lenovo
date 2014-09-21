@@ -27,62 +27,12 @@
 #include <linux/platform_device.h>
 #include <asm/atomic.h>
 	 
-#ifdef MT6516
-#include <mach/mt6516_devs.h>
-#include <mach/mt6516_typedefs.h>
-#include <mach/mt6516_gpio.h>
-#include <mach/mt6516_pll.h>
-#endif
-
-#ifdef MT6573
-#include <mach/mt6573_devs.h>
-#include <mach/mt6573_typedefs.h>
-#include <mach/mt6573_gpio.h>
-#include <mach/mt6573_pll.h>
-#endif
-
-#ifdef MT6575
-#include <mach/mt6575_devs.h>
-#include <mach/mt6575_typedefs.h>
-#include <mach/mt6575_gpio.h>
-#include <mach/mt6575_pm_ldo.h>
-#endif
-
-#ifdef MT6577
-#include <mach/mt6577_devs.h>
-#include <mach/mt6577_typedefs.h>
-#include <mach/mt6577_gpio.h>
-#include <mach/mt6577_pm_ldo.h>
-#endif
-
-#ifdef MT6572
 #include <mach/mt_pm_ldo.h>
 #include <mach/mt_typedefs.h>
 #include <mach/mt_gpio.h>
 #include <mach/mt_boot.h>
-#endif
-/*-------------------------MT6516&MT6573 define-------------------------------*/
-#ifdef MT6516
-#define POWER_NONE_MACRO MT6516_POWER_NONE
-#endif
 
-#ifdef MT6573
 #define POWER_NONE_MACRO MT65XX_POWER_NONE
-#endif
-
-#ifdef MT6575
-#define POWER_NONE_MACRO MT65XX_POWER_NONE
-#endif
-
-#ifdef MT6577
-#define POWER_NONE_MACRO MT65XX_POWER_NONE
-#endif
-
-#ifdef MT6572
-#define POWER_NONE_MACRO MT65XX_POWER_NONE
-#endif
-	 
-	 
 	 
 #include <cust_acc.h>
 #include <linux/hwmsensor.h>
@@ -101,7 +51,7 @@
 	 /*----------------------------------------------------------------------------*/
 #define MXC622X_AXIS_X          0
 #define MXC622X_AXIS_Y          1
-//#define MXC622X_AXIS_Z          2
+#define MXC622X_AXIS_Z          2
 #define MXC622X_AXES_NUM        2
 #define MXC622X_DATA_LEN        2
 #define MXC622X_DEV_NAME        "MXC622X"
@@ -219,6 +169,39 @@
 
 #define BMA222_I2C_GPIO_MODE
 //#define BMA222_I2C_GPIO_MODE_DEBUG
+
+#define MXC622X_ABS(a) (((a) < 0) ? -(a) : (a))
+
+static int mxc622x_sqrt(int high, int low, int value)
+{
+	int med;
+	int high_diff = 0;
+	int low_diff = 0;
+	
+	if (value <= 0)
+		return 0;
+
+	high_diff = MXC622X_ABS(high * high - value);
+	low_diff = MXC622X_ABS(low * low - value);
+	
+	while (MXC622X_ABS(high - low) > 1)
+	{
+		med = (high + low ) / 2;
+		if (med * med > value)
+		{
+			high = med;
+			high_diff = high * high - value;
+		}
+		else
+		{
+			low = med;
+			low_diff = value - low * low;
+		}
+	}
+
+	return high_diff <= low_diff ? high : low;
+}
+
 
 #if defined(BMA222_I2C_GPIO_MODE)	//modified by zhaofei
 #define BMA222_I2C_SLAVE_WRITE_ADDR	0x2A	
@@ -1274,8 +1257,9 @@ int cust_hwmsen_read_block(struct i2c_client *client, u8 addr, u8 *data, u8 len)
                 GSE_LOG("after * GRAVITY_EARTH_1000 / obj->reso->sensitivity: %d, %d!\n", acc[MXC622X_AXIS_X], acc[MXC622X_AXIS_Y]);
             }
 		 
+	 		acc[MXC622X_AXIS_Z] = -mxc622x_sqrt(9807, 0, 9807*9807-acc[MXC622X_AXIS_X]*acc[MXC622X_AXIS_X]-acc[MXC622X_AXIS_Y]*acc[MXC622X_AXIS_Y]);
 	 
-			 sprintf(buf, "%04x %04x %04x", acc[MXC622X_AXIS_X], acc[MXC622X_AXIS_Y], 0);
+			 sprintf(buf, "%04x %04x %04x", acc[MXC622X_AXIS_X], acc[MXC622X_AXIS_Y], acc[MXC622X_AXIS_Z]);
 			 if(atomic_read(&obj->trace) & ADX_TRC_IOCTL)
 			 {
 				 GSE_LOG("gsensor data: %s!\n", buf);
@@ -1704,8 +1688,8 @@ static ssize_t store_layout_value(struct device_driver *ddri, char *buf, size_t 
 				 {
 					 gsensor_data = (hwm_sensor_data *)buff_out;
 					 MXC622X_ReadSensorData(priv->client, buff, MXC622X_BUFSIZE);
-					 sscanf(buff, "%x %x", &gsensor_data->values[0], 
-						 &gsensor_data->values[1]);				 
+					 sscanf(buff, "%x %x %x", &gsensor_data->values[0], 
+						 &gsensor_data->values[1], &gsensor_data->values[2]);
 					 gsensor_data->status = SENSOR_STATUS_ACCURACY_MEDIUM;				 
 					 gsensor_data->value_divide = 1000;
 				 }
