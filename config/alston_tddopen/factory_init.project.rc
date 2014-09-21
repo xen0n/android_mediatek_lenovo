@@ -1,0 +1,17 @@
+on post-fs
+    
+service eemcs_fsd /system/bin/eemcs_fsd 0
+    user ccci
+    group  nvram ccci system
+    oneshot 
+
+service eemcs_mdinit /system/bin/eemcs_mdinit 0
+    user system
+    group nvram ccci system
+    oneshot
+
+# for proximity sensor cali usage merge from avene-w --by lenovo huangdra 20130424
+service nvram_proximity /system/bin/nvram_proximity
+    user root
+    oneshot
+#for proximity sensor cali usage merge from avene-w --by lenovo huangdra 20130424

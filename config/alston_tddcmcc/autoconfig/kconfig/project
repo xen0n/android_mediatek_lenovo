@@ -1,0 +1,39 @@
+CONFIG_MT6592_EVB_BOARD=y
+# CONFIG_MT6592_FPGA_CA7 is not set
+# CONFIG_MT6592_FPGA is not set
+# CONFIG_EARLY_LINUX_PORTING is not set
+CONFIG_MTK_VIDEOCODEC_DRIVER=y
+CONFIG_SOUND=y
+CONFIG_USB_MTK_OTG=n
+CONFIG_USB_MTK_HDRC_HCD=n
+#lenovo_sw liaohj modify for no nfc 2015-05-22 begin
+CONFIG_MTK_NFC=n
+#lenovo_sw liaohj modify for no nfc 2015-05-22 end
+CONFIG_MTK_CIRQ=y
+
+#lenovo_sw liaohj modify for no nfc 2015-05-22 begin
+CONFIG_MTK_NFC=n
+#CONFIG_NFC_MT6605=y
+#lenovo_sw liaohj modify for no nfc 2015-05-22 end
+# CONFIG_NFC_MSR3110 is not set
+# CONFIG_PN544_NFC is not set
+# CONFIG_NFC_PN533 is not set
+# CONFIG_NFC_WILINK is not set
+
+#
+# ION Support
+#
+CONFIG_ION=y
+CONFIG_ION_MTK=y
+
+CONFIG_POWER_EXT=n
+
+# disable CCCI
+# CONFIG_MTK_CCCI_DEVICES is not set
+# CONFIG_MTK_CCCI_DRIVER is not set
+# CONFIG_MTK_CCCI_EXT is not set
+# CONFIG_MTK_NET_CCMNI is not set
+
+# Enable EEMCS
+CONFIG_MTK_EEMCS_DEVICES=y
+CONFIG_MTK_EEMCS_DRIVER=m
